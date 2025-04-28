@@ -12,9 +12,12 @@ daphne==4.1.2
 Django==5.2
 geographiclib==2.0
 geopy==2.4.1
+git-filter-repo==2.47.0
+gunicorn==23.0.0
 hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
+packaging==25.0
 pillow==11.2.1
 pyasn1==0.6.1
 pyasn1_modules==0.4.2

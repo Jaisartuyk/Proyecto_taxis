@@ -119,7 +119,7 @@ LOGIN_URL = '/home/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-FIREBASE_CREDENTIALS_PATH = '/home/jairojavier/taxi_project/firebase/firebase-adminsdk.json'
+
 
 
 # Internationalization

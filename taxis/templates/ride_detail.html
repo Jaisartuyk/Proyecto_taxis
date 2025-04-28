@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Detalle de la Carrera</h2>
+    <nav>
+        <ul>
+            <li><a href="{% url 'home' %}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a></li>
+        </ul>
+    </nav>
+    <div id="map" style="height: 400px;"></div>
+
+    <div class="mt-3">
+        <h3>Información de la Carrera</h3>
+        <p><strong>Origen:</strong> {{ ride.origin }}</p>
+        <p><strong>Precio:</strong> ${{ ride.price }}</p>
+        <p><strong>Estado:</strong> {{ ride.status }}</p>
+        <p><strong>Destinos:</strong></p>
+        <ul>
+            {% for destination in ride.destinations.all %}
+            <li>{{ destination.destination }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% if request.user == ride.customer or request.user.is_superuser %}
+    <!-- Información que verá el cliente o el administrador -->
+    <h3>Información del Conductor</h3>
+    {% if ride.driver %}
+    <p><strong>Nombre:</strong> {{ ride.driver.username }}</p>
+    <p><strong>Email:</strong> {{ ride.driver.email }}</p>
+    <p><strong>Teléfono:</strong> {{ ride.driver.phone_number }}</p>
+    {% else %}
+    <p>Aún no se ha asignado un conductor a esta carrera.</p>
+    {% endif %}
+
+    <!-- Mostrar el taxi del cliente en el mapa -->
+    {% if ride.customer.taxi %}
+    <h4>Taxi del Cliente</h4>
+    <p><strong>Placa:</strong> {{ ride.customer.taxi.plate_number }}</p>
+    <p><strong>Descripción:</strong> {{ ride.customer.taxi.vehicle_description }}</p>
+    {% endif %}
+    {% endif %}
+
+    {% if request.user == ride.driver or request.user.is_superuser %}
+    <!-- Información que verá el conductor o el administrador -->
+    <h3>Información del Cliente</h3>
+    <p><strong>Nombre:</strong> {{ ride.customer.username }}</p>
+    <p><strong>Email:</strong> {{ ride.customer.email }}</p>
+    <p><strong>Teléfono:</strong> {{ ride.customer.phone_number }}</p>
+
+    <!-- Mostrar la ubicación del taxi del cliente en el mapa -->
+    {% if ride.customer.taxi %}
+    <h4>Taxi del Cliente</h4>
+    <p><strong>Placa:</strong> {{ ride.customer.taxi.plate_number }}</p>
+    <p><strong>Descripción:</strong> {{ ride.customer.taxi.vehicle_description }}</p>
+    {% endif %}
+
+    <!-- Botones para acciones del conductor (solo si la carrera no ha sido cancelada ni completada) -->
+    {% if ride.status != 'canceled' and ride.status != 'completed' %}
+    <div class="mt-3">
+        <h4>Acciones</h4>
+        <form method="post" action="{% url 'ride_cancel' ride.id %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Cancelar Carrera</button>
+        </form>
+        <form method="post" action="{% url 'ride_complete' ride.id %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Marcar como Completada</button>
+        </form>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Script de Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&libraries=places&callback=initMap"
+    async defer></script>
+
+<script>
+    function initMap() {
+        // Inicializar el mapa
+        const map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} },
+            zoom: 14,
+        });
+
+        // Coordenadas del origen
+        const originLatLng = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
+        new google.maps.Marker({
+            position: originLatLng,
+            map: map,
+            title: 'Origen',
+        });
+
+        // Coordenadas del cliente (si aplica)
+        {% if ride.customer_latitude and ride.customer_longitude %}
+        const customerLatLng = { lat: {{ ride.customer_latitude }}, lng: {{ ride.customer_longitude }} };
+        new google.maps.Marker({
+            position: customerLatLng,
+            map: map,
+            title: 'Cliente',
+        });
+        {% endif %}
+
+        // Coordenadas del conductor (si están disponibles)
+        {% if driver_lat and driver_lng %}
+        const driverLatLng = { lat: {{ driver_lat }}, lng: {{ driver_lng }} };
+        new google.maps.Marker({
+            position: driverLatLng,
+            map: map,
+            title: 'Conductor',
+        });
+        {% endif %}
+
+        // Coordenadas de los destinos
+        const destinationMarkers = [];
+        {% for destination in ride.destinations.all %}
+        const destinationLatLng = { lat: {{ destination.destination_latitude }},
+                                     lng: {{ destination.destination_longitude }} };
+        destinationMarkers.push(destinationLatLng);
+        new google.maps.Marker({
+            position: destinationLatLng,
+            map: map,
+            title: 'Destino {{ forloop.counter }}',
+        });
+        {% endfor %}
+
+        // Configurar servicio de direcciones
+        const directionsService = new google.maps.DirectionsService();
+        const directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            polylineOptions: {
+                strokeColor: 'blue',
+                strokeOpacity: 0.7,
+                strokeWeight: 5,
+            },
+        });
+
+        // Configurar waypoints (intermedios)
+        const waypoints = destinationMarkers.slice(0, -1).map(location => ({ location }));
+
+        // Generar la ruta
+        directionsService.route(
+            {
+                origin: originLatLng,
+                destination: destinationMarkers[destinationMarkers.length - 1],
+                waypoints: waypoints,
+                travelMode: 'DRIVING',
+            },
+            (response, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(response);
+                } else {
+                    console.error('Error al calcular la ruta:', status);
+                }
+            }
+        );
+    }
+</script>
+
+{% endblock %}

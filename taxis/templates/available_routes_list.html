@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rutas Disponibles</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h2 class="mb-4">Rutas Disponibles</h2>
+
+    {% if routes %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Taxista</th>
+                    <th>Vehículo</th>
+                    <th>Placa</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for route in routes %}
+                    <tr>
+                        <td>{{ route.taxi.user.username }}</td>
+                        <td>{{ route.taxi.vehicle_description }}</td>
+                        <td>{{ route.taxi.plate_number }}</td>
+                        <td>
+                            <a href="{% url 'join_taxi_route' route.id %}" class="btn btn-primary">
+                                Unirse
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            Actualmente no hay rutas disponibles. Intenta más tarde.
+        </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

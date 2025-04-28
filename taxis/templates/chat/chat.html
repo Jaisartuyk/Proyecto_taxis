@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mensajes de Conductor</title>
+  <!-- Firebase JS SDK v9 (modular) -->
+  <script type="module">
+    // Importación de Firebase para la versión modular
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+    
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB5howvle_Wt7cbIhx_BQ_VDu01yQaDcLM",
+      authDomain: "jaidriver-828b5.firebaseapp.com",
+      projectId: "jaidriver-828b5",
+      storageBucket: "jaidriver-828b5.firebasestorage.app",
+      messagingSenderId: "666937281439",
+      appId: "1:666937281439:web:1979c4629dd5cfe1b90baa",
+      measurementId: "G-TFYKX0NHHY"
+    };
+    
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+    
+    // Referencia a la colección de mensajes
+    const messagesRef = collection(db, 'global_channel', 'documentID', 'messages');
+    
+    // Función para mostrar mensajes en la vista
+    function loadMessages() {
+      const q = query(messagesRef, orderBy('timestamp'));
+      
+      onSnapshot(q, snapshot => {
+        const messagesContainer = document.getElementById('messages-container');
+        messagesContainer.innerHTML = ''; // Limpiar mensajes anteriores
+        
+        snapshot.forEach(doc => {
+          const message = doc.data();
+          const messageElement = document.createElement('div');
+          messageElement.innerHTML = `<p><strong>${message.sender}:</strong> ${message.content}</p>`;
+          
+          if (message.type === 'voice') {
+            const audioElement = document.createElement('audio');
+            audioElement.setAttribute('controls', 'true');
+            audioElement.src = message.audio_url;
+            messageElement.appendChild(audioElement);
+          }
+          
+          messagesContainer.appendChild(messageElement);
+        });
+      });
+    }
+
+    // Función para enviar un mensaje de texto
+    function sendTextMessage() {
+      const messageText = document.getElementById('message-text').value;
+      if (messageText.trim() === '') return;
+      
+      const message = {
+        sender: 'conductor123', // Este debe ser el ID del usuario actual
+        type: 'text',
+        content: messageText,
+        timestamp: serverTimestamp(),
+      };
+      
+      addDoc(messagesRef, message).then(() => {
+        document.getElementById('message-text').value = ''; // Limpiar el input
+      });
+    }
+
+    // Variables para la grabación de audio
+    let mediaRecorder;
+    let audioChunks = [];
+
+    // Función para iniciar la grabación de audio
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+          };
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            document.getElementById('audio-preview').src = audioUrl;
+            document.getElementById('sendVoiceMessage').disabled = false;
+            uploadAudioToFirebase(audioBlob);
+          };
+  
+          mediaRecorder.start();
+          document.getElementById('stopRecording').disabled = false;
+        });
+    }
+
+    // Función para detener la grabación de audio
+    function stopRecording() {
+      mediaRecorder.stop();
+      document.getElementById('stopRecording').disabled = true;
+    }
+
+    // Función para enviar un mensaje de voz
+    function sendVoiceMessage() {
+      const audioUrl = document.getElementById('audio-preview').src;
+      const message = {
+        sender: 'conductor123',
+        type: 'voice',
+        content: 'Mensaje de voz',
+        audio_url: audioUrl,
+        timestamp: serverTimestamp(),
+      };
+      
+      addDoc(messagesRef, message).then(() => {
+        document.getElementById('audio-preview').src = '';
+      });
+    }
+
+    // Función para subir el archivo de audio a Firebase Storage
+    function uploadAudioToFirebase(audioBlob) {
+      const storageRef = ref(storage, 'audio_messages/' + new Date().getTime() + '.mp3');
+      uploadBytes(storageRef, audioBlob).then(snapshot => {
+        console.log('Audio subido correctamente', snapshot);
+      });
+    }
+
+    // Cargar los mensajes cuando la página cargue
+    window.onload = loadMessages;
+  </script>
+</head>
+<body>
+  <h1>Mensajes de Conductor</h1>
+  
+  <!-- Área para mostrar los mensajes -->
+  <div id="messages-container">
+    <!-- Aquí aparecerán los mensajes -->
+  </div>
+
+  <!-- Formulario para enviar mensajes de texto -->
+  <textarea id="message-text" placeholder="Escribe un mensaje..."></textarea>
+  <button onclick="sendTextMessage()">Enviar Mensaje</button>
+
+  <!-- Formulario para enviar mensajes de voz -->
+  <button onclick="startRecording()">Grabar Mensaje de Voz</button>
+  <button onclick="stopRecording()" disabled>Detener Grabación</button>
+  <audio id="audio-preview" controls></audio>
+  <button onclick="sendVoiceMessage()" disabled>Enviar Mensaje de Voz</button>
+</body>
+</html>

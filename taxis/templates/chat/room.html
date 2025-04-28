@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walkie-Talkie en Tiempo Real</title>
+    <style>
+        /* Aquí mantén tus estilos originales */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Walkie-Talkie en Tiempo Real</h1>
+
+        <!-- Sección de inicio de sesión -->
+        <div id="loginSection">
+            <input type="email" id="email" placeholder="Correo electrónico" required />
+            <input type="password" id="password" placeholder="Contraseña" required />
+            <button id="loginButton">Iniciar sesión</button>
+        </div>
+
+        <!-- Sección de sala -->
+        <div id="roomSection" style="display: none;">
+            <p id="status"></p>
+            <div id="participantsList"></div>
+            <button id="talkButton" disabled>Presiona para Hablar</button>
+            <audio id="remoteAudio" autoplay></audio>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getDatabase, ref, set, push, onChildAdded, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5howvle_Wt7cbIhx_BQ_VDu01yQaDcLM",
+            authDomain: "jaidriver-828b5.firebaseapp.com",
+            databaseURL: "https://jaidriver-828b5-default-rtdb.firebaseio.com",
+            projectId: "jaidriver-828b5",
+            storageBucket: "jaidriver-828b5",
+            messagingSenderId: "666937281439",
+            appId: "1:666937281439:web:1979c4629dd5cfe1b90baa"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        let currentUser = null;
+        let audioStream = null;
+        let peerConnection = null;
+        let isTalking = false;
+        const roomRef = ref(database, 'rooms/room1/participants'); // Referencia para los participantes en la sala
+
+        const configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+        async function login(email, password) {
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                currentUser = { id: userCredential.user.uid, email: userCredential.user.email };
+
+                document.getElementById("status").innerText = `Conectado como: ${currentUser.email}`;
+                document.getElementById("roomSection").style.display = "block";
+                document.getElementById("loginSection").style.display = "none";
+                document.getElementById("talkButton").disabled = false;
+
+                // Añadir al usuario a la lista de participantes
+                set(ref(database, `rooms/room1/participants/${currentUser.id}`), {
+                    email: currentUser.email,
+                    isTalking: false
+                });
+
+                listenForOffers();
+                listenForParticipants(); // Escuchar nuevos participantes
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error.message);
+                alert("No se pudo iniciar sesión. Verifica las credenciales.");
+            }
+        }
+
+        function listenForOffers() {
+            const offersRef = ref(database, `rooms/room1/signals`);
+
+            onChildAdded(offersRef, async snapshot => {
+                const offer = snapshot.val();
+
+                if (offer && offer.type === "offer" && offer.sdp) {
+                    console.log("Oferta recibida:", offer);
+
+                    if (!peerConnection) {
+                        createPeerConnection();
+                    }
+
+                    try {
+                        if (peerConnection.signalingState !== "stable") {
+                            console.warn("PeerConnection no está en estado estable, oferta ignorada.");
+                            return;
+                        }
+
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+                        if (peerConnection.signalingState === "have-remote-offer") {
+                            const answer = await peerConnection.createAnswer();
+                            await peerConnection.setLocalDescription(answer);
+
+                            set(ref(database, `rooms/room1/signals/${snapshot.key}/answer`), {
+                                sdp: answer.sdp,
+                                type: answer.type
+                            });
+
+                            console.log("Respuesta enviada.");
+                        } else {
+                            console.warn("Estado de signalingState no es 'have-remote-offer', no se puede crear respuesta.");
+                        }
+
+                    } catch (error) {
+                        console.error("Error al procesar oferta:", error);
+                    }
+                }
+            });
+        }
+
+        function listenForParticipants() {
+            onChildAdded(roomRef, (snapshot) => {
+                const participant = snapshot.val();
+                displayParticipant(participant);
+            });
+
+            onChildRemoved(roomRef, (snapshot) => {
+                const participantId = snapshot.key;
+                removeParticipant(participantId);
+            });
+
+            // Escuchar cambios en el estado de los participantes
+            const participantsRef = ref(database, 'rooms/room1/participants');
+            onChildChanged(participantsRef, (snapshot) => {
+                const participant = snapshot.val();
+                displayParticipant(participant); // Actualizar estado en la interfaz
+            });
+        }
+
+        function displayParticipant(participant) {
+            const participantsList = document.getElementById("participantsList");
+
+            let participantElement = document.getElementById(participant.email);
+
+            if (!participantElement) {
+                // Si no existe, creamos un nuevo elemento para el participante
+                participantElement = document.createElement("div");
+                participantElement.classList.add("participant");
+                participantElement.setAttribute("id", participant.email);
+                participantsList.appendChild(participantElement);
+            }
+
+            // Actualizamos el estado del participante (Hablando/Silencio)
+            participantElement.innerHTML = `${participant.email} ${participant.isTalking ? "(Hablando)" : "(Silencio)"}`;
+        }
+
+        function removeParticipant(participantId) {
+            const participantElement = document.getElementById(participantId);
+            if (participantElement) {
+                participantElement.remove();
+            }
+        }
+
+        function createPeerConnection() {
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            peerConnection = new RTCPeerConnection(configuration);
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    console.log("Candidato ICE enviado:", event.candidate);
+                    push(ref(database, `rooms/room1/signals/${currentUser.id}/iceCandidates`), event.candidate.toJSON());
+                }
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                console.log("ICE Connection State:", peerConnection.iceConnectionState);
+                if (peerConnection.iceConnectionState === "connected") {
+                    console.log("¡Conexión establecida con éxito!");
+                } else if (peerConnection.iceConnectionState === "failed") {
+                    console.error("Conexión ICE fallida. Revisa los candidatos.");
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                console.log("Flujo remoto recibido:", event.streams[0]);
+                const remoteAudio = document.getElementById("remoteAudio");
+                if (remoteAudio) {
+                    remoteAudio.srcObject = event.streams[0];
+                    remoteAudio.play();
+                }
+            };
+        }
+
+        async function toggleTalking() {
+            if (!isTalking) {
+                try {
+                    if (!audioStream) {
+                        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        console.log("Flujo de audio recibido:", audioStream);
+                    }
+
+                    if (!peerConnection) {
+                        createPeerConnection();
+                    }
+
+                    const senders = peerConnection.getSenders();
+                    if (!senders.some(sender => sender.track && sender.track.kind === "audio")) {
+                        audioStream.getTracks().forEach(track => {
+                            console.log("Agregando track de audio al peerConnection:", track);
+                            peerConnection.addTrack(track, audioStream);
+                        });
+                    }
+
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    console.log("Oferta enviada:", offer);
+
+                    set(ref(database, `rooms/room1/signals/${currentUser.id}/offer`), {
+                        sdp: offer.sdp,
+                        type: offer.type
+                    });
+
+                    // Actualizar estado en Firebase a "Hablando"
+                    set(ref(database, `rooms/room1/participants/${currentUser.id}`), {
+                        email: currentUser.email,
+                        isTalking: true
+                    });
+
+                    isTalking = true;
+                    updateTalkButton();
+                    console.log("Transmisión iniciada.");
+                } catch (error) {
+                    console.error("Error al iniciar transmisión:", error.message);
+                }
+            } else {
+                try {
+                    if (audioStream) {
+                        audioStream.getTracks().forEach(track => track.stop());
+                        audioStream = null;
+                    }
+
+                    if (peerConnection) {
+                        peerConnection.close();
+                        peerConnection = null;
+                    }
+
+                    // Actualizar estado en Firebase a "Silencio"
+                    set(ref(database, `rooms/room1/participants/${currentUser.id}`), {
+                        email: currentUser.email,
+                        isTalking: false
+                    });
+
+                    isTalking = false;
+                    updateTalkButton();
+                    console.log("Transmisión detenida.");
+                } catch (error) {
+                    console.error("Error al detener transmisión:", error.message);
+                }
+            }
+        }
+
+        function updateTalkButton() {
+            const talkButton = document.getElementById("talkButton");
+            talkButton.innerText = isTalking ? "Silencio" : "Presiona para Hablar";
+        }
+
+        document.getElementById("loginButton").addEventListener("click", () => {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            login(email, password);
+        });
+
+        document.getElementById("talkButton").addEventListener("click", toggleTalking);
+    </script>
+
+
+
+
+</body>
+</html>
+

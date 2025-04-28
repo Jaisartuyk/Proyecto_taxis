@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% load static %}
+<style>
+    .container.mt-5 {
+        background-image: url("{% static 'imagenes/DE_AQU_PALL_Logo.png' %}");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+        padding: 30px;
+        color: black;
+        position: relative;
+        animation: fadeIn 1.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+</style>
+
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Tablero del Cliente</h1>
+    <p class="text-center">Bienvenido, <strong>{{ request.user.username }}</strong>.</p>
+    <div class="row g-4">
+        <div class="col-lg-6 col-md-12">
+            <div class="card p-4">
+                <h3 class="card-title">Solicitar un Taxi</h3>
+                <p class="card-text">Encuentra un taxi disponible cerca de ti.</p>
+                <a href="{% url 'request_ride' %}" class="btn btn-primary mt-3">Ver Taxis Disponibles</a>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-12">
+            <div class="card p-4">
+                <h3 class="card-title">Historial de Viajes</h3>
+                <p class="card-text">Revisa tus viajes anteriores.</p>
+                <a href="{% url 'customer_rides' %}" class="btn btn-primary mt-3">Ver Historial</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

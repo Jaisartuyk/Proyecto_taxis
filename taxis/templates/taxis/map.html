@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+    <!-- Incluir CSS de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+    <h1>Mapa en tiempo real</h1>
+    <div id="map" style="height: 500px;"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <!-- Incluir JS de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Crear el mapa centrado en una ubicación inicial
+        const map = L.map('map').setView([19.432608, -99.133209], 13);
+
+        // Agregar la capa de mapa (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Variable para el marcador del usuario
+        let userMarker = null;
+
+        // Función para obtener la ubicación del usuario
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+
+                        // Si ya hay un marcador, actualízalo
+                        if (userMarker) {
+                            userMarker.setLatLng([lat, lon]);
+                        } else {
+                            // Si no, crea un nuevo marcador
+                            userMarker = L.marker([lat, lon]).addTo(map);
+                            userMarker.bindPopup('Tu ubicación').openPopup();
+                        }
+
+                        // Centrar el mapa en la ubicación del usuario
+                        map.setView([lat, lon], 13);
+
+                        // Opcional: enviar la ubicación al servidor
+                        sendLocationToServer(lat, lon);
+                    },
+                    (error) => {
+                        console.error('Error al obtener la ubicación:', error);
+                    },
+                    {
+                        enableHighAccuracy: true, // Obtener la mejor precisión posible
+                    }
+                );
+            } else {
+                alert('Tu navegador no soporta la geolocalización.');
+            }
+        }
+
+        // Enviar la ubicación al servidor
+        function sendLocationToServer(lat, lon) {
+            fetch('/update-location/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ latitude: lat, longitude: lon }),
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                console.log('Ubicación enviada al servidor:', data);
+            })
+            .catch((error) => {
+                console.error('Error al enviar la ubicación:', error);
+            });
+        }
+
+        // Actualizar la ubicación cada 5 segundos
+        setInterval(updateLocation, 5000);
+
+        // Obtener la ubicación al cargar la página
+        updateLocation();
+    </script>
+{% endblock %}
+

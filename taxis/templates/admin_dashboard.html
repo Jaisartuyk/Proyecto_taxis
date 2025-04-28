@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Panel de Control del Administrador</h1>
+    <hr>
+
+    <!-- Formulario de filtros -->
+    <form method="get" class="mb-4">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="id_status" class="form-label">Estado</label>
+                {{ form.status|default:"" }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_driver" class="form-label">Conductor</label>
+                {{ form.driver|default:"" }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_start_date" class="form-label">Fecha inicio</label>
+                {{ form.start_date|default:"" }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_end_date" class="form-label">Fecha fin</label>
+                {{ form.end_date|default:"" }}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Filtrar</button>
+    </form>
+
+    <!-- Datos de Carreras -->
+    <h2 class="mt-4">Resumen de Carreras</h2>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Solicitadas</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ requested_rides.count }}</h5>
+                    <p class="card-text">Carreras que están en estado solicitado.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">En Progreso</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ in_progress_rides.count }}</h5>
+                    <p class="card-text">Carreras que están actualmente en progreso.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Completadas</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ completed_rides.count }}</h5>
+                    <p class="card-text">Carreras que han sido completadas.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-header">Canceladas</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ canceled_rides.count }}</h5>
+                    <p class="card-text">Carreras que han sido canceladas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Carreras -->
+    <h2 class="mt-4">Listado de Carreras</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th>Conductor</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ride in rides %}
+            <tr>
+                <td>{{ ride.customer.username }}</td>
+                <td>{{ ride.driver.username }}</td>
+                <td>{{ ride.get_status_display }}</td>
+                <td>{{ ride.created_at|date:"Y-m-d H:i" }}</td>
+                <td>${{ ride.price }}</td>
+                <td>
+                    <a href="{% url 'ride_detail' ride.id %}" class="btn btn-info btn-sm">Ver Detalle</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No se encontraron carreras con los filtros aplicados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

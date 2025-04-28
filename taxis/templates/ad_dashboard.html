@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="container">
+        <h1 class="mt-5">Ubicaciones de los Taxistas</h1>
+
+        <!-- Mapa de Google -->
+        <div id="map" style="height: 500px; width: 100%;"></div>
+
+        <!-- Lista de Taxistas en Cards -->
+        <div class="row mt-4" id="taxi-cards-container">
+            {% for taxi in taxis %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ taxi.user.username }}</h5>
+                            <p class="card-text">
+                                Ubicación: 
+                                {% if taxi.address %}
+                                    {{ taxi.address }}
+                                {% else %}
+                                    {{ taxi.latitude }}, {{ taxi.longitude }}
+                                {% endif %}
+                            </p>
+                            <button class="btn btn-primary" onclick="showTaxiLocation({{ taxi.latitude }}, {{ taxi.longitude }})">Ver en el Mapa</button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Tu clave API de Google Maps directamente en el JS
+        const GOOGLE_MAPS_API_KEY = 'AIzaSyBil5mbkA6vZytPEdShLc2Bv0X6izLlCD8';
+
+        // Variables globales
+        let map;
+        let markers = {}; // Para almacenar los marcadores de los taxistas por su id de usuario
+
+        // Inicializar el mapa
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 0, lng: 0 },  // Aquí podrías poner una ubicación predeterminada
+                zoom: 14
+            });
+
+            // Conectar WebSocket para recibir actualizaciones
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/taxi/');
+
+            socket.onopen = function() {
+                console.log('Conexión WebSocket establecida');
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const username = data.username;
+                const latitude = data.latitude;
+                const longitude = data.longitude;
+
+                // Actualizar marcador en el mapa
+                updateTaxiLocation(username, latitude, longitude);
+            };
+        }
+
+        // Función para actualizar la ubicación de un taxi en el mapa
+        function updateTaxiLocation(username, lat, lon) {
+            // Verificar si el marcador ya existe
+            if (markers[username]) {
+                // Si ya existe, solo actualizamos la posición
+                markers[username].setPosition(new google.maps.LatLng(lat, lon));
+            } else {
+                // Si no existe, creamos un nuevo marcador
+                const marker = new google.maps.Marker({
+                    position: { lat: lat, lng: lon },
+                    map: map,
+                    title: username
+                });
+
+                markers[username] = marker;
+            }
+        }
+
+        // Función para mostrar la ubicación de un taxi al hacer clic en el botón
+        function showTaxiLocation(lat, lon) {
+            const position = new google.maps.LatLng(lat, lon);
+            map.panTo(position);
+            map.setZoom(14);
+        }
+
+        // Inicializar el mapa cuando cargue la página
+        window.onload = initMap;
+    </script>
+
+    <!-- Cargar la API de Google Maps -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap">
+    </script>
+{% endblock %}

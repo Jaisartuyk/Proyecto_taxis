@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% load static %}
+<style>
+    .container.mt-5 {
+        background-image: url("{% static 'imagenes/DE_AQU_PALL_Logo.png' %}");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+        padding: 30px;
+        color: black;
+        position: relative;
+        animation: fadeIn 1.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+</style>
+
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Panel de Administrador</h1>
+    <p class="text-center">Bienvenido, <strong>{{ request.user.username }}</strong>.</p>
+    <div class="row g-4">
+        <div class="col-lg-4 col-md-6">
+            <div class="card p-4">
+                <h3 class="card-title">Gestionar Usuarios</h3>
+                <p class="card-text">Administra clientes y conductores.</p>
+                <a href="{% url 'admin_users' %}" class="btn btn-primary mt-3">Ver Taxistas</a>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card p-4">
+                <h3 class="card-title">Solicitudes de Conductores</h3>
+                <p class="card-text">Aprueba o rechaza nuevas solicitudes.</p>
+                <a href="{% url 'list_drivers' %}" class="btn btn-primary mt-3">Revisar Solicitudes</a>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card p-4">
+                <h3 class="card-title">Reportes y Estadísticas</h3>
+                <p class="card-text">Consulta informes sobre viajes y usuarios.</p>
+                <a href="{% url 'revision' %}" class="btn btn-primary mt-3">Ver Reportes</a>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card p-4">
+                <h3 class="card-title">Reportes y Estadísticas</h3>
+                <p class="card-text">Consulta informes sobre viajes y usuarios.</p>
+                <a href="{% url 'comunicacion_conductores' %}" class="btn btn-primary mt-3">Ver Reportes</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

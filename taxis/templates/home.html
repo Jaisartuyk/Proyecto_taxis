@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <style>
+        /* Fondo de pantalla */
+        .background-container {
+            background-image: url("{% static 'imagenes/DE_AQU_PALL_Logo.png' %}");
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Filtro semitransparente para mejorar la legibilidad */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+
+        .content-container {
+            z-index: 1;
+        }
+
+        /* Estilos para las tarjetas */
+        .card {
+            border-radius: 15px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 1rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        /* Estilo para el mapa */
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+
+    <div class="background-container">
+        <div class="overlay"></div>
+        <div class="content-container text-center">
+            <div class="container">
+                <h1 class="text-white mb-4">Bienvenido a la Aplicación</h1>
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title text-dark">¡Hola, {{ request.user.username }}!</h5>
+                                <p class="card-text text-dark">Bienvenido a la plataforma, desde aquí puedes gestionar tus viajes y rutas.</p>
+
+                                <!-- Mapa -->
+                                <div id="map"></div>
+
+                                <!-- Contenedor para el clima -->
+                                <div id="weather-container" class="text-center mb-3">
+                                    <p class="text-muted">Cargando pronóstico del tiempo...</p>
+                                </div>
+
+                                {% if request.user.role == 'customer' %}
+                                    <a href="{% url 'customer_dashboard' %}" class="btn btn-primary">Ir al Dashboard del Cliente</a>
+                                {% elif request.user.role == 'driver' %}
+                                    <a href="{% url 'driver_dashboard' %}" class="btn btn-primary">Ir al Dashboard del Taxista</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- Cargar la API de Google Maps con la biblioteca de marcadores -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap&v=weekly&libraries=marker" async defer></script>
+
+    <script>
+        const weatherApiKey = "1b3fd26680250b775c60f7924f305327"; // Clave API OpenWeatherMap
+
+        let map, marker, infoWindow;
+        let userAddress = ''; // Variable para guardar la dirección
+
+        function initMap() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+
+                        // Crear el mapa centrado en la ubicación del usuario con un mapId válido
+                        map = new google.maps.Map(document.getElementById('map'), {
+                            center: { lat: lat, lng: lon },
+                            zoom: 14,
+                            mapId: 'DEMO_MAP_ID'  // Asegúrate de usar un mapId válido aquí
+                        });
+
+                        // Crear un marcador avanzado con google.maps.marker.AdvancedMarkerElement
+                        marker = new google.maps.marker.AdvancedMarkerElement({
+                            position: { lat: lat, lng: lon },
+                            map: map,
+                            title: 'Tu ubicación'
+                        });
+
+                        // Crear una ventana de información
+                        infoWindow = new google.maps.InfoWindow({
+                            content: 'Cargando clima...'
+                        });
+
+                        // Abrir la ventana de información sobre el marcador
+                        infoWindow.open(map, marker);
+
+                        // Llamar la función para obtener el clima
+                        getWeather(lat, lon);
+
+                        // Usar geocodificación inversa para obtener la dirección exacta
+                        const geocoder = new google.maps.Geocoder();
+                        geocoder.geocode({ 'location': { lat: lat, lng: lon } }, function(results, status) {
+                            if (status === 'OK') {
+                                if (results[0]) {
+                                    userAddress = results[0].formatted_address; // Guardar la dirección
+                                    infoWindow.setContent(`<h5>${userAddress}</h5>`); // Mostrar la dirección en el mapa
+                                } else {
+                                    infoWindow.setContent("No se encontró una dirección para esta ubicación.");
+                                }
+                            } else {
+                                infoWindow.setContent("Error en la geocodificación inversa.");
+                            }
+                        });
+                    },
+                    function(error) {
+                        console.error('Error al obtener la ubicación:', error);
+                        document.getElementById("weather-container").innerHTML = `
+                            <p class="text-danger">No se pudo obtener tu ubicación. Por favor, permite el acceso a tu ubicación en el navegador.</p>
+                        `;
+                    }
+                );
+            } else {
+                // Si la geolocalización no está disponible
+                document.getElementById("weather-container").innerHTML = `
+                    <p class="text-danger">La geolocalización no está soportada en este navegador.</p>
+                `;
+            }
+        }
+
+        function getWeather(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${weatherApiKey}&units=metric&lang=es`;
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const weatherContainer = document.getElementById("weather-container");
+                    if (data && data.main) {
+                        const weatherContent = `
+                            <div class="card shadow-sm bg-light text-center p-4">
+                                <h5 class="card-title">${userAddress}</h5> <!-- Usamos la dirección guardada -->
+                                <p><strong>Temperatura:</strong> ${data.main.temp}°C</p>
+                                <p><strong>Clima:</strong> ${data.weather[0].description}</p>
+                                <p><strong>Humedad:</strong> ${data.main.humidity}%</p>
+                                <p><strong>Viento:</strong> ${data.wind.speed} m/s</p>
+                                <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Ícono del clima" class="mt-3">
+                            </div>
+                        `;
+                        weatherContainer.innerHTML = weatherContent;
+
+                        // Actualizar el contenido de la ventana de información del marcador
+                        infoWindow.setContent(`
+                            <h5>${userAddress}</h5> <!-- Usamos la dirección guardada -->
+                            <p><strong>Temperatura:</strong> ${data.main.temp}°C</p>
+                            <p><strong>Clima:</strong> ${data.weather[0].description}</p>
+                        `);
+                    } else {
+                        weatherContainer.innerHTML = `<p class="text-danger">No se pudo obtener el clima. Por favor, intenta más tarde.</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al obtener el clima:", error);
+                    document.getElementById("weather-container").innerHTML = `
+                        <p class="text-danger">Error al cargar el pronóstico del tiempo. Por favor, revisa tu conexión.</p>
+                    `;
+                });
+        }
+    </script>
+
+{% endblock %}
+

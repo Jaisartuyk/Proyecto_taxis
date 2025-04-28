@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% load static %}
+<style>
+    .container.mt-5 {
+        background-image: url("{% static 'imagenes/DE_AQU_PALL_Logo.png' %}");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+        padding: 30px;
+        color: black;
+        position: relative;
+        animation: fadeIn 1.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .form-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 8px;
+        z-index: 1;
+    }
+
+    .form-container form {
+        position: relative;
+        z-index: 2;
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+</style>
+
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Tablero del Taxista</h1>
+    <p class="text-center">Bienvenido, <strong>{{ request.user.username }}</strong>.</p>
+    <div class="row g-4">
+        <div class="col-lg-6 col-md-12">
+            <div class="card p-4">
+                <h3 class="card-title">Rutas Disponibles</h3>
+                <p class="card-text">Consulta las rutas aún no asignadas.</p>
+                <a href="{% url 'available_rides' %}" class="btn btn-primary mt-3">Ver Rutas</a>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-12">
+            <div class="card p-4">
+                <h3 class="card-title">Carreras formuladas</h3>
+                <p class="card-text">Actualiza tus carreras.</p>
+                <a href="{% url 'driver_in_progress_rides' %}" class="btn btn-primary mt-3">Actualizar Estado</a>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-12">
+            <div class="card p-4">
+                <h3 class="card-title">Carreras formuladas</h3>
+                <p class="card-text">Actualiza tus carreras.</p>
+                <a href="{% url 'comunicacion_conductores' %}" class="btn btn-primary mt-3">Actualizar Estado</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

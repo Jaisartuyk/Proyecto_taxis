@@ -29,9 +29,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['proyecto-django-channels.onrender.com', 'localhost', '127.0.0.1']
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://proyecto-django-channels.onrender.com",
-]
+# settings.py
+CSRF_TRUSTED_ORIGINS = ['https://proyecto-django-channels.onrender.com']
+CORS_ALLOWED_ORIGINS = ['https://proyecto-django-channels.onrender.com']
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
@@ -171,6 +172,11 @@ CHANNEL_LAYERS = {
         },
     },
 }
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 
 

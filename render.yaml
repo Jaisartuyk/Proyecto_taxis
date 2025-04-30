@@ -9,6 +9,6 @@ services:
       - key: DJANGO_SETTINGS_MODULE
         value: taxi_project.settings
       - key: REDIS_URL
-        value: redis://default:AXvhAAIjcDEzMmZmMGExYmI2NDI0MzIyYWNjYmQyZmQwMmRlMmU0N3AxMA@intense-walrus-31713.upstash.io:6379
+        value: rediss://default:AXvhAAIjcDEzMmZmMGExYmI2NDI0MzIyYWNjYmQyZmQwMmRlMmU0N3AxMA@intense-walrus-31713.upstash.io:6379
 
 

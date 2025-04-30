@@ -159,7 +159,7 @@ MEDIA_ROOT = '/home/jairojavier/taxi_project/media'
 MEDIA_URL = '/media/'
 STATIC_ROOT = '/home/jairojavier/taxi_project/static'
 STATIC_URL = '/static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Channels configuration

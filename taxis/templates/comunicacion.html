@@ -103,7 +103,8 @@
         statusDiv.textContent = "Conectando...";
         statusDiv.className = "status disconnected";
 
-        socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
+        socket = new WebSocket("wss://taxis-django-channels-production.up.railway.app/ws/audio/conductores/");
+
 
         socket.onopen = () => {
             console.log("WebSocket conectado");

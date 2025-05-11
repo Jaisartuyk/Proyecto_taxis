@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-&)1eh^(=g#60plv-&xu$@@ngqr9lm$qf62*_(niv+k@d2*aw!_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['proyecto-django-channels.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['taxis-django-channels-production.up.railway.app']
 
 # settings.py
 CSRF_TRUSTED_ORIGINS = ['https://proyecto-django-channels.onrender.com']

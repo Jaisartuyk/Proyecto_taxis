@@ -99,11 +99,17 @@
     const audioPlayer = document.getElementById("audioPlayer");
     const statusDiv = document.getElementById("status");
 
+    // Conectar al WebSocket
     function connectWebSocket() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            console.log("WebSocket ya está conectado.");
+            return; // No intentamos crear otra conexión si ya está abierta
+        }
+
         statusDiv.textContent = "Conectando...";
         statusDiv.className = "status disconnected";
 
-        const socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
+        socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
 
         socket.onopen = () => {
             console.log("WebSocket conectado");
@@ -148,7 +154,7 @@
             });
 
             startBtn.addEventListener("mousedown", () => {
-                if (socket.readyState === WebSocket.OPEN) {
+                if (socket?.readyState === WebSocket.OPEN) {
                     mediaRecorder.start(200);
                     startBtn.disabled = true;
                     stopBtn.disabled = false;
@@ -162,7 +168,7 @@
             });
 
             mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+                if (event.data.size > 0 && socket?.readyState === WebSocket.OPEN) {
                     const reader = new FileReader();
                     reader.onload = () => {
                         socket.send(JSON.stringify({
@@ -205,18 +211,16 @@
     }
 
     function sendLocation() {
-        if (navigator.geolocation) {
+        if (navigator.geolocation && socket?.readyState === WebSocket.OPEN) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
-                    if (socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({
-                            senderId: senderId,
-                            lat: latitude,
-                            lng: longitude
-                        }));
-                        updateMap(latitude, longitude);
-                    }
+                    socket.send(JSON.stringify({
+                        senderId: senderId,
+                        lat: latitude,
+                        lng: longitude
+                    }));
+                    updateMap(latitude, longitude);
                 },
                 (error) => console.error("Error de geolocalización:", error),
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -245,6 +249,7 @@
         if (socket?.readyState === WebSocket.OPEN) socket.close();
     });
 </script>
+
 
 </body>
 </html>

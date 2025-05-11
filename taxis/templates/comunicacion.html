@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -91,8 +92,8 @@
 <script>
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
-    const senderId = crypto.randomUUID(); // Identificador único del conductor
+    const socket = new WebSocket(`${wsProtocol}taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
+    const senderId = crypto.randomUUID();
 
     let mediaRecorder;
     let map;
@@ -170,6 +171,15 @@
             center: defaultLatLng,
             mapTypeId: 'roadmap'
         });
+
+        // Cargar taxis desde backend
+        fetch('/ubicaciones_taxis/')
+            .then(response => response.json())
+            .then(data => {
+                data.taxis.forEach(taxi => {
+                    updateMap(taxi.id, taxi.lat, taxi.lng);
+                });
+            });
     }
 
     function updateMap(senderId, lat, lng) {
@@ -186,7 +196,7 @@
             paths[senderId] = new google.maps.Polyline({
                 path: [newPosition],
                 geodesic: true,
-                strokeColor: '#'+Math.floor(Math.random()*16777215).toString(16), // color aleatorio
+                strokeColor: '#'+Math.floor(Math.random()*16777215).toString(16),
                 strokeOpacity: 0.8,
                 strokeWeight: 2,
                 map: map
@@ -197,7 +207,7 @@
         }
 
         if (senderId === senderId) {
-            map.setCenter(newPosition); // solo centrar en tu propia posición
+            map.setCenter(newPosition);
         }
     }
 
@@ -205,16 +215,44 @@
         navigator.geolocation.getCurrentPosition((position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
+
+            // Enviar por WebSocket
             const message = {
                 senderId: senderId,
                 lat: lat,
                 lng: lng
             };
             socket.send(JSON.stringify(message));
+
+            // También enviar al backend para actualización permanente
+            fetch('/actualizar_ubicacion_taxi/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ lat, lng })
+            });
         });
     }
 
-    setInterval(sendLocation, 5000); // cada 5 segundos
+    // CSRF token helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    setInterval(sendLocation, 5000); // Enviar ubicación cada 5 segundos
 
     document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
 
@@ -226,6 +264,7 @@
 
     socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
+
 
 </body>
 </html>

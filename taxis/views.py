@@ -664,3 +664,33 @@ def comunicacion_conductores(request):
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
 
     return render(request, 'comunicacion.html')
+
+
+def ubicaciones_taxis(request):
+    taxis = Taxi.objects.select_related('user').all()
+    data = []
+    
+    for taxi in taxis:
+        if taxi.user.role == 'driver':
+            data.append({
+                'id': taxi.user.id,
+                'nombre': taxi.user.get_full_name(),
+                'lat': taxi.latitude,
+                'lng': taxi.longitude,
+                'foto': taxi.user.profile_picture.url if taxi.user.profile_picture else '',
+                'placa': taxi.plate_number,
+                'descripcion': taxi.vehicle_description,
+            })
+            
+    return JsonResponse({'taxis': data})
+
+@csrf_exempt
+def actualizar_ubicacion_taxi(request):
+    if request.method == 'POST' and request.user.is_authenticated:
+        data = json.loads(request.body)
+        taxi = Taxi.objects.get(user=request.user)
+        taxi.latitude = data.get('lat')
+        taxi.longitude = data.get('lng')
+        taxi.save()
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)

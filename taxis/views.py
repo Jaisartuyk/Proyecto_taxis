@@ -659,8 +659,8 @@ def delete_driver(request, user_id):
 
 @login_required
 def comunicacion_conductores(request):
-    # Verificar si el usuario es conductor o administrador
-    if not (hasattr(request.user, 'driver') or request.user.is_superuser):
+    # Verificar si el usuario es taxista o administrador
+    if not (request.user.role == 'driver' or request.user.is_superuser):
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
 
     return render(request, 'comunicacion.html')

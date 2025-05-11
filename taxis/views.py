@@ -684,13 +684,20 @@ def ubicaciones_taxis(request):
             
     return JsonResponse({'taxis': data})
 
+@login_required
 @csrf_exempt
 def actualizar_ubicacion_taxi(request):
-    if request.method == 'POST' and request.user.is_authenticated:
-        data = json.loads(request.body)
-        taxi = Taxi.objects.get(user=request.user)
-        taxi.latitude = data.get('lat')
-        taxi.longitude = data.get('lng')
-        taxi.save()
-        return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'error'}, status=400)
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            taxi = Taxi.objects.get(user=request.user)
+            taxi.latitude = data.get('lat')
+            taxi.longitude = data.get('lng')
+            taxi.save()
+            return JsonResponse({'status': 'ok'})
+        except Taxi.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Taxi no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)

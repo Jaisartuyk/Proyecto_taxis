@@ -227,12 +227,23 @@
             // También enviar al backend para actualización permanente
             fetch('/actualizar_ubicacion_taxi/', {
                 method: 'POST',
+                credentials: 'same-origin',  // Esto es importante para enviar cookies de sesión.
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ lat, lng })
+                body: JSON.stringify({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
             });
+
         });
     }
 

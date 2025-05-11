@@ -92,12 +92,13 @@
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     const socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
+    const senderId = crypto.randomUUID(); // Identificador único del conductor
 
-    const senderId = crypto.randomUUID(); // Identificador único del cliente
     let mediaRecorder;
-    let marker, map;
+    let map;
+    const markers = {};
+    const paths = {};
 
-    // 🎤 Grabación de audio
     navigator.mediaDevices.getUserMedia({ 
         audio: { echoCancellation: true, noiseSuppression: true } 
     }).then((stream) => {
@@ -123,18 +124,23 @@
             const audioBuffer = await event.data.arrayBuffer();
             const message = {
                 senderId: senderId,
-                audio: Array.from(new Uint8Array(audioBuffer)) // convertir a array
+                audio: Array.from(new Uint8Array(audioBuffer))
             };
             socket.send(JSON.stringify(message));
         };
     });
 
+    socket.onopen = () => {
+        document.getElementById("status").classList.replace("disconnected", "connected");
+        document.getElementById("status").textContent = "Conectado";
+    };
+
     socket.onmessage = (event) => {
         if (typeof event.data === "string") {
             const data = JSON.parse(event.data);
 
-            if (data.lat && data.lng) {
-                updateMap(parseFloat(data.lat), parseFloat(data.lng));
+            if (data.lat && data.lng && data.senderId) {
+                updateMap(data.senderId, parseFloat(data.lat), parseFloat(data.lng));
             }
 
             if (data.audio && data.senderId && data.senderId !== senderId) {
@@ -149,10 +155,9 @@
         }
     };
 
-    // Google Maps
     function loadGoogleMapsAPI() {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&callback=initMap`;
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
@@ -161,48 +166,67 @@
     window.initMap = function() {
         const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
         map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15,
+            zoom: 14,
             center: defaultLatLng,
             mapTypeId: 'roadmap'
         });
-
-        marker = new google.maps.Marker({
-            position: defaultLatLng,
-            map: map,
-            title: "Ubicación del conductor"
-        });
     }
 
-    function updateMap(lat, lng) {
+    function updateMap(senderId, lat, lng) {
         const newPosition = new google.maps.LatLng(lat, lng);
-        marker.setPosition(newPosition);
-        map.setCenter(newPosition);
-    }
 
-    document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
+        if (!markers[senderId]) {
+            markers[senderId] = new google.maps.Marker({
+                position: newPosition,
+                map: map,
+                label: senderId.substring(0, 4),
+                title: `Conductor ${senderId}`
+            });
+
+            paths[senderId] = new google.maps.Polyline({
+                path: [newPosition],
+                geodesic: true,
+                strokeColor: '#'+Math.floor(Math.random()*16777215).toString(16), // color aleatorio
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                map: map
+            });
+        } else {
+            markers[senderId].setPosition(newPosition);
+            paths[senderId].getPath().push(newPosition);
+        }
+
+        if (senderId === senderId) {
+            map.setCenter(newPosition); // solo centrar en tu propia posición
+        }
+    }
 
     function sendLocation() {
         navigator.geolocation.getCurrentPosition((position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-
             const message = {
                 senderId: senderId,
                 lat: lat,
                 lng: lng
             };
-
             socket.send(JSON.stringify(message));
         });
     }
 
-    
+    setInterval(sendLocation, 5000); // cada 5 segundos
 
-    socket.onclose = () => console.log("WebSocket cerrado");
+    document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
+
+    socket.onclose = () => {
+        document.getElementById("status").classList.replace("connected", "disconnected");
+        document.getElementById("status").textContent = "Desconectado";
+        console.log("WebSocket cerrado");
+    };
+
     socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
 
-
-
 </body>
 </html>
+

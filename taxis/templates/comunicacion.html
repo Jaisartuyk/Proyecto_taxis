@@ -90,8 +90,11 @@
 
 <script>
     const roomName = "conductores";
-    const senderId = crypto.randomUUID();
-    let mediaRecorder, marker, map, socket;
+    const socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
+
+    const senderId = crypto.randomUUID(); // Identificador único del cliente
+    let mediaRecorder;
+    let marker, map;
     let reconnectInterval, locationInterval;
 
     const startBtn = document.getElementById("start");
@@ -99,17 +102,15 @@
     const audioPlayer = document.getElementById("audioPlayer");
     const statusDiv = document.getElementById("status");
 
-    // Conectar al WebSocket
+    // Conectar al WebSocket (manteniendo la reconexión)
     function connectWebSocket() {
         if (socket && socket.readyState === WebSocket.OPEN) {
             console.log("WebSocket ya está conectado.");
-            return; // No intentamos crear otra conexión si ya está abierta
+            return;
         }
 
         statusDiv.textContent = "Conectando...";
         statusDiv.className = "status disconnected";
-
-        socket = new WebSocket(`wss://taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
 
         socket.onopen = () => {
             console.log("WebSocket conectado");
@@ -121,11 +122,17 @@
             locationInterval = setInterval(sendLocation, 10000);
         };
 
-        socket.onmessage = (event) => {
+        socket.onmessage = async (event) => {
             if (typeof event.data === "string") {
                 const data = JSON.parse(event.data);
                 if (data.lat && data.lng) updateMap(parseFloat(data.lat), parseFloat(data.lng));
-                if (data.audio && data.senderId !== senderId) playReceivedAudio(data.audio);
+                if (data.audio && data.senderId !== senderId) {
+                    const audioBuffer = new Uint8Array(data.audio);
+                    const audioBlob = new Blob([audioBuffer], { type: "audio/webm" });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayer.src = audioUrl;
+                    audioPlayer.play().catch(e => console.log("Error al reproducir audio:", e));
+                }
             }
         };
 
@@ -144,12 +151,13 @@
         };
     }
 
+    // 🎤 Grabación de audio
     function initAudioRecording() {
         navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 }
+            audio: { echoCancellation: true, noiseSuppression: true }
         }).then((stream) => {
             mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'audio/webm;codecs=opus',
+                mimeType: 'audio/webm;codecs=opus', // Aseguramos el mismo mimeType
                 audioBitsPerSecond: 16000
             });
 
@@ -167,16 +175,14 @@
                 stopBtn.disabled = true;
             });
 
-            mediaRecorder.ondataavailable = (event) => {
+            mediaRecorder.ondataavailable = async (event) => {
                 if (event.data.size > 0 && socket?.readyState === WebSocket.OPEN) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        socket.send(JSON.stringify({
-                            senderId: senderId,
-                            audio: Array.from(new Uint8Array(reader.result))
-                        }));
+                    const audioBuffer = await event.data.arrayBuffer();
+                    const message = {
+                        senderId: senderId,
+                        audio: Array.from(new Uint8Array(audioBuffer)) // convertir a array
                     };
-                    reader.readAsArrayBuffer(event.data);
+                    socket.send(JSON.stringify(message));
                 }
             };
         }).catch(error => {
@@ -186,30 +192,36 @@
         });
     }
 
-    function playReceivedAudio(audioData) {
-        console.log("Datos de audio recibidos:", audioData); // Agregamos logging
-        const audioBlob = new Blob([new Uint8Array(audioData)], { type: "audio/webm" });
-        console.log("Blob de audio creado:", audioBlob); // Agregamos logging
-        audioPlayer.src = URL.createObjectURL(audioBlob);
-        audioPlayer.play().catch(e => console.log("Error al reproducir audio:", e));
+    // Google Maps
+    function loadGoogleMapsAPI() {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=TU_CLAVE_RESTRINGIDA&callback=initMap`; // Reemplaza con tu clave
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
     }
 
-    function initMap() {
-        const defaultPos = { lat: -2.170998, lng: -79.922359 };
+    window.initMap = function() {
+        const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
         map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15, center: defaultPos, mapTypeId: 'roadmap', streetViewControl: false
+            zoom: 15,
+            center: defaultLatLng,
+            mapTypeId: 'roadmap',
+            streetViewControl: false // Manteniendo la configuración anterior
         });
 
         marker = new google.maps.Marker({
-            position: defaultPos, map: map, title: "Tu ubicación",
-            icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" }
+            position: defaultLatLng,
+            map: map,
+            title: "Tu ubicación", // Cambiando el título
+            icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } // Manteniendo el icono anterior
         });
     }
 
     function updateMap(lat, lng) {
-        const newPos = new google.maps.LatLng(lat, lng);
-        marker.setPosition(newPos);
-        map.setCenter(newPos);
+        const newPosition = new google.maps.LatLng(lat, lng);
+        marker.setPosition(newPosition);
+        map.setCenter(newPosition);
     }
 
     function sendLocation() {
@@ -217,11 +229,12 @@
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
-                    socket.send(JSON.stringify({
+                    const message = {
                         senderId: senderId,
                         lat: latitude,
                         lng: longitude
-                    }));
+                    };
+                    socket.send(JSON.stringify(message));
                     updateMap(latitude, longitude);
                 },
                 (error) => console.error("Error de geolocalización:", error),
@@ -230,17 +243,9 @@
         }
     }
 
-    function loadGoogleMapsAPI() {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=TU_CLAVE_RESTRINGIDA&callback=initMap`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
         loadGoogleMapsAPI();
-        connectWebSocket();
+        connectWebSocket(); // Llamamos a la conexión al cargar la página
         initAudioRecording();
         setInterval(() => {
             if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "ping" }));

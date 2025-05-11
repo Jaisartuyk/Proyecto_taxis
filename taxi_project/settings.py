@@ -34,9 +34,10 @@ ALLOWED_HOSTS = [
 ]
 
 # settings.py
-CSRF_TRUSTED_ORIGINS = ['https://proyecto-django-channels.onrender.com']
-CORS_ALLOWED_ORIGINS = ['https://proyecto-django-channels.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://taxis-django-channels-production.up.railway.app']
+CORS_ALLOWED_ORIGINS = ['https://taxis-django-channels-production.up.railway.app']
 CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 

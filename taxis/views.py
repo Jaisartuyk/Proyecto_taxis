@@ -691,6 +691,8 @@ def actualizar_ubicacion_taxi(request):
         try:
             data = json.loads(request.body)
             taxi = Taxi.objects.get(user=request.user)
+            
+            # Verificar si el taxi tiene latitud y longitud válidas antes de actualizarlos
             taxi.latitude = data.get('lat')
             taxi.longitude = data.get('lng')
             taxi.save()

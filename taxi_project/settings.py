@@ -82,14 +82,6 @@ TEMPLATES = [
 ASGI_APPLICATION = 'taxi_project.asgi.application'  # Configuración para WebSockets
 WSGI_APPLICATION = 'taxi_project.wsgi.application'
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
-}
 
 
 # Database

@@ -187,7 +187,9 @@
     }
 
     function playReceivedAudio(audioData) {
+        console.log("Datos de audio recibidos:", audioData); // Agregamos logging
         const audioBlob = new Blob([new Uint8Array(audioData)], { type: "audio/webm" });
+        console.log("Blob de audio creado:", audioBlob); // Agregamos logging
         audioPlayer.src = URL.createObjectURL(audioBlob);
         audioPlayer.play().catch(e => console.log("Error al reproducir audio:", e));
     }

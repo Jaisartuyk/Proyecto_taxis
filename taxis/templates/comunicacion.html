@@ -225,7 +225,7 @@
             socket.send(JSON.stringify(message));
 
             // También enviar al backend para actualización permanente
-            fetch('/actualizar_ubicacion_taxi/', {
+            fetch('https://taxis-django-channels-production.up.railway.app/actualizar_ubicacion_taxi/', {
                 method: 'POST',
                 credentials: 'same-origin',  // Esto es importante para enviar cookies de sesión.
                 headers: {

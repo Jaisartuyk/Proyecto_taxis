@@ -168,11 +168,10 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL")],  # Esto debería funcionar
+            "hosts": [os.environ.get("REDIS_URL", "redis://default:PmdhUmFVXhjnezMlExGTbnBpitccmaPr@redis.railway.internal:6379")],
         },
     },
 }
-
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True

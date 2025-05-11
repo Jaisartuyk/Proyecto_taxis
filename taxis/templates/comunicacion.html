@@ -225,24 +225,19 @@
             socket.send(JSON.stringify(message));
 
             // También enviar al backend para actualización permanente
-            fetch('https://taxis-django-channels-production.up.railway.app/actualizar_ubicacion_taxi/', {
+            
+            fetch('/actualizar_ubicacion_taxi/', {
                 method: 'POST',
-                credentials: 'same-origin',  // Esto es importante para enviar cookies de sesión.
+                body: JSON.stringify({ lat: latitud, lng: longitud }),
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                }),
+                    'X-CSRFToken': csrfToken, // Incluye el CSRF Token si es necesario
+                }
             })
             .then(response => response.json())
-            .then(data => {
-                console.log(data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+
 
         });
     }

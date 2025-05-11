@@ -166,7 +166,6 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [os.environ.get("REDIS_URL", "redis://default:AXvhAAIjcDEzMmZmMGExYmI2NDI0MzIyYWNjYmQyZmQwMmRlMmU0N3AxMA@intense-walrus-31713.upstash.io:6379")],
-            "ssl_cert_reqs": None,
         },
     },
 }

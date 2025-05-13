@@ -92,7 +92,7 @@
 <script>
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const socket = new WebSocket(`${wsProtocol}taxis-django-channels-production.up.railway.app/ws/audio/${roomName}/`);
+    const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
     const senderId = crypto.randomUUID();
 
     let mediaRecorder;

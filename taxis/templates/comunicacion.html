@@ -194,7 +194,7 @@
             .then(response => response.json())
             .then(data => {
                 data.taxis.forEach(taxi => {
-                    fotos[taxi.id] = taxi.foto_url;  // Guardamos la foto
+                    fotos[taxi.id] = taxi.foto;  // Guardamos la foto
                     updateMap(taxi.id, taxi.lat, taxi.lng);
                 });
             });

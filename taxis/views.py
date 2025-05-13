@@ -677,7 +677,7 @@ def ubicaciones_taxis(request):
                 'nombre': taxi.user.get_full_name(),
                 'lat': taxi.latitude,
                 'lng': taxi.longitude,
-                'foto': taxi.user.profile_picture.url if taxi.user.profile_picture else '',
+                'foto': taxi.user.profile_picture.url if taxi.user.profile_picture else '/media/default.jpg',
                 'placa': taxi.plate_number,
                 'descripcion': taxi.vehicle_description,
             })

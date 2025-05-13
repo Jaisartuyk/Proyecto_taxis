@@ -199,11 +199,12 @@
 
         if (!markers[senderId]) {
             markers[senderId] = new google.maps.Marker({
-                position: newPosition,
-                map: map,
-                label: senderId.substring(0, 4),
-                title: `Conductor ${senderId}`
-            });
+            position: newPosition,
+            map: map,
+            label: String(senderId).substring(0, 4),
+            title: `Conductor ${senderId}`
+        });
+
 
             paths[senderId] = new google.maps.Polyline({
                 path: [newPosition],

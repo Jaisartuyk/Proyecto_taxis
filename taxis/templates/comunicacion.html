@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <title>Comunicaciones de Conductores</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token }}">
 
     <style>
         body {
@@ -84,15 +83,26 @@
 
 <div class="container">
     <h1>Comunicaciones de Conductores</h1>
+    
+    <!-- Botones -->
     <button id="start" class="btn btn-start">🎤</button>
     <button id="stop" class="btn btn-stop" disabled>🔇</button>
+
+    <!-- Reproductor de audio -->
     <audio id="audioPlayer" class="audio-player" controls autoplay></audio>
+
+    <!-- Estado -->
     <div id="status" class="status disconnected">Desconectado</div>
+
+    <!-- Mapa -->
     <div id="map"></div>
+
+    <!-- CSRF token oculto -->
+    <input type="hidden" id="csrfToken" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 </div>
 
 <script>
-    const csrfToken = document.querySelector('[name=csrf-token]').content;
+    const csrfToken = document.getElementById('csrfToken').value;
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
@@ -175,7 +185,6 @@
             mapTypeId: 'roadmap'
         });
 
-        // Cargar taxis desde backend
         fetch('/ubicaciones_taxis/')
             .then(response => response.json())
             .then(data => {
@@ -219,7 +228,6 @@
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
 
-            // Enviar por WebSocket
             const message = {
                 senderId: senderId,
                 lat: lat,
@@ -227,43 +235,22 @@
             };
             socket.send(JSON.stringify(message));
 
-            // También enviar al backend para actualización permanente
-            
-            fetch('/actualizar_ubicacion_taxi/', {
+            fetch('https://taxis-deaquipalla.up.railway.app/actualizar_ubicacion_taxi/', {
                 method: 'POST',
-                body: JSON.stringify({ lat: lat, lng: lng }),
-
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken, // Incluye el CSRF Token si es necesario
-                }
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ lat: lat, lng: lng })
             })
             .then(response => response.json())
             .then(data => console.log(data))
             .catch(error => console.error('Error:', error));
-
-
         });
     }
 
-    // CSRF token helper
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
     setInterval(sendLocation, 5000); // Enviar ubicación cada 5 segundos
-
     document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
 
     socket.onclose = () => {
@@ -274,7 +261,6 @@
 
     socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
-
 
 </body>
 </html>

@@ -684,22 +684,27 @@ def ubicaciones_taxis(request):
             
     return JsonResponse({'taxis': data})
 
-@login_required
 @csrf_exempt
+@login_required
 def actualizar_ubicacion_taxi(request):
+    print("🔵 Vista llamada")
+    print("Usuario:", request.user)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print("Datos recibidos:", data)
+
             taxi = Taxi.objects.get(user=request.user)
-            
-            # Verificar si el taxi tiene latitud y longitud válidas antes de actualizarlos
             taxi.latitude = data.get('lat')
             taxi.longitude = data.get('lng')
             taxi.save()
             return JsonResponse({'status': 'ok'})
         except Taxi.DoesNotExist:
+            print("❌ Taxi no encontrado")
             return JsonResponse({'status': 'error', 'message': 'Taxi no encontrado'}, status=404)
         except Exception as e:
+            print("❌ Error general:", str(e))
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)

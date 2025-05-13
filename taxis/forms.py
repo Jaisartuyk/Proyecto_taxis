@@ -62,17 +62,18 @@ class DriverProfileForm(forms.ModelForm):
             'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
-class TaxiForm(forms.ModelForm):
-    class Meta:
-        model = Taxi
-        fields = ['plate_number', 'vehicle_description', 'latitude', 'longitude']
-        widgets = {
-            'plate_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'vehicle_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'latitude': forms.NumberInput(attrs={'class': 'form-control'}),
-            'longitude': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
 
+class TaxiRouteForm(forms.ModelForm):
+    class Meta:
+        model = TaxiRoute
+        fields = ['is_available', 'passenger_1', 'passenger_2', 'passenger_3', 'passenger_4']
+        widgets = {
+            'passenger_1': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_1'}),
+            'passenger_2': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_2'}),
+            'passenger_3': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_3'}),
+            'passenger_4': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_4'}),
+            'is_available': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 
 class TaxiForm(forms.ModelForm):

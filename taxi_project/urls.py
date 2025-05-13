@@ -22,4 +22,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('taxis.urls')),
 ]
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:  # Asegúrate de que solo se sirvan archivos estáticos y multimedia en desarrollo
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Servir archivos estáticos en producción
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

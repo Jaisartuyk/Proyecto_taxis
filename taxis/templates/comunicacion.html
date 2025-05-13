@@ -106,13 +106,15 @@
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
-    const senderId = crypto.randomUUID();
+    const senderId = crypto.randomUUID(); // ID único del conductor actual
 
     let mediaRecorder;
     let map;
-    const markers = {};
-    const paths = {};
+    const markers = {};     // Para los marcadores
+    const paths = {};       // Para las líneas de trayectoria
+    const fotos = {};       // Guardar URL de fotos de conductores
 
+    // Iniciar grabación de audio
     navigator.mediaDevices.getUserMedia({ 
         audio: { echoCancellation: true, noiseSuppression: true } 
     }).then((stream) => {
@@ -144,6 +146,7 @@
         };
     });
 
+    // Estado del socket
     socket.onopen = () => {
         document.getElementById("status").classList.replace("disconnected", "connected");
         document.getElementById("status").textContent = "Conectado";
@@ -157,7 +160,7 @@
                 updateMap(data.senderId, parseFloat(data.lat), parseFloat(data.lng));
             }
 
-            if (data.audio && data.senderId && data.senderId !== senderId) {
+            if (data.audio && data.senderId !== senderId) {
                 const audioBuffer = new Uint8Array(data.audio);
                 const audioBlob = new Blob([audioBuffer], { type: "audio/webm" });
                 const audioUrl = URL.createObjectURL(audioBlob);
@@ -169,6 +172,7 @@
         }
     };
 
+    // Cargar la API de Google Maps
     function loadGoogleMapsAPI() {
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap`;
@@ -177,7 +181,7 @@
         document.head.appendChild(script);
     }
 
-    window.initMap = function() {
+    window.initMap = function () {
         const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
         map = new google.maps.Map(document.getElementById("map"), {
             zoom: 14,
@@ -185,45 +189,53 @@
             mapTypeId: 'roadmap'
         });
 
+        // Obtener ubicación inicial de todos los taxis
         fetch('/ubicaciones_taxis/')
             .then(response => response.json())
             .then(data => {
                 data.taxis.forEach(taxi => {
+                    fotos[taxi.id] = taxi.foto_url;  // Guardamos la foto
                     updateMap(taxi.id, taxi.lat, taxi.lng);
                 });
             });
-    }
+    };
 
-    function updateMap(senderId, lat, lng) {
+    // Función para actualizar o crear un marcador
+    function updateMap(id, lat, lng) {
         const newPosition = new google.maps.LatLng(lat, lng);
 
-        if (!markers[senderId]) {
-            markers[senderId] = new google.maps.Marker({
-            position: newPosition,
-            map: map,
-            label: String(senderId).substring(0, 4),
-            title: `Conductor ${senderId}`
-        });
+        if (!markers[id]) {
+            markers[id] = new google.maps.Marker({
+                position: newPosition,
+                map: map,
+                title: `Conductor ${id}`,
+                icon: {
+                    url: fotos[id] || "https://via.placeholder.com/40", // Si no hay foto, imagen por defecto
+                    scaledSize: new google.maps.Size(40, 40),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(20, 20)
+                }
+            });
 
-
-            paths[senderId] = new google.maps.Polyline({
+            paths[id] = new google.maps.Polyline({
                 path: [newPosition],
                 geodesic: true,
-                strokeColor: '#'+Math.floor(Math.random()*16777215).toString(16),
+                strokeColor: '#' + Math.floor(Math.random() * 16777215).toString(16),
                 strokeOpacity: 0.8,
                 strokeWeight: 2,
                 map: map
             });
         } else {
-            markers[senderId].setPosition(newPosition);
-            paths[senderId].getPath().push(newPosition);
+            markers[id].setPosition(newPosition);
+            paths[id].getPath().push(newPosition);
         }
 
-        if (senderId === senderId) {
+        if (id === senderId) {
             map.setCenter(newPosition);
         }
     }
 
+    // Enviar ubicación cada 5 segundos
     function sendLocation() {
         navigator.geolocation.getCurrentPosition((position) => {
             const lat = position.coords.latitude;
@@ -251,7 +263,7 @@
         });
     }
 
-    setInterval(sendLocation, 5000); // Enviar ubicación cada 5 segundos
+    setInterval(sendLocation, 5000);
     document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
 
     socket.onclose = () => {
@@ -262,6 +274,7 @@
 
     socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
+
 
 </body>
 </html>

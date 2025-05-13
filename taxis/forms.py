@@ -75,16 +75,19 @@ class TaxiForm(forms.ModelForm):
 
 
 
-class TaxiRouteForm(forms.ModelForm):
+class TaxiForm(forms.ModelForm):
     class Meta:
-        model = TaxiRoute
-        fields = ['is_available', 'passenger_1', 'passenger_2', 'passenger_3', 'passenger_4']
+        model = Taxi
+        fields = ['plate_number', 'vehicle_description', 'latitude', 'longitude']
         widgets = {
-            'passenger_1': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_1'}),
-            'passenger_2': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_2'}),
-            'passenger_3': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_3'}),
-            'passenger_4': forms.TextInput(attrs={'class': 'form-control', 'id': 'passenger_4'}),
-            'is_available': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'latitude': forms.TextInput(attrs={
+                'readonly': 'readonly',
+                'class': 'form-control'
+            }),
+            'longitude': forms.TextInput(attrs={
+                'readonly': 'readonly',
+                'class': 'form-control'
+            }),
         }
 
 class AdminProfileForm(forms.ModelForm):

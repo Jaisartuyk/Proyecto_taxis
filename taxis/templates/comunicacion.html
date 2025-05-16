@@ -101,7 +101,7 @@
     <input type="hidden" id="csrfToken" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 </div>
 
-script>
+<script>
     const csrfToken = document.getElementById('csrfToken').value;
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";

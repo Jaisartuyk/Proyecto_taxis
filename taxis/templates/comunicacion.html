@@ -105,7 +105,7 @@
     const csrfToken = document.getElementById('csrfToken').value;
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const socket = new WebSocket(${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/);
+    const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
     const senderId = crypto.randomUUID(); // ID único del conductor actual
 
     let mediaRecorder;
@@ -175,7 +175,7 @@
     // Cargar la API de Google Maps
     function loadGoogleMapsAPI() {
         const script = document.createElement('script');
-        script.src = https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap;
+        script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap";
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
@@ -208,7 +208,7 @@
             markers[id] = new google.maps.Marker({
                 position: newPosition,
                 map: map,
-                title: Conductor ${id},
+                title: `Conductor ${id}`,
                 icon: {
                     url: fotos[id] || "https://via.placeholder.com/40", // Si no hay foto, imagen por defecto
                     scaledSize: new google.maps.Size(40, 40),

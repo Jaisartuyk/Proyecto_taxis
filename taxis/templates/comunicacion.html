@@ -101,56 +101,50 @@
     <input type="hidden" id="csrfToken" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 </div>
 
-<script>
-    const isDriver = "{{ request.user.role }}" === "driver";
-</script>
-
-<script>
+script>
     const csrfToken = document.getElementById('csrfToken').value;
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
-    const senderId = crypto.randomUUID(); // ID único del cliente o conductor
+    const socket = new WebSocket(${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/);
+    const senderId = crypto.randomUUID(); // ID único del conductor actual
 
     let mediaRecorder;
     let map;
-    const markers = {};
-    const paths = {};
-    const fotos = {};
+    const markers = {};     // Para los marcadores
+    const paths = {};       // Para las líneas de trayectoria
+    const fotos = {};       // Guardar URL de fotos de conductores
 
-    // Iniciar grabación solo si es conductor
-    if (isDriver) {
-        navigator.mediaDevices.getUserMedia({ 
-            audio: { echoCancellation: true, noiseSuppression: true } 
-        }).then((stream) => {
-            mediaRecorder = new MediaRecorder(stream);
+    // Iniciar grabación de audio
+    navigator.mediaDevices.getUserMedia({ 
+        audio: { echoCancellation: true, noiseSuppression: true } 
+    }).then((stream) => {
+        mediaRecorder = new MediaRecorder(stream);
 
-            document.getElementById("start").addEventListener("mousedown", () => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    mediaRecorder.start();
-                    document.getElementById("start").disabled = true;
-                    document.getElementById("stop").disabled = false;
-                }
-            });
-
-            document.getElementById("stop").addEventListener("mouseup", () => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    mediaRecorder.stop();
-                    document.getElementById("start").disabled = false;
-                    document.getElementById("stop").disabled = true;
-                }
-            });
-
-            mediaRecorder.ondataavailable = async (event) => {
-                const audioBuffer = await event.data.arrayBuffer();
-                const message = {
-                    senderId: senderId,
-                    audio: Array.from(new Uint8Array(audioBuffer))
-                };
-                socket.send(JSON.stringify(message));
-            };
+        document.getElementById("start").addEventListener("mousedown", () => {
+            if (socket.readyState === WebSocket.OPEN) {
+                mediaRecorder.start();
+                document.getElementById("start").disabled = true;
+                document.getElementById("stop").disabled = false;
+            }
         });
-    }
+
+        document.getElementById("stop").addEventListener("mouseup", () => {
+            if (socket.readyState === WebSocket.OPEN) {
+                mediaRecorder.stop();
+                document.getElementById("start").disabled = false;
+                document.getElementById("stop").disabled = true;
+            }
+        });
+
+        mediaRecorder.ondataavailable = async (event) => {
+            const audioBuffer = await event.data.arrayBuffer();
+            const message = {
+                senderId: senderId,
+                audio: Array.from(new Uint8Array(audioBuffer))
+            };
+            socket.send(JSON.stringify(message));
+        };
+    });
 
     // Estado del socket
     socket.onopen = () => {
@@ -158,15 +152,6 @@
         document.getElementById("status").textContent = "Conectado";
     };
 
-    socket.onclose = () => {
-        document.getElementById("status").classList.replace("connected", "disconnected");
-        document.getElementById("status").textContent = "Desconectado";
-        console.log("WebSocket cerrado");
-    };
-
-    socket.onerror = (error) => console.error("WebSocket Error:", error);
-
-    // Mensajes entrantes del WebSocket
     socket.onmessage = (event) => {
         if (typeof event.data === "string") {
             const data = JSON.parse(event.data);
@@ -190,13 +175,12 @@
     // Cargar la API de Google Maps
     function loadGoogleMapsAPI() {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap`;
+        script.src = https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap;
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
     }
 
-    // Inicializar mapa
     window.initMap = function () {
         const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
         map = new google.maps.Map(document.getElementById("map"), {
@@ -205,18 +189,18 @@
             mapTypeId: 'roadmap'
         });
 
-        // Cargar ubicaciones actuales
+        // Obtener ubicación inicial de todos los taxis
         fetch('/ubicaciones_taxis/')
             .then(response => response.json())
             .then(data => {
                 data.taxis.forEach(taxi => {
-                    fotos[taxi.id] = taxi.foto;
+                    fotos[taxi.id] = taxi.foto;  // Guardamos la foto
                     updateMap(taxi.id, taxi.lat, taxi.lng);
                 });
             });
     };
 
-    // Crear o actualizar marcador y trazo
+    // Función para actualizar o crear un marcador
     function updateMap(id, lat, lng) {
         const newPosition = new google.maps.LatLng(lat, lng);
 
@@ -224,9 +208,9 @@
             markers[id] = new google.maps.Marker({
                 position: newPosition,
                 map: map,
-                title: `Conductor ${id}`,
+                title: Conductor ${id},
                 icon: {
-                    url: fotos[id] || "https://via.placeholder.com/40",
+                    url: fotos[id] || "https://via.placeholder.com/40", // Si no hay foto, imagen por defecto
                     scaledSize: new google.maps.Size(40, 40),
                     origin: new google.maps.Point(0, 0),
                     anchor: new google.maps.Point(20, 20)
@@ -251,42 +235,45 @@
         }
     }
 
-    // Solo los conductores envían ubicación
-    if (isDriver) {
-        setInterval(() => {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
+    // Enviar ubicación cada 5 segundos
+    function sendLocation() {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
 
-                const message = {
-                    senderId: senderId,
-                    lat: lat,
-                    lng: lng
-                };
-                socket.send(JSON.stringify(message));
+            const message = {
+                senderId: senderId,
+                lat: lat,
+                lng: lng
+            };
+            socket.send(JSON.stringify(message));
 
-                fetch('/actualizar_ubicacion_taxi/', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                    },
-                    body: JSON.stringify({ lat: lat, lng: lng })
-                })
-                .then(response => response.json())
-                .then(data => console.log(data))
-                .catch(error => console.error('Error:', error));
-            });
-        }, 5000);
+            fetch('https://taxis-deaquipalla.up.railway.app/actualizar_ubicacion_taxi/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ lat: lat, lng: lng })
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        });
     }
 
-    // Cargar Google Maps
+    setInterval(sendLocation, 5000);
     document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
+
+    socket.onclose = () => {
+        document.getElementById("status").classList.replace("connected", "disconnected");
+        document.getElementById("status").textContent = "Desconectado";
+        console.log("WebSocket cerrado");
+    };
+
+    socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
-
-
-
 
 </body>
 </html>

@@ -102,17 +102,18 @@
 </div>
 
 <script>
+    const isDriver = {{ request.user.role == 'driver'|yesno:"true,false" }};
     const csrfToken = document.getElementById('csrfToken').value;
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
-    const senderId = crypto.randomUUID(); // ID único del conductor actual
+    const senderId = crypto.randomUUID(); // ID único del cliente o conductor actual
 
     let mediaRecorder;
     let map;
-    const markers = {};     // Para los marcadores
-    const paths = {};       // Para las líneas de trayectoria
-    const fotos = {};       // Guardar URL de fotos de conductores
+    const markers = {};     // Marcadores de taxis
+    const paths = {};       // Trayectoria de cada taxi
+    const fotos = {};       // Foto de cada conductor
 
     // Iniciar grabación de audio
     navigator.mediaDevices.getUserMedia({ 
@@ -194,13 +195,24 @@
             .then(response => response.json())
             .then(data => {
                 data.taxis.forEach(taxi => {
-                    fotos[taxi.id] = taxi.foto;  // Guardamos la foto
+                    fotos[taxi.id] = taxi.foto;
                     updateMap(taxi.id, taxi.lat, taxi.lng);
                 });
+
+                if (!isDriver) {
+                    ajustarVistaMapa();
+                }
             });
     };
 
-    // Función para actualizar o crear un marcador
+    // Función para ajustar el mapa a todos los taxis visibles
+    function ajustarVistaMapa() {
+        const bounds = new google.maps.LatLngBounds();
+        Object.values(markers).forEach(marker => bounds.extend(marker.getPosition()));
+        map.fitBounds(bounds);
+    }
+
+    // Actualizar o crear marcador y trayectoria
     function updateMap(id, lat, lng) {
         const newPosition = new google.maps.LatLng(lat, lng);
 
@@ -210,7 +222,7 @@
                 map: map,
                 title: `Conductor ${id}`,
                 icon: {
-                    url: fotos[id] || "https://via.placeholder.com/40", // Si no hay foto, imagen por defecto
+                    url: fotos[id] || "https://via.placeholder.com/40",
                     scaledSize: new google.maps.Size(40, 40),
                     origin: new google.maps.Point(0, 0),
                     anchor: new google.maps.Point(20, 20)
@@ -230,40 +242,44 @@
             paths[id].getPath().push(newPosition);
         }
 
-        if (id === senderId) {
+        // Si es el conductor actual, centrar el mapa
+        if (isDriver && id === senderId) {
             map.setCenter(newPosition);
         }
     }
 
-    // Enviar ubicación cada 5 segundos
-    function sendLocation() {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
+    // Solo el conductor envía su ubicación
+    if (isDriver) {
+        function sendLocation() {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
 
-            const message = {
-                senderId: senderId,
-                lat: lat,
-                lng: lng
-            };
-            socket.send(JSON.stringify(message));
+                const message = {
+                    senderId: senderId,
+                    lat: lat,
+                    lng: lng
+                };
+                socket.send(JSON.stringify(message));
 
-            fetch('https://taxis-deaquipalla.up.railway.app/actualizar_ubicacion_taxi/', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ lat: lat, lng: lng })
-            })
-            .then(response => response.json())
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
-        });
+                fetch('/actualizar_ubicacion_taxi/', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ lat: lat, lng: lng })
+                })
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+            });
+        }
+
+        setInterval(sendLocation, 5000);
     }
 
-    setInterval(sendLocation, 5000);
     document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
 
     socket.onclose = () => {
@@ -274,6 +290,7 @@
 
     socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
+
 
 
 </body>

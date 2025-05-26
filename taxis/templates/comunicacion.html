@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Comunicaciones de Conductores</title>
+    <title>Central de Control de Taxis</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
@@ -12,62 +12,77 @@
             background-color: #f1f1f1;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        .container {
-            max-width: 500px;
-            margin: 40px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h1 {
-            color: #4CAF50;
-            font-size: 22px;
-        }
-        .btn {
-            width: 90px;
-            height: 90px;
-            font-size: 26px;
-            border-radius: 50%;
-            margin: 10px;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .btn:hover {
-            transform: scale(1.05);
-        }
-        .btn-start {
+        .header {
             background-color: #4CAF50;
             color: white;
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn-stop {
-            background-color: #F44336;
-            color: white;
+        h1 {
+            margin: 0;
+            font-size: 28px;
         }
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .audio-player {
-            width: 100%;
-            margin-top: 20px;
+        .main-content {
+            display: flex;
+            flex-grow: 1;
+            padding: 20px;
+            gap: 20px;
+            flex-wrap: wrap;
         }
         #map {
-            width: 100%;
-            height: 300px;
-            margin-top: 20px;
+            flex: 2; /* El mapa toma más espacio */
+            min-height: 500px;
             border-radius: 8px;
             border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .sidebar {
+            flex: 1; /* La barra lateral toma menos espacio */
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: #4CAF50;
+            font-size: 18px;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .log-box {
+            height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #eee;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .log-box p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
         }
         .status {
-            margin-top: 15px;
             padding: 8px;
             border-radius: 4px;
             font-size: 14px;
+            text-align: center;
+            font-weight: bold;
         }
         .connected {
             background-color: #e8f5e9;
@@ -77,105 +92,98 @@
             background-color: #ffebee;
             color: #c62828;
         }
+        .central-audio-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .central-audio-controls button {
+            width: 80px;
+            height: 80px;
+            font-size: 24px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .central-audio-controls button:hover {
+            transform: scale(1.05);
+        }
+        .central-audio-controls button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-start {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-stop {
+            background-color: #F44336;
+            color: white;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Comunicaciones de Conductores</h1>
-    
-    <!-- Botones -->
-    <button id="start" class="btn btn-start">🎤</button>
-    <button id="stop" class="btn btn-stop" disabled>🔇</button>
+<div class="header">
+    <h1>Central de Control de Taxis Deaquipaya</h1>
+</div>
 
-    <!-- Reproductor de audio -->
-    <audio id="audioPlayer" class="audio-player" controls autoplay></audio>
-
-    <!-- Estado -->
-    <div id="status" class="status disconnected">Desconectado</div>
-
-    <!-- Mapa -->
+<div class="main-content">
     <div id="map"></div>
 
-    <!-- CSRF token oculto -->
-    <input type="hidden" id="csrfToken" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    <div class="sidebar">
+        <div class="card">
+            <h2>Estado de Conexión</h2>
+            <div id="status" class="status disconnected">Desconectado</div>
+        </div>
+
+        <div class="card">
+            <h2>Transmisión de Voz (Central)</h2>
+            <div class="central-audio-controls">
+                <button id="startCentralMic" class="btn-start">🎤</button>
+                <button id="stopCentralMic" class="btn-stop" disabled>🔇</button>
+            </div>
+            <p style="font-size: 12px; text-align: center; margin-top: 10px;">Mantén presionado para hablar.</p>
+        </div>
+
+        <div class="card">
+            <h2>Registro de Mensajes</h2>
+            <div id="messages-log" class="log-box"></div>
+        </div>
+
+        <div class="card">
+            <h2>Registro de Audio Recibido</h2>
+            <div id="audio-log" class="log-box"></div>
+            <audio id="audioPlayer" controls autoplay style="width: 100%; margin-top: 10px;"></audio>
+        </div>
+    </div>
 </div>
 
 <script>
-    const csrfToken = document.getElementById('csrfToken').value;
-    const roomName = "conductores";
+    const Maps_API_KEY = "AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ"; // ⭐⭐ ¡TU CLAVE REAL! ⭐⭐
+    const roomName = "conductores"; // ⭐⭐ ¡DEBE COINCIDIR CON LA ROOM_NAME DE TU CONSUMER/Android! ⭐⭐
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
-    const senderId = crypto.randomUUID(); // ID único del conductor actual
-
-    let mediaRecorder;
+    
     let map;
-    const markers = {};     // Para los marcadores
-    const paths = {};       // Para las líneas de trayectoria
-    const fotos = {};       // Guardar URL de fotos de conductores
+    let socket;
+    let driverMarkers = {}; // Almacena los marcadores de los conductores {driverId: google.maps.Marker}
+    let audioContext;       // Para la reproducción de audio
+    let audioQueue = [];    // Cola de audio para reproducción secuencial
+    let isPlayingAudio = false;
 
-    // Iniciar grabación de audio
-    navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true } 
-    }).then((stream) => {
-        mediaRecorder = new MediaRecorder(stream);
+    // Elementos del DOM para el control de audio de la central
+    const startCentralMicBtn = document.getElementById('startCentralMic');
+    const stopCentralMicBtn = document.getElementById('stopCentralMic');
+    let mediaRecorderCentral;
+    let centralAudioStream;
 
-        document.getElementById("start").addEventListener("mousedown", () => {
-            if (socket.readyState === WebSocket.OPEN) {
-                mediaRecorder.start();
-                document.getElementById("start").disabled = true;
-                document.getElementById("stop").disabled = false;
-            }
-        });
-
-        document.getElementById("stop").addEventListener("mouseup", () => {
-            if (socket.readyState === WebSocket.OPEN) {
-                mediaRecorder.stop();
-                document.getElementById("start").disabled = false;
-                document.getElementById("stop").disabled = true;
-            }
-        });
-
-        mediaRecorder.ondataavailable = async (event) => {
-            const audioBuffer = await event.data.arrayBuffer();
-            const message = {
-                senderId: senderId,
-                audio: Array.from(new Uint8Array(audioBuffer))
-            };
-            socket.send(JSON.stringify(message));
-        };
-    });
-
-    // Estado del socket
-    socket.onopen = () => {
-        document.getElementById("status").classList.replace("disconnected", "connected");
-        document.getElementById("status").textContent = "Conectado";
-    };
-
-    socket.onmessage = (event) => {
-        if (typeof event.data === "string") {
-            const data = JSON.parse(event.data);
-
-            if (data.lat && data.lng && data.senderId) {
-                updateMap(data.senderId, parseFloat(data.lat), parseFloat(data.lng));
-            }
-
-            if (data.audio && data.senderId !== senderId) {
-                const audioBuffer = new Uint8Array(data.audio);
-                const audioBlob = new Blob([audioBuffer], { type: "audio/webm" });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audioPlayer = document.getElementById("audioPlayer");
-
-                audioPlayer.src = audioUrl;
-                audioPlayer.play();
-            }
-        }
-    };
-
-    // Cargar la API de Google Maps
+    // --- Funciones de inicialización y conexión ---
     function loadGoogleMapsAPI() {
         const script = document.createElement('script');
-        script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ&callback=initMap";
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${Maps_API_KEY}&callback=initMap`;
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
@@ -188,93 +196,234 @@
             center: defaultLatLng,
             mapTypeId: 'roadmap'
         });
-
-        // Obtener ubicación inicial de todos los taxis
-        fetch('/ubicaciones_taxis/')
-            .then(response => response.json())
-            .then(data => {
-                data.taxis.forEach(taxi => {
-                    fotos[taxi.id] = taxi.foto;  // Guardamos la foto
-                    updateMap(taxi.id, taxi.lat, taxi.lng);
-                });
-            });
+        console.log("Mapa de Google Maps inicializado.");
+        setupWebSocket();
+        setupCentralAudioControls(); // Configurar los controles de audio de la central
     };
 
-    // Función para actualizar o crear un marcador
-    function updateMap(id, lat, lng) {
-        const newPosition = new google.maps.LatLng(lat, lng);
+    function setupWebSocket() {
+        socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
 
-        if (!markers[id]) {
-            markers[id] = new google.maps.Marker({
-                position: newPosition,
+        socket.onopen = function(event) {
+            console.log('Conexión WebSocket abierta.');
+            updateStatus("Conectado", "connected");
+            logMessage("Conectado a la central de taxis.");
+            // Habilitar los botones de audio de la central solo si la conexión está abierta
+            if (mediaRecorderCentral) {
+                startCentralMicBtn.disabled = false;
+            }
+        };
+
+        socket.onmessage = function(event) {
+            if (typeof event.data === "string") {
+                const data = JSON.parse(event.data);
+                console.log('Mensaje de WebSocket recibido:', data);
+
+                // ⭐⭐ Manejo de la actualización de UBICACIÓN desde Android ⭐⭐
+                if (data.type === 'driver_location_update') {
+                    const driverId = data.driverId;
+                    const lat = data.latitude;
+                    const lng = data.longitude;
+
+                    if (lat && lng) {
+                        updateDriverLocation(driverId, lat, lng);
+                        logMessage(`Ubicación de ${driverId}: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`);
+                    }
+
+                // ⭐⭐ Manejo de mensajes de AUDIO (de taxis o de la propia central) ⭐⭐
+                } else if (data.type === 'audio_broadcast') { // Tipo que el consumidor retransmite
+                    const senderId = data.senderId;
+                    const audioBase64 = data.audio;
+
+                    if (audioBase64) {
+                        logAudio(`Audio de ${senderId} recibido.`);
+                        // Reproducir el audio recibido, incluso si es de la propia central
+                        playAudioFromBase64(audioBase64);
+                    }
+                } else {
+                    logMessage(`Mensaje desconocido: ${JSON.stringify(data)}`);
+                }
+            }
+        };
+
+        socket.onclose = function(event) {
+            console.log('Conexión WebSocket cerrada:', event.code, event.reason);
+            updateStatus("Desconectado", "disconnected");
+            logMessage(`Conexión cerrada. Código: ${event.code}, Razón: ${event.reason}. Reintentando...`);
+            startCentralMicBtn.disabled = true; // Deshabilitar botones de audio
+            stopCentralMicBtn.disabled = true;
+            setTimeout(setupWebSocket, 5000); // Reintentar en 5 segundos
+        };
+
+        socket.onerror = function(error) {
+            console.error('Error de WebSocket:', error);
+            updateStatus("Error de Conexión", "disconnected");
+            logMessage(`Error de conexión: ${error.message}`);
+        };
+    }
+
+    // --- Funciones para el mapa ---
+    function updateDriverLocation(driverId, lat, lng) {
+        const position = { lat: lat, lng: lng };
+
+        if (!map) {
+            console.warn("Mapa no inicializado aún, no se puede actualizar la ubicación.");
+            return;
+        }
+
+        if (!driverMarkers[driverId]) {
+            driverMarkers[driverId] = new google.maps.Marker({
+                position: position,
                 map: map,
-                title: `Conductor ${id}`,
-                icon: {
-                    url: fotos[id] || "https://via.placeholder.com/40", // Si no hay foto, imagen por defecto
-                    scaledSize: new google.maps.Size(40, 40),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(20, 20)
+                title: `Conductor ${driverId}`,
+            });
+            console.log(`Marcador creado para conductor ${driverId}`);
+        } else {
+            driverMarkers[driverId].setPosition(position);
+            console.log(`Marcador de conductor ${driverId} actualizado.`);
+        }
+    }
+
+    // --- Funciones de utilidad para los logs y estado ---
+    function logMessage(msg) {
+        const messagesDiv = document.getElementById('messages-log');
+        const p = document.createElement('p');
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        messagesDiv.appendChild(p);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function logAudio(msg) {
+        const audioLogDiv = document.getElementById('audio-log');
+        const p = document.createElement('p');
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        audioLogDiv.appendChild(p);
+        audioLogDiv.scrollTop = audioLogDiv.scrollHeight;
+    }
+
+    function updateStatus(message, className) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = message;
+        statusDiv.className = `status ${className}`;
+    }
+
+    // --- NUEVO: Funciones para grabar y enviar audio desde la Central ---
+    function setupCentralAudioControls() {
+        navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true }
+        }).then((stream) => {
+            centralAudioStream = stream;
+            mediaRecorderCentral = new MediaRecorder(stream);
+            logMessage("Micrófono de la central listo.");
+
+            // Habilitar el botón de iniciar si el socket ya está abierto
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                startCentralMicBtn.disabled = false;
+            }
+
+            // Iniciar grabación al presionar (mousedown)
+            startCentralMicBtn.addEventListener("mousedown", () => {
+                if (socket.readyState === WebSocket.OPEN && mediaRecorderCentral.state === "inactive") {
+                    mediaRecorderCentral.start();
+                    startCentralMicBtn.disabled = true;
+                    stopCentralMicBtn.disabled = false;
+                    logMessage("🎤 Central: Iniciando transmisión de audio...");
                 }
             });
 
-            paths[id] = new google.maps.Polyline({
-                path: [newPosition],
-                geodesic: true,
-                strokeColor: '#' + Math.floor(Math.random() * 16777215).toString(16),
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                map: map
+            // Detener grabación al soltar (mouseup)
+            stopCentralMicBtn.addEventListener("mouseup", () => {
+                if (socket.readyState === WebSocket.OPEN && mediaRecorderCentral.state === "recording") {
+                    mediaRecorderCentral.stop();
+                    startCentralMicBtn.disabled = false;
+                    stopCentralMicBtn.disabled = true;
+                    logMessage("🔇 Central: Deteniendo transmisión de audio...");
+                }
             });
-        } else {
-            markers[id].setPosition(newPosition);
-            paths[id].getPath().push(newPosition);
-        }
 
-        if (id === senderId) {
-            map.setCenter(newPosition);
-        }
-    }
+            mediaRecorderCentral.ondataavailable = async (event) => {
+                // Solo enviar si hay datos y el socket está abierto
+                if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+                    const audioBuffer = await event.data.arrayBuffer();
+                    const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer))); // Convertir a base64
 
-    // Enviar ubicación cada 5 segundos
-    function sendLocation() {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
-            const message = {
-                senderId: senderId,
-                lat: lat,
-                lng: lng
+                    const message = {
+                        type: 'central_audio_message', // Tipo para audio desde la central
+                        senderRole: 'Central',
+                        audio: audioBase64
+                    };
+                    socket.send(JSON.stringify(message));
+                    logMessage("🔊 Central: Audio enviado.");
+                }
             };
-            socket.send(JSON.stringify(message));
 
-            fetch('https://taxis-deaquipalla.up.railway.app/actualizar_ubicacion_taxi/', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ lat: lat, lng: lng })
-            })
-            .then(response => response.json())
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
+            mediaRecorderCentral.onstop = () => {
+                // Opcional: limpiar si es necesario
+            };
+
+        }).catch((err) => {
+            console.error("Error al acceder al micrófono de la central:", err);
+            logMessage("❌ Error: No se pudo acceder al micrófono de la central. Asegúrate de dar permisos.");
+            startCentralMicBtn.disabled = true;
+            stopCentralMicBtn.disabled = true;
         });
     }
 
-    setInterval(sendLocation, 5000);
+    // --- Funciones para manejo y reproducción de audio ---
+    function playAudioFromBase64(base64String) {
+        audioQueue.push(base64String);
+        if (!isPlayingAudio) {
+            processAudioQueue();
+        }
+    }
+
+    async function processAudioQueue() {
+        if (audioQueue.length === 0 || isPlayingAudio) {
+            return;
+        }
+
+        isPlayingAudio = true;
+        const base64String = audioQueue.shift();
+
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        try {
+            // Asegurarse de que el string base64 tiene el formato correcto para un fetch
+            // Si tu app Android envía un array de bytes y lo conviertes a base64,
+            // asegúrate de que la cabecera 'data:audio/webm;base64,' sea correcta para tu codec.
+            // Por defecto, MediaRecorder en Chrome/Firefox usa 'audio/webm;codecs=opus'
+            // Si el audio viene del Android y es PCM, es posible que necesites 'audio/wav;base64,' o similar.
+            // Para el ejemplo, asumo un formato compatible con MediaRecorder.
+            const audioBlob = await fetch(`data:audio/webm;base64,${base64String}`).then(r => r.blob());
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+
+            source.onended = () => {
+                console.log("Audio finalizado.");
+                isPlayingAudio = false;
+                processAudioQueue();
+            };
+
+            source.start(0);
+            console.log("Reproduciendo audio...");
+
+        } catch (e) {
+            console.error("Error al decodificar o reproducir audio:", e);
+            logAudio("Error al reproducir audio. " + e.message);
+            isPlayingAudio = false;
+            processAudioQueue();
+        }
+    }
+
+    // Cargar la API de Google Maps cuando el DOM esté completamente cargado
     document.addEventListener('DOMContentLoaded', loadGoogleMapsAPI);
-
-    socket.onclose = () => {
-        document.getElementById("status").classList.replace("connected", "disconnected");
-        document.getElementById("status").textContent = "Desconectado";
-        console.log("WebSocket cerrado");
-    };
-
-    socket.onerror = (error) => console.error("WebSocket Error:", error);
 </script>
 
 </body>
 </html>
-

@@ -42,6 +42,7 @@ CORS_ALLOW_CREDENTIALS = True
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
     'daphne',
     'channels',
     'taxis',

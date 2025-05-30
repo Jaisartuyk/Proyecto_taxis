@@ -231,18 +231,22 @@
                     }
 
                 // ⭐⭐ Manejo de mensajes de AUDIO (de taxis o de la propia central) ⭐⭐
-                } else if (data.type === 'audio_broadcast') { // Tipo que el consumidor retransmite
-                    const senderId = data.senderId;
-                    const audioBase64 = data.audio;
+            } else if (data.type === 'audio_broadcast') {
+                const senderId = data.senderId;
+                const senderRole = data.senderRole;  // <- nuevo campo enviado desde el backend
+                const audioBase64 = data.audio;
 
-                    if (audioBase64) {
-                        logAudio(`Audio de ${senderId} recibido.`);
-                        // Reproducir el audio recibido, incluso si es de la propia central
-                        playAudioFromBase64(audioBase64);
-                    }
+                // Solo reproducir si el audio NO viene de la Central (para evitar eco)
+                if (audioBase64 && senderRole !== 'Central') {
+                    logAudio(`🎧 Audio de ${senderId} recibido.`);
+                    playAudioFromBase64(audioBase64);
                 } else {
-                    logMessage(`Mensaje desconocido: ${JSON.stringify(data)}`);
+                    console.log("🔇 Audio de la central recibido, ignorado para evitar eco.");
                 }
+            } else {
+                logMessage(`Mensaje desconocido: ${JSON.stringify(data)}`);
+            }
+
             }
         };
 

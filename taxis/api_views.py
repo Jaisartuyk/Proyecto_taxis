@@ -5,6 +5,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate # Solo necesitamos authenticate, ya que no estamos usando sesiones web para la API
 from rest_framework.authtoken.models import Token # Para generar/obtener tokens
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 # Importa tu modelo AppUser para asegurarte de que estás trabajando con él
 # from .models import AppUser # Si AppUser está en models.py de la misma app

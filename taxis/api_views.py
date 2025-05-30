@@ -1,17 +1,14 @@
-# taxis/api_views.py (O en tu views.py principal, pero es mejor separarlos)
+# taxis/api_views.py
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth import authenticate # Solo necesitamos authenticate, ya que no estamos usando sesiones web para la API
-from rest_framework.authtoken.models import Token # Para generar/obtener tokens
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 
+# Obtener el modelo de usuario personalizado (AppUser si lo configuraste correctamente)
 User = get_user_model()
-
-# Importa tu modelo AppUser para asegurarte de que estás trabajando con él
-# from .models import AppUser # Si AppUser está en models.py de la misma app
-# from your_project_name.taxis.models import AppUser # Si necesitas una ruta más explícita
 
 class LoginAPIView(APIView):
     def post(self, request):
@@ -24,38 +21,42 @@ class LoginAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Autentica al usuario usando las credenciales.
-        # Esto usará tu AppUser Customizado si lo configuraste como AUTH_USER_MODEL
+        # Autenticar usuario
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            # Obtén o crea el token para el usuario autenticado
-            token, created = Token.objects.get_or_create(user=user)
+            try:
+                # Obtener o crear token
+                token, created = Token.objects.get_or_create(user=user)
 
-            # ⭐⭐⭐ AQUÍ ESTÁ EL CAMBIO CLAVE: Usa user.role directamente ⭐⭐⭐
-            user_role = user.role
+                user_role = getattr(user, 'role', None)  # Asegúrate de que el campo 'role' exista
 
-            # Validar si el usuario tiene el rol de "driver" para esta app específica
-            if user_role == 'driver':
+                if user_role == 'driver':
+                    return Response(
+                        {
+                            "message": "Inicio de sesión exitoso.",
+                            "user_id": user.id,
+                            "role": user_role,
+                            "token": token.key
+                        },
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {
+                            "error": "Acceso denegado: Esta aplicación es solo para conductores.",
+                            "role": user_role
+                        },
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+            except Exception as e:
                 return Response(
-                    {
-                        "message": "Inicio de sesión exitoso.",
-                        "user_id": user.id,      # El ID del usuario
-                        "role": user_role,       # El rol del usuario obtenido de tu modelo AppUser
-                        "token": token.key       # El token de autenticación
-                    },
-                    status=status.HTTP_200_OK
+                    {"error": f"Error al generar el token: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-            else:
-                # Si el usuario no es un conductor, se le niega el acceso a esta app.
-                return Response(
-                    {"error": "Acceso denegado: Esta aplicación es solo para conductores.",
-                     "role": user_role}, # Puedes incluir el rol para depuración
-                    status=status.HTTP_403_FORBIDDEN # 403 Forbidden para acceso no autorizado (rol incorrecto)
-                )
-        else:
-            # Credenciales inválidas (usuario o contraseña incorrectos)
-            return Response(
-                {"error": "Usuario o contraseña incorrectos."},
-                status=status.HTTP_401_UNAUTHORIZED # 401 Unauthorized
-            )
+
+        return Response(
+            {"error": "Usuario o contraseña incorrectos."},
+            status=status.HTTP_401_UNAUTHORIZED
+        )

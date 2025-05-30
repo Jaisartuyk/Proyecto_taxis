@@ -43,6 +43,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
     'daphne',
     'channels',
     'taxis',

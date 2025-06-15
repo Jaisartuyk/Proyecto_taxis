@@ -448,9 +448,15 @@ def request_ride(request):
 
                 direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
 
+                # Convertir destinos a una lista formateada
+                lista_destinos = ""
+                for i, d in enumerate(destinations):
+                    lista_destinos += f"➡️ Destino {i+1}: {d}\n"
+
                 mensaje_grupo = (
                     f"🚕 <b>Nueva carrera solicitada</b>\n"
                     f"📍 Origen: {direccion_legible}\n"
+                    f"{lista_destinos}"
                     f"👤 Cliente: {request.user.get_full_name()}\n"
                     f"💰 Precio estimado: {price if price else 'N/A'}"
                 )

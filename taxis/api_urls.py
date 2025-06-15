@@ -5,7 +5,7 @@ from .api_views import LoginAPIView, api_request_ride # Importa tu nueva vista d
 
 urlpatterns = [
     path('login/', LoginAPIView.as_view(), name='api_login'),
-    path('api/solicitar-carrera/', api_request_ride, name='api_solicitar_carrera'),
+    
     # Puedes añadir más URLs de API aquí en el futuro:
     # path('drivers/', DriverLocationAPIView.as_view(), name='api_drivers_location'),
 ]

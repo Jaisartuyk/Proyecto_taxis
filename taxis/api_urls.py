@@ -1,7 +1,7 @@
 # taxis/api_urls.py (crea este nuevo archivo en tu app 'taxis')
 
 from django.urls import path
-from .api_views import LoginAPIView, api_request_ride # Importa tu nueva vista de API
+from .api_views import LoginAPIView # Importa tu nueva vista de API
 
 urlpatterns = [
     path('login/', LoginAPIView.as_view(), name='api_login'),

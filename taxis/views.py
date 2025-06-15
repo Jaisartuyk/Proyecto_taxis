@@ -1,3 +1,6 @@
+import requests
+from django.conf import settings
+from geopy.distance import geodesic
 from django.shortcuts import render, redirect, reverse
 from django.http import JsonResponse
 from asgiref.sync import async_to_sync
@@ -295,31 +298,144 @@ def available_routes_list_view(request):
     return render(request, 'available_routes_list.html', {'routes': available_routes})
 
 
+def obtener_direccion_google(lat, lng, api_key):
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=es"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        datos = response.json()
+        resultados_validos = []
+
+        for resultado in datos.get("results", []):
+            tipos = resultado.get("types", [])
+            if "plus_code" not in tipos and ("street_address" in tipos or "route" in tipos or "premise" in tipos):
+                resultados_validos.append(resultado)
+
+        if resultados_validos:
+            return resultados_validos[0].get("formatted_address")
+        if datos.get("results"):
+            return datos["results"][0].get("formatted_address")
+
+    return f"{lat}, {lng}"  # Fallback
+
+# Enviar mensaje a Telegram
+def enviar_telegram(chat_id, mensaje, botones=None):
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': mensaje,
+        'parse_mode': 'HTML'
+    }
+    if botones:
+        payload['reply_markup'] = json.dumps({
+            "inline_keyboard": botones
+        })
+    requests.post(url, data=payload)
+
+# Obtener el taxista más cercano
+def obtener_taxista_mas_cercano(lat, lng):
+    origen = (lat, lng)
+    taxista_mas_cercano = None
+    distancia_minima = float('inf')
+
+    taxis = Taxi.objects.select_related('user').filter(
+        user__role='driver',
+        user__telegram_chat_id__isnull=False,
+        latitude__isnull=False,
+        longitude__isnull=False
+    )
+
+    for taxi in taxis:
+        distancia = geodesic(origen, (taxi.latitude, taxi.longitude)).km
+        if distancia < distancia_minima:
+            distancia_minima = distancia
+            taxista_mas_cercano = taxi.user
+
+    return taxista_mas_cercano
+
+# Webhook para vincular usuario por teléfono y aceptar carreras
+@csrf_exempt
+def telegram_webhook(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+
+        if 'callback_query' in data:
+            callback = data['callback_query']
+            chat_id = str(callback['message']['chat']['id'])
+            data_str = callback['data']
+
+            if data_str.startswith('aceptar_'):
+                ride_id = data_str.split('_')[1]
+                try:
+                    ride = Ride.objects.get(id=ride_id, status='requested')
+
+                    driver = AppUser.objects.filter(telegram_chat_id=chat_id, role='driver').first()
+                    if not driver:
+                        enviar_telegram(chat_id, "❌ No estás autorizado como conductor.")
+                        return JsonResponse({'status': 'unauthorized'}, status=403)
+
+                    ride.status = 'in_progress'
+                    ride.driver = driver
+                    ride.save()
+
+                    # Confirmación al taxista
+                    enviar_telegram(chat_id, f"✅ Has aceptado la carrera #{ride.id}\n📍 Origen: {ride.origin}")
+
+                    # Notificación al cliente
+                    if ride.customer and ride.customer.telegram_chat_id:
+                        enviar_telegram(
+                            ride.customer.telegram_chat_id,
+                            f"🚖 Un conductor aceptó tu carrera #{ride.id}.\n👨‍✈️ Nombre: {driver.get_full_name()}"
+                        )
+
+                    # Notificación al grupo
+                    enviar_telegram(
+                        settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS,
+                        f"⚠️ Carrera #{ride.id} ya fue aceptada por {driver.get_full_name()}"
+                    )
+
+                except Ride.DoesNotExist:
+                    enviar_telegram(chat_id, "❌ La carrera ya fue aceptada o no existe.")
+
+        elif 'message' in data:
+            message = data['message']
+            chat_id = str(message['chat']['id'])
+            text = message.get('text', '').strip()
+
+            if text:
+                user = AppUser.objects.filter(phone_number=text).first()
+                if user:
+                    user.telegram_chat_id = chat_id
+                    user.save()
+                    enviar_telegram(chat_id, "✅ ¡Número vinculado correctamente!")
+                else:
+                    enviar_telegram(chat_id, "❌ Número no encontrado en el sistema.")
+
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+# Vista mejorada para solicitar carrera
 @login_required
 def request_ride(request):
     if request.method == 'POST':
-        # Capturar datos enviados por el formulario
-        origin = request.POST.get('origin')  # Dirección de origen
-        price = request.POST.get('price')   # Precio estimado (si aplica)
-        origin_lat = request.POST.get('origin_latitude')  # Latitud del origen
-        origin_lng = request.POST.get('origin_longitude') # Longitud del origen
-        destinations = request.POST.getlist('destinations[]')  # Lista de direcciones de destino
-        destination_coords = request.POST.getlist('destination_coords[]')  # Coordenadas de destinos
+        origin = request.POST.get('origin')
+        price = request.POST.get('price')
+        origin_lat = request.POST.get('origin_latitude')
+        origin_lng = request.POST.get('origin_longitude')
+        destinations = request.POST.getlist('destinations[]')
+        destination_coords = request.POST.getlist('destination_coords[]')
 
-        # Validar que todos los datos estén presentes
         if origin and origin_lat and origin_lng and destinations and destination_coords:
             try:
-                # Crear la solicitud principal de la carrera
                 ride = Ride.objects.create(
-                    customer=request.user,  # Usuario que solicita
+                    customer=request.user,
                     origin=origin,
                     origin_latitude=float(origin_lat),
                     origin_longitude=float(origin_lng),
-                    price=price,  # Puedes calcular el precio más adelante
-                    status='requested',  # Estado inicial de la solicitud
+                    price=price,
+                    status='requested',
                 )
 
-                # Crear los destinos asociados
                 for i, destination in enumerate(destinations):
                     lat, lng = map(float, destination_coords[i].split(','))
                     RideDestination.objects.create(
@@ -327,22 +443,45 @@ def request_ride(request):
                         destination=destination,
                         destination_latitude=lat,
                         destination_longitude=lng,
-                        order=i  # Orden de los destinos
+                        order=i
                     )
 
+                direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
+
+                mensaje_grupo = (
+                    f"🚕 <b>Nueva carrera solicitada</b>\n"
+                    f"📍 Origen: {direccion_legible}\n"
+                    f"👤 Cliente: {request.user.get_full_name()}\n"
+                    f"💰 Precio estimado: {price if price else 'N/A'}"
+                )
+
+                botones = [[
+                    {"text": "✅ Aceptar carrera", "callback_data": f"aceptar_{ride.id}"},
+                    {"text": "🗺 Ver en Google Maps", "url": f"https://maps.google.com/?q={origin_lat},{origin_lng}"}
+                ]]
+                enviar_telegram(settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
+
+                taxista_cercano = obtener_taxista_mas_cercano(float(origin_lat), float(origin_lng))
+                if taxista_cercano and taxista_cercano.telegram_chat_id:
+                    mensaje_taxista = (
+                        f"📣 Hola {taxista_cercano.first_name}, hay una carrera cerca de ti:\n"
+                        f"🛫 Desde: {direccion_legible}\n"
+                        f"👤 Cliente: {request.user.get_full_name()}"
+                    )
+                    enviar_telegram(taxista_cercano.telegram_chat_id, mensaje_taxista)
 
                 messages.success(request, '¡Carrera solicitada con éxito!')
-
-                # Redirigir al detalle de la carrera
                 return redirect(reverse('ride_detail', args=[ride.id]))
 
             except ValueError:
-                messages.error(request, 'Las coordenadas deben ser números válidos.')
+                messages.error(request, 'Coordenadas inválidas.')
         else:
-            messages.error(request, 'Por favor completa todos los campos requeridos.')
+            messages.error(request, 'Completa todos los campos.')
 
-    # Renderizar la plantilla inicial con un mapa (puedes enviar coordenadas predeterminadas si el usuario permite geolocalización)
-    return render(request, 'request_ride.html', {})
+    return render(request, 'request_ride.html', {
+        'google_api_key': settings.GOOGLE_API_KEY,
+        'direccion_legible': 'Aún no se ha seleccionado un origen'
+    })
 
 
 

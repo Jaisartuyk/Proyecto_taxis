@@ -6,6 +6,7 @@ from django.conf import settings
 import requests
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
+from django.contrib.auth import get_user_model
 
 
 #from django.utils.timezone import now
@@ -145,3 +146,48 @@ class RideDestination(models.Model):
 
     def __str__(self):
         return f'{self.destination} ({self.destination_latitude}, {self.destination_longitude})'
+User = get_user_model()
+
+class ConexionWebSocket(models.Model):
+    ROLE_CHOICES = [
+        ('driver', 'Conductor'),
+        ('customer', 'Cliente'),
+        ('central', 'Central'),
+    ]
+
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='ws_conexiones'
+    )
+    role = models.CharField(
+        max_length=20, 
+        choices=ROLE_CHOICES
+    )
+    channel_name = models.CharField(
+        max_length=255, 
+        unique=True,
+        help_text="Identificador interno del canal WebSocket"
+    )
+    room_name = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Nombre del grupo WebSocket (ej. carrera_23)"
+    )
+    conectado = models.BooleanField(
+        default=True,
+        help_text="Si la conexión está activa o no"
+    )
+    ultima_conexion = models.DateTimeField(
+        auto_now=True,
+        help_text="Última vez que se conectó"
+    )
+
+    class Meta:
+        verbose_name = "Conexión WebSocket"
+        verbose_name_plural = "Conexiones WebSocket"
+        ordering = ['-ultima_conexion']
+
+    def __str__(self):
+        return f"{self.user.username} ({self.role}) – Canal: {self.channel_name[:20]} – Activo: {self.conectado}"

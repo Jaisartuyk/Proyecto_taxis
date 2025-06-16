@@ -359,6 +359,7 @@ def telegram_webhook(request):
     if request.method == 'POST':
         data = json.loads(request.body)
 
+        # ✅ Cuando presionan botones tipo 'aceptar_5'
         if 'callback_query' in data:
             callback = data['callback_query']
             chat_id = str(callback['message']['chat']['id'])
@@ -374,6 +375,7 @@ def telegram_webhook(request):
                         enviar_telegram(chat_id, "❌ No estás autorizado como conductor.")
                         return JsonResponse({'status': 'unauthorized'}, status=403)
 
+                    # Asignar carrera
                     ride.status = 'in_progress'
                     ride.driver = driver
                     ride.save()
@@ -381,14 +383,14 @@ def telegram_webhook(request):
                     # Confirmación al taxista
                     enviar_telegram(chat_id, f"✅ Has aceptado la carrera #{ride.id}\n📍 Origen: {ride.origin}")
 
-                    # Notificación al cliente
+                    # Notificar al cliente
                     if ride.customer and ride.customer.telegram_chat_id:
                         enviar_telegram(
                             ride.customer.telegram_chat_id,
                             f"🚖 Un conductor aceptó tu carrera #{ride.id}.\n👨‍✈️ Nombre: {driver.get_full_name()}"
                         )
 
-                    # Notificación al grupo
+                    # Avisar al grupo
                     enviar_telegram(
                         settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS,
                         f"⚠️ Carrera #{ride.id} ya fue aceptada por {driver.get_full_name()}"
@@ -397,21 +399,26 @@ def telegram_webhook(request):
                 except Ride.DoesNotExist:
                     enviar_telegram(chat_id, "❌ La carrera ya fue aceptada o no existe.")
 
+        # ✅ Cuando el usuario escribe su número de celular
         elif 'message' in data:
             message = data['message']
             chat_id = str(message['chat']['id'])
             text = message.get('text', '').strip()
 
             if text:
-                user = AppUser.objects.filter(phone_number=text).first()
-                if user:
+                # Normaliza el número (quita espacios y reemplaza +593 por 0)
+                normalized = text.replace(" ", "").replace("+593", "0").strip()
+
+                user = AppUser.objects.filter(phone_number=normalized).first()
+                if user and user.role == 'driver':
                     user.telegram_chat_id = chat_id
                     user.save()
-                    enviar_telegram(chat_id, "✅ ¡Número vinculado correctamente!")
+                    enviar_telegram(chat_id, "✅ ¡Número vinculado correctamente como conductor!")
                 else:
-                    enviar_telegram(chat_id, "❌ Número no encontrado en el sistema.")
+                    enviar_telegram(chat_id, "❌ Número no encontrado o no es un conductor.")
 
         return JsonResponse({'status': 'ok'})
+
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 # Vista mejorada para solicitar carrera

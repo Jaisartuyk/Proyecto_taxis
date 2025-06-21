@@ -590,13 +590,14 @@ def request_ride(request):
                 enviar_telegram(settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
 
                 taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
-                if taxista_cercano and taxista_cercano.telegram_chat_id:
+                if taxista_cercano and taxista_cercano.user.telegram_chat_id:
                     mensaje_taxista = (
-                        f"📣 Hola {taxista_cercano.first_name}, hay una carrera cerca de ti:\n"
+                        f"📣 Hola {taxista_cercano.user.get_full_name()}, hay una carrera cerca de ti:\n"
                         f"🛫 Desde: {direccion_legible}\n"
                         f"👤 Cliente: {request.user.get_full_name()}"
                     )
-                    enviar_telegram(taxista_cercano.telegram_chat_id, mensaje_taxista)
+                    enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
+
 
                 messages.success(request, '¡Carrera solicitada con éxito!')
                 return redirect(reverse('ride_detail', args=[ride.id]))

@@ -43,6 +43,6 @@ urlpatterns = [
     path("api/actualizar_ubicacion/", views.actualizar_ubicacion, name="actualizar_ubicacion"),
     path('ubicaciones_taxis/', views.ubicaciones_taxis, name='ubicaciones_taxis'),
     path('actualizar_ubicacion_taxi/', views.actualizar_ubicacion_taxi, name='actualizar_ubicacion_taxi'),
-    path('webhook/telegram/', views.telegram_webhook, name='telegram_webhook'),
+    path('telegram/', views.telegram_webhook, name='telegram_webhook'),
 
 ]

@@ -299,6 +299,16 @@ def available_routes_list_view(request):
     available_routes = TaxiRoute.objects.filter(is_available=True)
     return render(request, 'available_routes_list.html', {'routes': available_routes})
 # Geocodificación inversa (lat, lng → dirección)
+def direccion_a_coordenadas(direccion, api_key):
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(direccion)}&key={api_key}&language=es"
+    response = requests.get(url)
+    if response.status_code == 200:
+        datos = response.json()
+        if datos.get('results'):
+            loc = datos['results'][0]['geometry']['location']
+            return loc['lat'], loc['lng']
+    return None, None
+
 def obtener_direccion_google(lat, lng, api_key):
     try:
         url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=es"
@@ -395,11 +405,11 @@ def telegram_webhook(request):
     # Paso 2: validar número
     if paso == 'esperando_numero':
         telefono = ''.join(filter(str.isdigit, text))
-        ultimos_digitos = telefono[-9:]  # para buscar solo los últimos 9 dígitos
+        ultimos_digitos = telefono[-9:]
 
         usuario = AppUser.objects.filter(
             phone_number__endswith=ultimos_digitos,
-            role='customer'  # usa el valor correcto para cliente
+            role='customer'
         ).first()
 
         if usuario:
@@ -408,9 +418,8 @@ def telegram_webhook(request):
             conversacion.save()
             enviar_telegram(chat_id, f"✅ Hola {usuario.first_name}, ahora comparte tu ubicación actual (📍).")
         else:
-            enviar_telegram(chat_id, "❌ No encontré un cliente con ese número. Por favor intenta de nuevo.")
+            enviar_telegram(chat_id, "❌ No encontré un cliente con ese número. Intenta de nuevo.")
         return JsonResponse({"status": "validando numero"})
-
 
     # Paso 3: ubicación de origen
     if paso == 'esperando_origen':
@@ -419,7 +428,7 @@ def telegram_webhook(request):
             conversacion.datos = datos
             conversacion.paso_actual = 'esperando_destino'
             conversacion.save()
-            enviar_telegram(chat_id, "📍 Origen guardado. Ahora comparte el destino.")
+            enviar_telegram(chat_id, "📍 Origen guardado. Ahora envía el destino (ubicación o dirección).")
         else:
             enviar_telegram(chat_id, "⚠️ Comparte tu ubicación como origen.")
         return JsonResponse({"status": "origen"})
@@ -434,8 +443,20 @@ def telegram_webhook(request):
             conversacion.paso_actual = 'mas_destinos'
             conversacion.save()
             enviar_telegram(chat_id, "📌 Destino guardado.\n¿Quieres agregar otro destino? Responde 'sí' o 'no'.")
+        elif text:
+            lat, lng = direccion_a_coordenadas(text, settings.GOOGLE_API_KEY)
+            if lat and lng:
+                destinos = datos.get('destinos', [])
+                destinos.append({'lat': lat, 'lng': lng})
+                datos['destinos'] = destinos
+                conversacion.datos = datos
+                conversacion.paso_actual = 'mas_destinos'
+                conversacion.save()
+                enviar_telegram(chat_id, f"📌 Destino '{text}' guardado.\n¿Quieres agregar otro destino? Responde 'sí' o 'no'.")
+            else:
+                enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta otra o comparte la ubicación.")
         else:
-            enviar_telegram(chat_id, "📍 Envía una ubicación como destino.")
+            enviar_telegram(chat_id, "📍 Envía una ubicación o escribe la dirección del destino.")
         return JsonResponse({"status": "destino"})
 
     # Paso 5: decidir si agregar más destinos
@@ -443,22 +464,31 @@ def telegram_webhook(request):
         if text.lower() == 'sí':
             conversacion.paso_actual = 'esperando_destino'
             conversacion.save()
-            enviar_telegram(chat_id, "📍 Comparte la ubicación del siguiente destino.")
+            enviar_telegram(chat_id, "📍 Comparte la ubicación o escribe la dirección del siguiente destino.")
         elif text.lower() == 'no':
             try:
                 usuario = conversacion.usuario
                 origen = datos['origen']
+                destinos_coords = datos.get('destinos', [])
+
+                direccion_origen = obtener_direccion_google(
+                    origen['lat'], origen['lng'], settings.GOOGLE_API_KEY)
+
                 ride = Ride.objects.create(
                     customer=usuario,
                     origin_latitude=origen['lat'],
                     origin_longitude=origen['lng'],
+                    origin=direccion_origen,
                     status="requested",
                 )
 
-                for i, destino in enumerate(datos.get('destinos', [])):
+                for i, destino in enumerate(destinos_coords):
+                    direccion_destino = obtener_direccion_google(
+                        destino['lat'], destino['lng'], settings.GOOGLE_API_KEY)
+
                     RideDestination.objects.create(
                         ride=ride,
-                        destination=f"Destino {i+1}",
+                        destination=direccion_destino,
                         destination_latitude=destino['lat'],
                         destination_longitude=destino['lng'],
                         order=i
@@ -471,10 +501,10 @@ def telegram_webhook(request):
                 conversacion.paso_actual = 'inicio'
                 conversacion.save()
         else:
-            enviar_telegram(chat_id, "❓ Por favor responde 'sí' o 'no'.")
+            enviar_telegram(chat_id, "❓ Responde 'sí' o 'no'.")
         return JsonResponse({"status": "confirmar destinos"})
 
-    # Si no se reconoce el paso actual
+    # Por defecto
     enviar_telegram(chat_id, "⚠️ No entendí tu mensaje. Escribe tu número o usa /start para comenzar.")
     return JsonResponse({"status": "unknown paso"})
 

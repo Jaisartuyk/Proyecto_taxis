@@ -511,13 +511,6 @@ def telegram_webhook(request):
     return JsonResponse({"status": "unknown paso"})
 
 
-def enviar_telegram(chat_id, mensaje):
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-    requests.post(url, data={
-        "chat_id": chat_id,
-        "text": mensaje
-    })
-
 
 
 @login_required

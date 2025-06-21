@@ -193,3 +193,13 @@ class ConexionWebSocket(models.Model):
 
     def __str__(self):
         return f"{self.user.username} ({self.role}) – Canal: {self.channel_name[:20]} – Activo: {self.conectado}"
+    
+class ConversacionTelegram(models.Model):
+    chat_id = models.CharField(max_length=50, unique=True)
+    paso_actual = models.CharField(max_length=50, default='inicio')
+    datos = models.JSONField(default=dict)
+    usuario = models.ForeignKey(AppUser, null=True, blank=True, on_delete=models.SET_NULL)
+    ultima_actualizacion = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.chat_id} - {self.paso_actual}"

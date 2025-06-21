@@ -395,15 +395,22 @@ def telegram_webhook(request):
     # Paso 2: validar número
     if paso == 'esperando_numero':
         telefono = ''.join(filter(str.isdigit, text))
-        try:
-            usuario = AppUser.objects.get(phone_number=telefono)
+        ultimos_digitos = telefono[-9:]  # para buscar solo los últimos 9 dígitos
+
+        usuario = AppUser.objects.filter(
+            phone_number__endswith=ultimos_digitos,
+            rol='customer'  # usa el valor correcto para cliente
+        ).first()
+
+        if usuario:
             conversacion.usuario = usuario
             conversacion.paso_actual = 'esperando_origen'
             conversacion.save()
             enviar_telegram(chat_id, f"✅ Hola {usuario.first_name}, ahora comparte tu ubicación actual (📍).")
-        except AppUser.DoesNotExist:
-            enviar_telegram(chat_id, "❌ Número no registrado.")
+        else:
+            enviar_telegram(chat_id, "❌ No encontré un cliente con ese número. Por favor intenta de nuevo.")
         return JsonResponse({"status": "validando numero"})
+
 
     # Paso 3: ubicación de origen
     if paso == 'esperando_origen':

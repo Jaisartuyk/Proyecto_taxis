@@ -382,102 +382,130 @@ usuarios_estado = {}  # Guarda el estado de cada cliente por chat_id
 
 @csrf_exempt
 def telegram_webhook(request):
-    if request.method == "POST":
-        data = json.loads(request.body.decode("utf-8"))
-        mensaje = data.get("message", {})
-        chat_id = mensaje.get("chat", {}).get("id")
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Método no permitido"})
 
-        if not chat_id:
-            return JsonResponse({"ok": False, "error": "No chat ID"})
+    data = json.loads(request.body.decode("utf-8"))
+    mensaje = data.get("message", {})
+    chat_id = mensaje.get("chat", {}).get("id")
 
-        usuario, _ = AppUser.objects.get_or_create(telegram_chat_id=chat_id, defaults={"role": "customer"})
+    if not chat_id:
+        return JsonResponse({"ok": False, "error": "No chat ID"})
 
-        texto = mensaje.get("text")
-        ubicacion = mensaje.get("location")
-        estado = usuarios_estado.get(chat_id, {}).get("estado")
+    # Obtiene o crea el usuario de tipo 'customer' si no existe
+    usuario, _ = AppUser.objects.get_or_create(
+        telegram_chat_id=chat_id, defaults={"role": "customer"}
+    )
 
-        if texto == "/start":
-            usuarios_estado[chat_id] = {"estado": "esperando_origen"}
-            enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
-            return JsonResponse({"ok": True})
+    texto = mensaje.get("text")
+    ubicacion = mensaje.get("location")
+    estado = usuarios_estado.get(chat_id, {}).get("estado")
 
-        if estado == "esperando_origen":
-            if ubicacion:
-                origen_lat = ubicacion['latitude']
-                origen_lng = ubicacion['longitude']
-                origen_direccion = obtener_direccion_google(origen_lat, origen_lng, settings.GOOGLE_API_KEY)
-            else:
-                origen_direccion = texto
-                origen_lat, origen_lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
-
-            if origen_lat and origen_lng:
-                usuarios_estado[chat_id] = {
-                    "estado": "esperando_destino",
-                    "origen": {
-                        "direccion": origen_direccion,
-                        "lat": origen_lat,
-                        "lng": origen_lng
-                    }
-                }
-                enviar_telegram(chat_id, "🗺️ Ahora envía tu <b>ubicación de destino</b>.")
-            else:
-                enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta de nuevo.")
-            return JsonResponse({"ok": True})
-
-        if estado == "esperando_destino":
-            origen = usuarios_estado[chat_id]["origen"]
-            if ubicacion:
-                destino_lat = ubicacion['latitude']
-                destino_lng = ubicacion['longitude']
-                destino_direccion = obtener_direccion_google(destino_lat, destino_lng, settings.GOOGLE_API_KEY)
-            else:
-                destino_direccion = texto
-                destino_lat, destino_lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
-
-            if destino_lat and destino_lng:
-                distancia, duracion = get_distance_duration(
-                    origen["lat"], origen["lng"], destino_lat, destino_lng
-                )
-                mapa_url = get_map_url(origen["lat"], origen["lng"], destino_lat, destino_lng)
-
-                taxista = obtener_taxista_mas_cercano(origen["lat"], origen["lng"])
-                if not taxista:
-                    enviar_telegram(chat_id, "🚫 No hay taxistas disponibles en este momento.")
-                    return JsonResponse({"ok": True})
-
-                # Crear la carrera
-                ride = Ride.objects.create(
-                    customer=usuario,
-                    origin=origen["direccion"],
-                    origin_latitude=origen["lat"],
-                    origin_longitude=origen["lng"],
-                    status='requested'
-                )
-
-                RideDestination.objects.create(
-                    ride=ride,
-                    destination=destino_direccion,
-                    destination_latitude=destino_lat,
-                    destination_longitude=destino_lng,
-                    order=0
-                )
-
-                enviar_telegram(chat_id, f"✅ Tu carrera ha sido solicitada.\n\n🧭 <b>Origen:</b> {origen['direccion']}\n🏁 <b>Destino:</b> {destino_direccion}\n\n🛣️ <b>Distancia:</b> {distancia}\n⏱️ <b>Duración:</b> {duracion}\n\n📍 <a href='{mapa_url}'>Ver ruta en Google Maps</a>")
-                usuarios_estado.pop(chat_id, None)
-
-                enviar_telegram(
-                    taxista.user.telegram_chat_id,
-                    f"🚖 Nueva carrera asignada.\n\n📍 Origen: {origen['direccion']}\n🏁 Destino: {destino_direccion}\n🧑 Cliente: {usuario.get_full_name()}",
-                )
-            else:
-                enviar_telegram(chat_id, "❌ No pude encontrar la dirección de destino. Intenta de nuevo.")
-            return JsonResponse({"ok": True})
-
-        enviar_telegram(chat_id, "Hola. Escribe /start para solicitar un taxi 🚕.")
+    # Comando de inicio
+    if texto == "/start":
+        usuarios_estado[chat_id] = {"estado": "esperando_origen"}
+        enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
         return JsonResponse({"ok": True})
 
-    return JsonResponse({"ok": False, "error": "Método no permitido"})
+    # Esperando ubicación de origen
+    if estado == "esperando_origen":
+        if ubicacion:
+            origen_lat = ubicacion['latitude']
+            origen_lng = ubicacion['longitude']
+            origen_direccion = obtener_direccion_google(origen_lat, origen_lng, settings.GOOGLE_API_KEY)
+        elif texto:
+            origen_direccion = texto
+            origen_lat, origen_lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
+        else:
+            enviar_telegram(chat_id, "❌ Necesito una dirección o ubicación válida.")
+            return JsonResponse({"ok": True})
 
+        if origen_lat and origen_lng:
+            usuarios_estado[chat_id] = {
+                "estado": "esperando_destino",
+                "origen": {
+                    "direccion": origen_direccion,
+                    "lat": origen_lat,
+                    "lng": origen_lng
+                }
+            }
+            enviar_telegram(chat_id, "🗺️ Ahora envía tu <b>ubicación de destino</b>.")
+        else:
+            enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta de nuevo.")
+        return JsonResponse({"ok": True})
+
+    # Esperando ubicación de destino
+    if estado == "esperando_destino":
+        origen = usuarios_estado[chat_id]["origen"]
+
+        if ubicacion:
+            destino_lat = ubicacion['latitude']
+            destino_lng = ubicacion['longitude']
+            destino_direccion = obtener_direccion_google(destino_lat, destino_lng, settings.GOOGLE_API_KEY)
+        elif texto:
+            destino_direccion = texto
+            destino_lat, destino_lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
+        else:
+            enviar_telegram(chat_id, "❌ Necesito una dirección o ubicación válida.")
+            return JsonResponse({"ok": True})
+
+        if destino_lat and destino_lng:
+            distancia, duracion = get_distance_duration(
+                origen["lat"], origen["lng"], destino_lat, destino_lng
+            )
+            mapa_url = get_map_url(origen["lat"], origen["lng"], destino_lat, destino_lng)
+
+            taxista = obtener_taxista_mas_cercano(origen["lat"], origen["lng"])
+            if not taxista:
+                enviar_telegram(chat_id, "🚫 No hay taxistas disponibles en este momento.")
+                return JsonResponse({"ok": True})
+
+            # Crear la carrera
+            ride = Ride.objects.create(
+                customer=usuario,
+                origin=origen["direccion"],
+                origin_latitude=origen["lat"],
+                origin_longitude=origen["lng"],
+                status='requested'
+            )
+
+            RideDestination.objects.create(
+                ride=ride,
+                destination=destino_direccion,
+                destination_latitude=destino_lat,
+                destination_longitude=destino_lng,
+                order=0
+            )
+
+            # Confirmar al cliente
+            enviar_telegram(
+                chat_id,
+                f"✅ Tu carrera ha sido solicitada.\n\n"
+                f"🧭 <b>Origen:</b> {origen['direccion']}\n"
+                f"🏁 <b>Destino:</b> {destino_direccion}\n\n"
+                f"🛣️ <b>Distancia:</b> {distancia}\n"
+                f"⏱️ <b>Duración:</b> {duracion}\n\n"
+                f"📍 <a href='{mapa_url}'>Ver ruta en Google Maps</a>"
+            )
+
+            # Notificar al conductor
+            if taxista.user.telegram_chat_id:
+                enviar_telegram(
+                    taxista.user.telegram_chat_id,
+                    f"🚖 Nueva carrera asignada.\n\n"
+                    f"📍 Origen: {origen['direccion']}\n"
+                    f"🏁 Destino: {destino_direccion}\n"
+                    f"🧑 Cliente: {usuario.get_full_name() or 'Cliente desconocido'}"
+                )
+
+            usuarios_estado.pop(chat_id, None)
+        else:
+            enviar_telegram(chat_id, "❌ No pude encontrar la dirección de destino. Intenta de nuevo.")
+        return JsonResponse({"ok": True})
+
+    # Estado desconocido
+    enviar_telegram(chat_id, "👋 Hola. Escribe /start para solicitar un taxi 🚕.")
+    return JsonResponse({"ok": True})
 @login_required
 def request_ride(request):
     if request.method == 'POST':

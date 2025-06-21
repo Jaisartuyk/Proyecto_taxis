@@ -5,35 +5,60 @@ from .models import AppUser, Taxi, TaxiRoute, Ride, RideDestination
 
 
 class AppUserAdmin(UserAdmin):
-    # Configurar campos a mostrar en la lista del panel de administración
-    list_display = ('username', 'first_name', 'last_name', 'email', 'role', 'is_active', 'is_staff')
-    list_filter = ('role', 'is_active', 'is_staff')  # Filtrar por rol, si está activo o si es personal administrativo
-    search_fields = ('username', 'first_name', 'last_name', 'email')  # Búsqueda por nombre, apellido, email o username
-    ordering = ('username',)  # Ordenar por username
+    # Mostrar en la lista del panel
+    list_display = (
+        'username', 'first_name', 'last_name', 'email',
+        'role', 'is_active', 'is_staff', 'telegram_chat_id',
+        'last_latitude', 'last_longitude'
+    )
 
-    # Configurar los campos en el formulario de detalles del usuario
+    # Filtros laterales
+    list_filter = ('role', 'is_active', 'is_staff')
+
+    # Campos buscables
+    search_fields = (
+        'username', 'first_name', 'last_name', 'email',
+        'phone_number', 'telegram_chat_id'
+    )
+
+    ordering = ('username',)
+
+    # Campos en la vista de detalle del usuario
     fieldsets = (
         (None, {
             'fields': ('username', 'password')
         }),
         ('Información personal', {
-            'fields': ('first_name', 'last_name', 'email', 'phone_number', 'national_id', 'profile_picture')
+            'fields': (
+                'first_name', 'last_name', 'email',
+                'phone_number', 'national_id', 'profile_picture',
+                'telegram_chat_id', 'last_latitude', 'last_longitude'
+            )
         }),
         ('Permisos', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+            'fields': (
+                'is_active', 'is_staff', 'is_superuser',
+                'groups', 'user_permissions'
+            )
         }),
         ('Rol', {
             'fields': ('role',)
         }),
     )
+
+    # Campos al agregar un nuevo usuario
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'first_name', 'last_name', 'role')
+            'fields': (
+                'username', 'password1', 'password2',
+                'first_name', 'last_name', 'role',
+                'email', 'phone_number', 'telegram_chat_id'
+            ),
         }),
     )
 
-# Registrar el modelo y personalizar la vista en el panel de administración
+# Registrar el modelo personalizado
 admin.site.register(AppUser, AppUserAdmin)
 
 

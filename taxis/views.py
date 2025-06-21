@@ -353,8 +353,8 @@ def obtener_taxista_mas_cercano(lat, lng):
 
     return taxista_mas_cercano
 
-TELEGRAM_TOKEN = settings.TELEGRAM_TOKEN
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+TELEGRAM_BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 GOOGLE_MAPS_API_KEY = settings.GOOGLE_MAPS_API_KEY
 
 

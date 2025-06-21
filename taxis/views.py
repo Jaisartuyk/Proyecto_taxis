@@ -2,7 +2,7 @@ import requests
 from django.conf import settings
 from geopy.distance import geodesic
 from django.shortcuts import render, redirect, reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import json
@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now, timedelta
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
-
+from django.core.cache import cache
 #import requests
 
 
@@ -353,74 +353,121 @@ def obtener_taxista_mas_cercano(lat, lng):
 
     return taxista_mas_cercano
 
-# Webhook para vincular usuario por teléfono y aceptar carreras
+TELEGRAM_TOKEN = settings.TELEGRAM_TOKEN
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+GOOGLE_MAPS_API_KEY = settings.GOOGLE_MAPS_API_KEY
+
+
+def send_telegram_message(chat_id, text, reply_markup=None):
+    data = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if reply_markup:
+        data["reply_markup"] = json.dumps(reply_markup)
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", data=data)
+
+def send_location(chat_id, latitude, longitude):
+    data = {"chat_id": chat_id, "latitude": latitude, "longitude": longitude}
+    requests.post(f"{TELEGRAM_API_URL}/sendLocation", data=data)
+
+def get_map_url(lat1, lng1, lat2, lng2):
+    return (
+        f"https://www.google.com/maps/dir/?api=1&origin={lat1},{lng1}"
+        f"&destination={lat2},{lng2}&travelmode=driving"
+    )
+
+def get_distance_duration(lat1, lng1, lat2, lng2):
+    url = (
+        f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric"
+        f"&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={GOOGLE_MAPS_API_KEY}"
+    )
+    response = requests.get(url).json()
+    if response['status'] == 'OK':
+        element = response['rows'][0]['elements'][0]
+        return element['distance']['text'], element['duration']['text']
+    return None, None
+
 @csrf_exempt
 def telegram_webhook(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
+        payload = json.loads(request.body)
+        message = payload.get("message") or payload.get("edited_message")
+        if not message:
+            return JsonResponse({"ok": False})
 
-        # ✅ Cuando presionan botones tipo 'aceptar_5'
-        if 'callback_query' in data:
-            callback = data['callback_query']
-            chat_id = str(callback['message']['chat']['id'])
-            data_str = callback['data']
+        chat_id = message["chat"]["id"]
+        user_input = message.get("text", "")
+        location = message.get("location")
 
-            if data_str.startswith('aceptar_'):
-                ride_id = data_str.split('_')[1]
-                try:
-                    ride = Ride.objects.get(id=ride_id, status='requested')
+        app_user = AppUser.objects.filter(telegram_chat_id=chat_id).first()
+        step = cache.get(f"step:{chat_id}")
 
-                    driver = AppUser.objects.filter(telegram_chat_id=chat_id, role='driver').first()
-                    if not driver:
-                        enviar_telegram(chat_id, "❌ No estás autorizado como conductor.")
-                        return JsonResponse({'status': 'unauthorized'}, status=403)
+        if user_input == "/start":
+            if not app_user:
+                app_user = AppUser.objects.create(username=f"tg_{chat_id}", telegram_chat_id=chat_id, role="customer")
+            send_telegram_message(chat_id, "👋 Bienvenido. Para solicitar un taxi, envíame tu <b>ubicación actual</b> o escríbela.")
+            cache.set(f"step:{chat_id}", "awaiting_origin")
 
-                    # Asignar carrera
-                    ride.status = 'in_progress'
-                    ride.driver = driver
-                    ride.save()
+        elif location and step == "awaiting_origin":
+            cache.set(f"origin:{chat_id}", location)
+            cache.set(f"step:{chat_id}", "awaiting_destination")
+            send_telegram_message(chat_id, "📍 Ahora, envíame tu <b>destino</b>.")
 
-                    # Confirmación al taxista
-                    enviar_telegram(chat_id, f"✅ Has aceptado la carrera #{ride.id}\n📍 Origen: {ride.origin}")
+        elif location and step == "awaiting_destination":
+            origin = cache.get(f"origin:{chat_id}")
+            destination = location
+            lat1, lng1 = origin["latitude"], origin["longitude"]
+            lat2, lng2 = destination["latitude"], destination["longitude"]
+            distance, duration = get_distance_duration(lat1, lng1, lat2, lng2)
+            map_url = get_map_url(lat1, lng1, lat2, lng2)
+            price = 2.0  # Precio estimado fijo (puedes mejorarlo)
 
-                    # Notificar al cliente
-                    if ride.customer and ride.customer.telegram_chat_id:
-                        enviar_telegram(
-                            ride.customer.telegram_chat_id,
-                            f"🚖 Un conductor aceptó tu carrera #{ride.id}.\n👨‍✈️ Nombre: {driver.get_full_name()}"
-                        )
+            carrera = Ride.objects.create(
+                cliente=app_user,
+                origen_lat=lat1,
+                origen_lng=lng1,
+                destino_lat=lat2,
+                destino_lng=lng2,
+                estado="solicitada",
+                precio_estimado=price,
+            )
 
-                    # Avisar al grupo
-                    enviar_telegram(
-                        settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS,
-                        f"⚠️ Carrera #{ride.id} ya fue aceptada por {driver.get_full_name()}"
-                    )
+            msg = (
+                f"🚕 Nueva carrera solicitada\n"
+                f"📍 Origen: {lat1}, {lng1}\n"
+                f"➡️ Destino: {lat2}, {lng2}\n"
+                f"👤 Cliente: {app_user.get_full_name()}\n"
+                f"📏 Distancia: {distance}, ⏱️ Duración: {duration}\n"
+                f"💰 Precio estimado: {price:.2f} USD\n"
+                f"🗺️ <a href='{map_url}'>Ver mapa</a>"
+            )
 
-                except Ride.DoesNotExist:
-                    enviar_telegram(chat_id, "❌ La carrera ya fue aceptada o no existe.")
+            for driver in AppUser.objects.filter(role='driver', telegram_chat_id__isnull=False):
+                send_telegram_message(driver.telegram_chat_id, msg)
+                if driver.last_latitude and driver.last_longitude:
+                    send_location(driver.telegram_chat_id, driver.last_latitude, driver.last_longitude)
 
-        # ✅ Cuando el usuario escribe su número de celular
-        elif 'message' in data:
-            message = data['message']
-            chat_id = str(message['chat']['id'])
-            text = message.get('text', '').strip()
+            send_telegram_message(chat_id, "✅ Tu solicitud fue enviada a conductores. Espera confirmación.")
+            send_location(chat_id, lat1, lng1)
+            send_location(chat_id, lat2, lng2)
 
-            if text:
-                # Normaliza el número (quita espacios y reemplaza +593 por 0)
-                normalized = text.replace(" ", "").replace("+593", "0").strip()
+            cache.delete(f"step:{chat_id}")
+            cache.delete(f"origin:{chat_id}")
 
-                user = AppUser.objects.filter(phone_number=normalized).first()
-                if user and user.role == 'driver':
-                    user.telegram_chat_id = chat_id
-                    user.save()
-                    enviar_telegram(chat_id, "✅ ¡Número vinculado correctamente como conductor!")
-                else:
-                    enviar_telegram(chat_id, "❌ Número no encontrado o no es un conductor.")
+        elif user_input == "Cancelar":
+            cache.delete(f"step:{chat_id}")
+            cache.delete(f"origin:{chat_id}")
+            send_telegram_message(chat_id, "❌ Solicitud cancelada. Escribe /start para comenzar de nuevo.")
 
-        return JsonResponse({'status': 'ok'})
+        elif step == "awaiting_origin":
+            send_telegram_message(chat_id, "📍 Recibido. Ahora envíame tu <b>destino</b>.")
+            cache.set(f"origin:{chat_id}", {"latitude": 0, "longitude": 0})  # Placeholder si no es ubicación
+            cache.set(f"step:{chat_id}", "awaiting_destination")
 
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
+        else:
+            send_telegram_message(chat_id, "Por favor, inicia con /start para comenzar.")
 
+        return JsonResponse({"ok": True})
+
+    return HttpResponse("Webhook activo")
 # Vista mejorada para solicitar carrera
 @login_required
 def request_ride(request):

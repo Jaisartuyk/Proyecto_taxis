@@ -22,7 +22,8 @@ class AppUser(AbstractUser):
     national_id = models.CharField(max_length=20, default='', blank=True, null=True)  # Número de cédula
     profile_picture = models.ImageField(upload_to='profile_pics/', default='default.jpg', blank=True, null=True)  # Foto de perfil
     telegram_chat_id = models.CharField(max_length=255, null=True, blank=True)  # ID de Telegram para mensajes directos
-    
+    last_latitude = models.FloatField(null=True, blank=True)
+    last_longitude = models.FloatField(null=True, blank=True)
     def clean(self):
         if not self.first_name or not self.last_name:
             raise ValidationError('Los nombres completos (nombre y apellido) son obligatorios.')

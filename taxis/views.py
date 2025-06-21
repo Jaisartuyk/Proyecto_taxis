@@ -338,8 +338,9 @@ def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
 
     response = requests.post(url, data=payload)
     if not response.ok:
-        print("Error al enviar mensaje de Telegram:", response.text)
+        print("❌ Error al enviar mensaje de Telegram:", response.text)
     return response
+
 
 
 def send_location(chat_id, latitude, longitude):

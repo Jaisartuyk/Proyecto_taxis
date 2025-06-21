@@ -364,84 +364,77 @@ def obtener_taxista_mas_cercano(lat, lng):
     return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
 @csrf_exempt
 def telegram_webhook(request):
-    if request.method != 'POST':
-        return HttpResponse("Webhook activo")
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
 
-    payload = json.loads(request.body)
-    message = payload.get("message") or payload.get("edited_message")
-    if not message:
-        return JsonResponse({"ok": False})
+            # Verifica que haya mensaje
+            if "message" not in data:
+                return JsonResponse({"status": "no message in payload"})
 
-    chat_id = message["chat"]["id"]
-    user_input = message.get("text", "")
-    location = message.get("location")
-    app_user = AppUser.objects.filter(telegram_chat_id=chat_id).first()
-    step = cache.get(f"step:{chat_id}")
+            message = data["message"]
+            text = message.get("text", "").strip()
+            chat_id = message["chat"]["id"]
+            username = message["chat"]["username"]
 
-    if user_input == "/start":
-        if not app_user:
-            app_user = AppUser.objects.create(username=f"tg_{chat_id}", telegram_chat_id=chat_id, role="customer")
-        send_telegram_message(chat_id, "👋 Bienvenido. Por favor, comparte tu ubicación actual para iniciar tu solicitud.")
-        cache.set(f"step:{chat_id}", "awaiting_origin")
+            # Verifica si empieza con "/carrera"
+            if not text.startswith("/carrera"):
+                return JsonResponse({"status": "ignored"})
 
-    elif location and step == "awaiting_origin":
-        cache.set(f"origin:{chat_id}", location)
-        cache.set(f"step:{chat_id}", "awaiting_destination")
-        send_telegram_message(chat_id, "📍 Ahora, envía tu destino (ubicación).")
+            # Se espera: /carrera <lat1> <lng1> <lat2> <lng2> <price>
+            parts = text.split()
+            if len(parts) != 6:
+                send_telegram_message(chat_id, "Formato incorrecto. Usa: /carrera <lat1> <lng1> <lat2> <lng2> <precio>")
+                return JsonResponse({"status": "bad format"})
 
-    elif location and step == "awaiting_destination":
-        origin = cache.get(f"origin:{chat_id}")
-        if not origin:
-            send_telegram_message(chat_id, "⚠️ Error: origen no definido. Escribe /start para reiniciar.")
-            return JsonResponse({"ok": False})
+            lat1, lng1, lat2, lng2, price = map(float, parts[1:])
+            
+            # Busca el usuario por username
+            try:
+                app_user = AppUser.objects.get(username=username)
+            except AppUser.DoesNotExist:
+                send_telegram_message(chat_id, "Usuario no registrado.")
+                return JsonResponse({"status": "user not found"})
 
-        lat1, lng1 = origin["latitude"], origin["longitude"]
-        lat2, lng2 = location["latitude"], location["longitude"]
-        distance, duration = get_distance_duration(lat1, lng1, lat2, lng2)
-        map_url = get_map_url(lat1, lng1, lat2, lng2)
-        price = 2.0
+            # Crea la carrera (Ride)
+            ride = Ride.objects.create(
+                customer=app_user,
+                origin_latitude=lat1,
+                origin_longitude=lng1,
+                status="requested",
+                price=price
+            )
 
-        ride = Ride.objects.create(
-            customer=app_user,
-            origin_latitude=lat1,
-            origin_longitude=lng1,
-            destination_latitude=lat2,
-            destination_longitude=lng2,
-            status="requested",
-            price=price
-        )
+            # Obtiene dirección legible con API de Google
+            direccion_destino = obtener_direccion_google(lat2, lng2, settings.GOOGLE_API_KEY)
 
-        msg = (
-            f"🚕 <b>Nueva carrera solicitada</b>\n"
-            f"📍 Origen: {lat1}, {lng1}\n"
-            f"➡️ Destino: {lat2}, {lng2}\n"
-            f"👤 Cliente: {app_user.get_full_name() or 'No registrado'}\n"
-            f"📏 Distancia: {distance}, ⏱️ Duración: {duration}\n"
-            f"💰 Precio estimado: {price:.2f} USD\n"
-            f"🗺️ <a href='{map_url}'>Ver mapa</a>"
-        )
+            # Crea el destino (RideDestination)
+            RideDestination.objects.create(
+                ride=ride,
+                destination=direccion_destino,
+                destination_latitude=lat2,
+                destination_longitude=lng2,
+                order=0
+            )
 
-        for driver in AppUser.objects.filter(role='driver', telegram_chat_id__isnull=False):
-            enviar_telegram(driver.telegram_chat_id, msg)
-            if driver.last_latitude and driver.last_longitude:
-                send_location(driver.telegram_chat_id, driver.last_latitude, driver.last_longitude)
+            # Envía mensaje al grupo de conductores
+            group_chat_id = settings.TELEGRAM_GROUP_ID
+            mensaje = (
+                f"📢 *Nueva carrera solicitada:*\n"
+                f"👤 Cliente: @{username}\n"
+                f"📍 Origen: {lat1}, {lng1}\n"
+                f"📍 Destino: {direccion_destino}\n"
+                f"💰 Precio: ${price:.2f}\n"
+                f"🚕 ID de carrera: {ride.id}"
+            )
+            send_telegram_message(group_chat_id, mensaje, parse_mode="Markdown")
 
-        send_telegram_message(chat_id, "✅ Tu solicitud fue enviada a conductores.")
-        send_location(chat_id, lat1, lng1)
-        send_location(chat_id, lat2, lng2)
+            return JsonResponse({"status": "ride created", "ride_id": ride.id})
 
-        cache.delete(f"step:{chat_id}")
-        cache.delete(f"origin:{chat_id}")
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
 
-    elif user_input.lower() == "cancelar":
-        cache.delete(f"step:{chat_id}")
-        cache.delete(f"origin:{chat_id}")
-        send_telegram_message(chat_id, "❌ Solicitud cancelada. Escribe /start para comenzar de nuevo.")
-
-    else:
-        send_telegram_message(chat_id, "❗ Usa /start para iniciar o comparte ubicación.")
-
-    return JsonResponse({"ok": True})
+    return JsonResponse({"status": "invalid method"})
 
 
 @login_required

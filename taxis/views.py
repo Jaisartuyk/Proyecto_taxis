@@ -399,7 +399,7 @@ def telegram_webhook(request):
 
         usuario = AppUser.objects.filter(
             phone_number__endswith=ultimos_digitos,
-            rol='customer'  # usa el valor correcto para cliente
+            role='customer'  # usa el valor correcto para cliente
         ).first()
 
         if usuario:

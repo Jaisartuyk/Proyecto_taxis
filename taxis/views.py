@@ -299,6 +299,26 @@ def available_routes_list_view(request):
     available_routes = TaxiRoute.objects.filter(is_available=True)
     return render(request, 'available_routes_list.html', {'routes': available_routes})
 # Geocodificación inversa (lat, lng → dirección)
+# Constantes
+CHAT_ID_GRUPO_CONDUCTORES = -4767733103  # El ID del grupo de taxistas como entero
+
+usuarios_estado = {}  # Guarda estado para clientes (chat privado)
+conductores_estado = {}  # Guarda estado para conductores (grupo)
+
+def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': mensaje,
+        'parse_mode': parse_mode
+    }
+    if botones:
+        payload['reply_markup'] = json.dumps({"inline_keyboard": botones})
+    response = requests.post(url, data=payload)
+    if not response.ok:
+        print("Error enviando Telegram:", response.text)
+    return response
+
 def direccion_a_coordenadas(direccion, api_key):
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(direccion)}&key={api_key}&language=es"
     response = requests.get(url)
@@ -323,37 +343,10 @@ def obtener_direccion_google(lat, lng, api_key):
                 return datos["results"][0].get("formatted_address")
     except Exception as e:
         print(f"Error obteniendo dirección: {e}")
-    return f"{lat}, {lng}"  # fallback
-
-
-def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': chat_id,
-        'text': mensaje,
-        'parse_mode': parse_mode
-    }
-    if botones:
-        payload['reply_markup'] = json.dumps({"inline_keyboard": botones})
-
-    response = requests.post(url, data=payload)
-    if not response.ok:
-        print("❌ Error al enviar mensaje de Telegram:", response.text)
-    return response
-
-
-
-
-def send_location(chat_id, latitude, longitude):
-    requests.post(
-        f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendLocation",
-        data={"chat_id": chat_id, "latitude": latitude, "longitude": longitude}
-    )
-
+    return f"{lat}, {lng}"
 
 def get_map_url(lat1, lng1, lat2, lng2):
     return f"https://www.google.com/maps/dir/?api=1&origin={lat1},{lng1}&destination={lat2},{lng2}&travelmode=driving"
-
 
 def get_distance_duration(lat1, lng1, lat2, lng2):
     try:
@@ -367,7 +360,6 @@ def get_distance_duration(lat1, lng1, lat2, lng2):
         print("Error en get_distance_duration:", e)
     return None, None
 
-
 def obtener_taxista_mas_cercano(lat, lng):
     origen = (lat, lng)
     taxistas = Taxi.objects.select_related('user').filter(
@@ -378,8 +370,6 @@ def obtener_taxista_mas_cercano(lat, lng):
     )
     return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
 
-usuarios_estado = {}  # Guarda el estado de cada cliente por chat_id
-
 @csrf_exempt
 def telegram_webhook(request):
     if request.method != "POST":
@@ -387,27 +377,66 @@ def telegram_webhook(request):
 
     data = json.loads(request.body.decode("utf-8"))
     mensaje = data.get("message", {})
-    chat_id = mensaje.get("chat", {}).get("id")
+    chat = mensaje.get("chat", {})
+    chat_id = chat.get("id")
+    texto = mensaje.get("text")
+    ubicacion = mensaje.get("location")
 
     if not chat_id:
         return JsonResponse({"ok": False, "error": "No chat ID"})
 
-    # Obtiene o crea el usuario de tipo 'customer' si no existe
-    usuario, _ = AppUser.objects.get_or_create(
-        telegram_chat_id=chat_id, defaults={"role": "customer"}
+    # Caso 1: Mensajes del grupo de conductores
+    if chat_id == CHAT_ID_GRUPO_CONDUCTORES:
+        # El conductor debe enviar su número para validar
+        # Guardamos estado para el usuario del grupo para que envíe su número
+        usuario_id = mensaje.get("from", {}).get("id")
+        if not usuario_id:
+            return JsonResponse({"ok": True})  # No hacer nada si no tiene id usuario
+
+        # Buscamos AppUser por telegram_chat_id (no por chat_id de grupo)
+        try:
+            conductor = AppUser.objects.get(telegram_chat_id=str(usuario_id), role='driver')
+        except AppUser.DoesNotExist:
+            conductor = None
+
+        # Si no está registrado, pedimos que envíe su número
+        if conductor is None:
+            if texto and texto.isdigit():
+                # Aquí puedes agregar validación más avanzada de número si quieres
+                # Guardamos el chat_id de telegram personal del usuario que envió el mensaje
+                # para ello usamos 'from' -> 'id' que es el chat_id del usuario con el bot
+                # Pero en grupo no recibes el chat_id personal, sólo el grupo, así que para
+                # obtener telegram_chat_id personal, hay que pedir al conductor que hable al bot privado (fuera del grupo)
+                enviar_telegram(CHAT_ID_GRUPO_CONDUCTORES,
+                    "❗ Para registrar tu número y que te asignen carreras, por favor envía un mensaje privado al bot (no en el grupo)."
+                )
+            else:
+                enviar_telegram(CHAT_ID_GRUPO_CONDUCTORES,
+                    "👋 Conductores: Por favor, envíen su <b>número de celular</b> <b>POR PRIVADO</b> al bot para registrarse."
+                )
+            return JsonResponse({"ok": True})
+
+        else:
+            # Ya está registrado
+            enviar_telegram(CHAT_ID_GRUPO_CONDUCTORES,
+                f"✅ {conductor.get_full_name()} ya está registrado como conductor."
+            )
+        return JsonResponse({"ok": True})
+
+    # Caso 2: Mensajes de chat privado (clientes y conductores)
+    # Usamos chat_id como telegram_chat_id de AppUser
+    usuario, creado = AppUser.objects.get_or_create(
+        telegram_chat_id=str(chat_id),
+        defaults={"role": "customer"}
     )
 
-    texto = mensaje.get("text")
-    ubicacion = mensaje.get("location")
     estado = usuarios_estado.get(chat_id, {}).get("estado")
 
-    # Comando de inicio
     if texto == "/start":
         usuarios_estado[chat_id] = {"estado": "esperando_origen"}
         enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
         return JsonResponse({"ok": True})
 
-    # Esperando ubicación de origen
     if estado == "esperando_origen":
         if ubicacion:
             origen_lat = ubicacion['latitude']
@@ -434,7 +463,6 @@ def telegram_webhook(request):
             enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
-    # Esperando ubicación de destino
     if estado == "esperando_destino":
         origen = usuarios_estado[chat_id]["origen"]
 
@@ -460,7 +488,6 @@ def telegram_webhook(request):
                 enviar_telegram(chat_id, "🚫 No hay taxistas disponibles en este momento.")
                 return JsonResponse({"ok": True})
 
-            # Crear la carrera
             ride = Ride.objects.create(
                 customer=usuario,
                 origin=origen["direccion"],
@@ -477,7 +504,6 @@ def telegram_webhook(request):
                 order=0
             )
 
-            # Confirmar al cliente
             enviar_telegram(
                 chat_id,
                 f"✅ Tu carrera ha sido solicitada.\n\n"
@@ -503,7 +529,6 @@ def telegram_webhook(request):
             enviar_telegram(chat_id, "❌ No pude encontrar la dirección de destino. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
-    # Estado desconocido
     enviar_telegram(chat_id, "👋 Hola. Escribe /start para solicitar un taxi 🚕.")
     return JsonResponse({"ok": True})
 @login_required

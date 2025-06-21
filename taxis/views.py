@@ -510,9 +510,6 @@ def telegram_webhook(request):
     enviar_telegram(chat_id, "⚠️ No entendí tu mensaje. Escribe tu número o usa /start para comenzar.")
     return JsonResponse({"status": "unknown paso"})
 
-
-
-
 @login_required
 def request_ride(request):
     if request.method == 'POST':
@@ -523,13 +520,17 @@ def request_ride(request):
         destinations = request.POST.getlist('destinations[]')
         destination_coords = request.POST.getlist('destination_coords[]')
 
-        if origin and origin_lat and origin_lng and destinations and destination_coords:
+        if all([origin, origin_lat, origin_lng, destinations, destination_coords]):
             try:
+                origin_lat = float(origin_lat)
+                origin_lng = float(origin_lng)
+                price = float(price)
+
                 ride = Ride.objects.create(
                     customer=request.user,
                     origin=origin,
-                    origin_latitude=float(origin_lat),
-                    origin_longitude=float(origin_lng),
+                    origin_latitude=origin_lat,
+                    origin_longitude=origin_lng,
                     price=price,
                     status='requested',
                 )
@@ -545,18 +546,14 @@ def request_ride(request):
                     )
 
                 direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
-
-                # Convertir destinos a una lista formateada
-                lista_destinos = ""
-                for i, d in enumerate(destinations):
-                    lista_destinos += f"➡️ Destino {i+1}: {d}\n"
+                lista_destinos = "\n".join([f"➡️ Destino {i+1}: {d}" for i, d in enumerate(destinations)])
 
                 mensaje_grupo = (
                     f"🚕 <b>Nueva carrera solicitada</b>\n"
                     f"📍 Origen: {direccion_legible}\n"
-                    f"{lista_destinos}"
+                    f"{lista_destinos}\n"
                     f"👤 Cliente: {request.user.get_full_name()}\n"
-                    f"💰 Precio estimado: {price if price else 'N/A'}"
+                    f"💰 Precio estimado: ${price:.2f}"
                 )
 
                 botones = [[
@@ -565,7 +562,7 @@ def request_ride(request):
                 ]]
                 enviar_telegram(settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
 
-                taxista_cercano = obtener_taxista_mas_cercano(float(origin_lat), float(origin_lng))
+                taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
                 if taxista_cercano and taxista_cercano.telegram_chat_id:
                     mensaje_taxista = (
                         f"📣 Hola {taxista_cercano.first_name}, hay una carrera cerca de ti:\n"
@@ -577,8 +574,8 @@ def request_ride(request):
                 messages.success(request, '¡Carrera solicitada con éxito!')
                 return redirect(reverse('ride_detail', args=[ride.id]))
 
-            except ValueError:
-                messages.error(request, 'Coordenadas inválidas.')
+            except (ValueError, IndexError) as e:
+                messages.error(request, f'Error en los datos: {str(e)}')
         else:
             messages.error(request, 'Completa todos los campos.')
 
@@ -586,7 +583,6 @@ def request_ride(request):
         'google_api_key': settings.GOOGLE_API_KEY,
         'direccion_legible': 'Aún no se ha seleccionado un origen'
     })
-
 
 @login_required
 def available_rides(request):

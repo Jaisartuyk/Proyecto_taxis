@@ -355,7 +355,7 @@ def obtener_taxista_mas_cercano(lat, lng):
 
 TELEGRAM_BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
-GOOGLE_MAPS_API_KEY = settings.GOOGLE_MAPS_API_KEY
+GOOGLE_API_KEY = settings.GOOGLE_API_KEY
 
 
 def send_telegram_message(chat_id, text, reply_markup=None):
@@ -377,7 +377,7 @@ def get_map_url(lat1, lng1, lat2, lng2):
 def get_distance_duration(lat1, lng1, lat2, lng2):
     url = (
         f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric"
-        f"&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={GOOGLE_MAPS_API_KEY}"
+        f"&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={GOOGLE_API_KEY}"
     )
     response = requests.get(url).json()
     if response['status'] == 'OK':

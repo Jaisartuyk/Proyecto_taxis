@@ -343,6 +343,7 @@ def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
 
 
 
+
 def send_location(chat_id, latitude, longitude):
     requests.post(
         f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendLocation",

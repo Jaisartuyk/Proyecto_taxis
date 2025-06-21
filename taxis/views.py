@@ -370,6 +370,11 @@ def obtener_taxista_mas_cercano(lat, lng):
     )
     return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
 
+TELEGRAM_CHAT_ID_GRUPO_TAXISTAS = '-4767733103'
+
+# Guarda estados para clientes (chat_id: dict)
+usuarios_estado = {}
+
 @csrf_exempt
 def telegram_webhook(request):
     if request.method != "POST":
@@ -377,66 +382,65 @@ def telegram_webhook(request):
 
     data = json.loads(request.body.decode("utf-8"))
     mensaje = data.get("message", {})
+    if not mensaje:
+        return JsonResponse({"ok": True})  # No hay mensaje
+
     chat = mensaje.get("chat", {})
     chat_id = chat.get("id")
     texto = mensaje.get("text")
     ubicacion = mensaje.get("location")
+    from_user = mensaje.get("from", {})
+    from_id = from_user.get("id")
 
     if not chat_id:
         return JsonResponse({"ok": False, "error": "No chat ID"})
 
-    # Caso 1: Mensajes del grupo de conductores
-    if chat_id == CHAT_ID_GRUPO_CONDUCTORES:
-        # El conductor debe enviar su número para validar
-        # Guardamos estado para el usuario del grupo para que envíe su número
-        usuario_id = mensaje.get("from", {}).get("id")
-        if not usuario_id:
-            return JsonResponse({"ok": True})  # No hacer nada si no tiene id usuario
-
-        # Buscamos AppUser por telegram_chat_id (no por chat_id de grupo)
-        try:
-            conductor = AppUser.objects.get(telegram_chat_id=str(usuario_id), role='driver')
-        except AppUser.DoesNotExist:
-            conductor = None
-
-        # Si no está registrado, pedimos que envíe su número
-        if conductor is None:
-            if texto and texto.isdigit():
-                # Aquí puedes agregar validación más avanzada de número si quieres
-                # Guardamos el chat_id de telegram personal del usuario que envió el mensaje
-                # para ello usamos 'from' -> 'id' que es el chat_id del usuario con el bot
-                # Pero en grupo no recibes el chat_id personal, sólo el grupo, así que para
-                # obtener telegram_chat_id personal, hay que pedir al conductor que hable al bot privado (fuera del grupo)
-                enviar_telegram(CHAT_ID_GRUPO_CONDUCTORES,
-                    "❗ Para registrar tu número y que te asignen carreras, por favor envía un mensaje privado al bot (no en el grupo)."
-                )
-            else:
-                enviar_telegram(CHAT_ID_GRUPO_CONDUCTORES,
-                    "👋 Conductores: Por favor, envíen su <b>número de celular</b> <b>POR PRIVADO</b> al bot para registrarse."
-                )
-            return JsonResponse({"ok": True})
-
+    # === 1. Registro de taxistas en grupo ===
+    if str(chat_id) == TELEGRAM_CHAT_ID_GRUPO_TAXISTAS:
+        # El texto debe ser el número de celular
+        if texto and texto.replace("+","").isdigit() and len(texto) >= 7:
+            try:
+                taxista = AppUser.objects.get(phone_number=texto.strip(), role='driver')
+                if from_id:
+                    taxista.telegram_chat_id = str(from_id)
+                    taxista.save()
+                    enviar_telegram(chat_id, f"✅ Se registró el conductor {taxista.get_full_name()} con número {texto}.")
+                else:
+                    enviar_telegram(chat_id, "❌ No pude obtener tu ID de Telegram para registro.")
+            except AppUser.DoesNotExist:
+                enviar_telegram(chat_id, "❌ No hay ningún conductor registrado con ese número.")
         else:
-            # Ya está registrado
-            enviar_telegram(CHAT_ID_GRUPO_CONDUCTORES,
-                f"✅ {conductor.get_full_name()} ya está registrado como conductor."
-            )
+            enviar_telegram(chat_id, "📲 Por favor, envía solo tu número de celular para registro.")
         return JsonResponse({"ok": True})
 
-    # Caso 2: Mensajes de chat privado (clientes y conductores)
-    # Usamos chat_id como telegram_chat_id de AppUser
-    usuario, creado = AppUser.objects.get_or_create(
+    # === 2. Flujo para clientes en chat privado ===
+    usuario, _ = AppUser.objects.get_or_create(
         telegram_chat_id=str(chat_id),
         defaults={"role": "customer"}
     )
 
     estado = usuarios_estado.get(chat_id, {}).get("estado")
 
+    # Paso 1: Solicitar número celular si no lo tiene registrado
+    if usuario.phone_number in (None, "", "null"):
+        if texto and texto.replace("+","").isdigit() and len(texto) >= 7:
+            # Guardar número y continuar flujo
+            usuario.phone_number = texto.strip()
+            usuario.save()
+            usuarios_estado[chat_id] = {"estado": "esperando_origen"}
+            enviar_telegram(chat_id, "✅ Número registrado.\nAhora envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
+            return JsonResponse({"ok": True})
+        else:
+            enviar_telegram(chat_id, "📲 Por favor, envía tu número de celular para continuar.")
+            return JsonResponse({"ok": True})
+
+    # Comando /start reinicia la solicitud de carrera
     if texto == "/start":
         usuarios_estado[chat_id] = {"estado": "esperando_origen"}
         enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
         return JsonResponse({"ok": True})
 
+    # Esperando origen
     if estado == "esperando_origen":
         if ubicacion:
             origen_lat = ubicacion['latitude']
@@ -463,9 +467,9 @@ def telegram_webhook(request):
             enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
+    # Esperando destino
     if estado == "esperando_destino":
         origen = usuarios_estado[chat_id]["origen"]
-
         if ubicacion:
             destino_lat = ubicacion['latitude']
             destino_lng = ubicacion['longitude']
@@ -488,6 +492,7 @@ def telegram_webhook(request):
                 enviar_telegram(chat_id, "🚫 No hay taxistas disponibles en este momento.")
                 return JsonResponse({"ok": True})
 
+            # Crear la carrera
             ride = Ride.objects.create(
                 customer=usuario,
                 origin=origen["direccion"],
@@ -504,6 +509,7 @@ def telegram_webhook(request):
                 order=0
             )
 
+            # Confirmar al cliente
             enviar_telegram(
                 chat_id,
                 f"✅ Tu carrera ha sido solicitada.\n\n"

@@ -330,7 +330,7 @@ def send_location(chat_id, latitude, longitude):
     )
 
 def send_telegram_message(chat_id, text, reply_markup=None):
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
     data = {
         "chat_id": chat_id,
         "text": text,

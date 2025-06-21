@@ -17,7 +17,7 @@ from django.utils.timezone import now, timedelta
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.core.cache import cache
-from taxis.views import telegram_webhook  # cambia "tu_app" por el nombre real de tu app
+#from taxis.views import telegram_webhook  # cambia "tu_app" por el nombre real de tu app
 
 #import requests
 

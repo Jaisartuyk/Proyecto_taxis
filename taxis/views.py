@@ -300,28 +300,37 @@ def available_routes_list_view(request):
     return render(request, 'available_routes_list.html', {'routes': available_routes})
 # Geocodificación inversa (lat, lng → dirección)
 def obtener_direccion_google(lat, lng, api_key):
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=es"
-    response = requests.get(url)
-    if response.status_code == 200:
-        datos = response.json()
-        for resultado in datos.get("results", []):
-            tipos = resultado.get("types", [])
-            if "plus_code" not in tipos and any(t in tipos for t in ("street_address", "route", "premise")):
-                return resultado.get("formatted_address")
-        if datos["results"]:
-            return datos["results"][0].get("formatted_address")
+    try:
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=es"
+        response = requests.get(url)
+        if response.status_code == 200:
+            datos = response.json()
+            for resultado in datos.get("results", []):
+                tipos = resultado.get("types", [])
+                if "plus_code" not in tipos and any(t in tipos for t in ("street_address", "route", "premise")):
+                    return resultado.get("formatted_address")
+            if datos["results"]:
+                return datos["results"][0].get("formatted_address")
+    except Exception as e:
+        print(f"Error obteniendo dirección: {e}")
     return f"{lat}, {lng}"  # fallback
 
-def enviar_telegram(chat_id, mensaje, botones=None):
+
+def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
     url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         'chat_id': chat_id,
         'text': mensaje,
-        'parse_mode': 'HTML'
+        'parse_mode': parse_mode
     }
     if botones:
         payload['reply_markup'] = json.dumps({"inline_keyboard": botones})
-    requests.post(url, data=payload)
+
+    response = requests.post(url, data=payload)
+    if not response.ok:
+        print("Error al enviar mensaje de Telegram:", response.text)
+    return response
+
 
 def send_location(chat_id, latitude, longitude):
     requests.post(
@@ -329,29 +338,23 @@ def send_location(chat_id, latitude, longitude):
         data={"chat_id": chat_id, "latitude": latitude, "longitude": longitude}
     )
 
-def send_telegram_message(chat_id, text, reply_markup=None):
-    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML",
-    }
-    if reply_markup:
-        data["reply_markup"] = reply_markup
-
-    response = requests.post(url, json=data)
-    return response.json()
 
 def get_map_url(lat1, lng1, lat2, lng2):
     return f"https://www.google.com/maps/dir/?api=1&origin={lat1},{lng1}&destination={lat2},{lng2}&travelmode=driving"
 
+
 def get_distance_duration(lat1, lng1, lat2, lng2):
-    url = f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={settings.GOOGLE_API_KEY}"
-    response = requests.get(url).json()
-    if response['status'] == 'OK':
-        element = response['rows'][0]['elements'][0]
-        return element['distance']['text'], element['duration']['text']
+    try:
+        url = f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={settings.GOOGLE_API_KEY}"
+        response = requests.get(url).json()
+        if response['status'] == 'OK':
+            element = response['rows'][0]['elements'][0]
+            if element['status'] == 'OK':
+                return element['distance']['text'], element['duration']['text']
+    except Exception as e:
+        print("Error en get_distance_duration:", e)
     return None, None
+
 
 def obtener_taxista_mas_cercano(lat, lng):
     origen = (lat, lng)
@@ -362,41 +365,38 @@ def obtener_taxista_mas_cercano(lat, lng):
         longitude__isnull=False
     )
     return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
+
+
 @csrf_exempt
 def telegram_webhook(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
 
-            # Verifica que haya mensaje
             if "message" not in data:
                 return JsonResponse({"status": "no message in payload"})
 
             message = data["message"]
             text = message.get("text", "").strip()
             chat_id = message["chat"]["id"]
-            username = message["chat"]["username"]
+            username = message["chat"].get("username")
 
-            # Verifica si empieza con "/carrera"
             if not text.startswith("/carrera"):
                 return JsonResponse({"status": "ignored"})
 
-            # Se espera: /carrera <lat1> <lng1> <lat2> <lng2> <price>
             parts = text.split()
             if len(parts) != 6:
-                send_telegram_message(chat_id, "Formato incorrecto. Usa: /carrera <lat1> <lng1> <lat2> <lng2> <precio>")
+                enviar_telegram(chat_id, "Formato incorrecto. Usa: /carrera <lat1> <lng1> <lat2> <lng2> <precio>")
                 return JsonResponse({"status": "bad format"})
 
             lat1, lng1, lat2, lng2, price = map(float, parts[1:])
-            
-            # Busca el usuario por username
+
             try:
                 app_user = AppUser.objects.get(username=username)
             except AppUser.DoesNotExist:
-                send_telegram_message(chat_id, "Usuario no registrado.")
+                enviar_telegram(chat_id, "Usuario no registrado.")
                 return JsonResponse({"status": "user not found"})
 
-            # Crea la carrera (Ride)
             ride = Ride.objects.create(
                 customer=app_user,
                 origin_latitude=lat1,
@@ -405,10 +405,8 @@ def telegram_webhook(request):
                 price=price
             )
 
-            # Obtiene dirección legible con API de Google
             direccion_destino = obtener_direccion_google(lat2, lng2, settings.GOOGLE_API_KEY)
 
-            # Crea el destino (RideDestination)
             RideDestination.objects.create(
                 ride=ride,
                 destination=direccion_destino,
@@ -417,8 +415,6 @@ def telegram_webhook(request):
                 order=0
             )
 
-            # Envía mensaje al grupo de conductores
-            group_chat_id = settings.TELEGRAM_GROUP_ID
             mensaje = (
                 f"📢 *Nueva carrera solicitada:*\n"
                 f"👤 Cliente: @{username}\n"
@@ -427,7 +423,7 @@ def telegram_webhook(request):
                 f"💰 Precio: ${price:.2f}\n"
                 f"🚕 ID de carrera: {ride.id}"
             )
-            send_telegram_message(group_chat_id, mensaje, parse_mode="Markdown")
+            enviar_telegram(settings.TELEGRAM_GROUP_ID, mensaje, parse_mode="Markdown")
 
             return JsonResponse({"status": "ride created", "ride_id": ride.id})
 
@@ -447,13 +443,17 @@ def request_ride(request):
         destinations = request.POST.getlist('destinations[]')
         destination_coords = request.POST.getlist('destination_coords[]')
 
-        if origin and origin_lat and origin_lng and destinations and destination_coords:
+        if all([origin, origin_lat, origin_lng, destinations, destination_coords]):
             try:
+                origin_lat = float(origin_lat)
+                origin_lng = float(origin_lng)
+                price = float(price)
+
                 ride = Ride.objects.create(
                     customer=request.user,
                     origin=origin,
-                    origin_latitude=float(origin_lat),
-                    origin_longitude=float(origin_lng),
+                    origin_latitude=origin_lat,
+                    origin_longitude=origin_lng,
                     price=price,
                     status='requested',
                 )
@@ -469,18 +469,14 @@ def request_ride(request):
                     )
 
                 direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
-
-                # Convertir destinos a una lista formateada
-                lista_destinos = ""
-                for i, d in enumerate(destinations):
-                    lista_destinos += f"➡️ Destino {i+1}: {d}\n"
+                lista_destinos = "\n".join([f"➡️ Destino {i+1}: {d}" for i, d in enumerate(destinations)])
 
                 mensaje_grupo = (
                     f"🚕 <b>Nueva carrera solicitada</b>\n"
                     f"📍 Origen: {direccion_legible}\n"
-                    f"{lista_destinos}"
+                    f"{lista_destinos}\n"
                     f"👤 Cliente: {request.user.get_full_name()}\n"
-                    f"💰 Precio estimado: {price if price else 'N/A'}"
+                    f"💰 Precio estimado: ${price:.2f}"
                 )
 
                 botones = [[
@@ -489,7 +485,7 @@ def request_ride(request):
                 ]]
                 enviar_telegram(settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
 
-                taxista_cercano = obtener_taxista_mas_cercano(float(origin_lat), float(origin_lng))
+                taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
                 if taxista_cercano and taxista_cercano.telegram_chat_id:
                     mensaje_taxista = (
                         f"📣 Hola {taxista_cercano.first_name}, hay una carrera cerca de ti:\n"
@@ -501,8 +497,8 @@ def request_ride(request):
                 messages.success(request, '¡Carrera solicitada con éxito!')
                 return redirect(reverse('ride_detail', args=[ride.id]))
 
-            except ValueError:
-                messages.error(request, 'Coordenadas inválidas.')
+            except (ValueError, IndexError) as e:
+                messages.error(request, f'Error en los datos: {str(e)}')
         else:
             messages.error(request, 'Completa todos los campos.')
 
@@ -510,8 +506,6 @@ def request_ride(request):
         'google_api_key': settings.GOOGLE_API_KEY,
         'direccion_legible': 'Aún no se ha seleccionado un origen'
     })
-
-
 @login_required
 def available_rides(request):
     if not request.user.is_superuser and request.user.role != 'driver':

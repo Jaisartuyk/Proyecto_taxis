@@ -300,11 +300,12 @@ def available_routes_list_view(request):
     return render(request, 'available_routes_list.html', {'routes': available_routes})
 # Geocodificación inversa (lat, lng → dirección)
 # Constantes
-CHAT_ID_GRUPO_CONDUCTORES = -4767733103  # El ID del grupo de taxistas como entero
+TELEGRAM_CHAT_ID_GRUPO_TAXISTAS = -4767733103
+usuarios_estado = {}      # Estado para clientes (chat privado)
+conductores_estado = {}   # Estado para conductores (grupo)
 
-usuarios_estado = {}  # Guarda estado para clientes (chat privado)
-conductores_estado = {}  # Guarda estado para conductores (grupo)
 
+# 📩 Enviar mensajes a Telegram
 def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
     url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -316,9 +317,11 @@ def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
         payload['reply_markup'] = json.dumps({"inline_keyboard": botones})
     response = requests.post(url, data=payload)
     if not response.ok:
-        print("Error enviando Telegram:", response.text)
+        print("❌ Error enviando mensaje a Telegram:", response.text)
     return response
 
+
+# 📍 Convertir dirección en coordenadas
 def direccion_a_coordenadas(direccion, api_key):
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(direccion)}&key={api_key}&language=es"
     response = requests.get(url)
@@ -329,6 +332,8 @@ def direccion_a_coordenadas(direccion, api_key):
             return loc['lat'], loc['lng']
     return None, None
 
+
+# 🧭 Obtener dirección legible desde coordenadas usando Google Maps
 def obtener_direccion_google(lat, lng, api_key):
     try:
         url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=es"
@@ -342,24 +347,33 @@ def obtener_direccion_google(lat, lng, api_key):
             if datos["results"]:
                 return datos["results"][0].get("formatted_address")
     except Exception as e:
-        print(f"Error obteniendo dirección: {e}")
+        print(f"❌ Error obteniendo dirección: {e}")
     return f"{lat}, {lng}"
 
+
+# 🗺️ URL para ver ruta en Google Maps
 def get_map_url(lat1, lng1, lat2, lng2):
     return f"https://www.google.com/maps/dir/?api=1&origin={lat1},{lng1}&destination={lat2},{lng2}&travelmode=driving"
 
+
+# 📏 Obtener distancia y duración estimada entre dos puntos
 def get_distance_duration(lat1, lng1, lat2, lng2):
     try:
-        url = f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={settings.GOOGLE_API_KEY}"
+        url = (
+            f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric"
+            f"&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={settings.GOOGLE_API_KEY}"
+        )
         response = requests.get(url).json()
         if response['status'] == 'OK':
             element = response['rows'][0]['elements'][0]
             if element['status'] == 'OK':
                 return element['distance']['text'], element['duration']['text']
     except Exception as e:
-        print("Error en get_distance_duration:", e)
+        print("❌ Error en get_distance_duration:", e)
     return None, None
 
+
+# 🚕 Buscar el taxista más cercano a una ubicación
 def obtener_taxista_mas_cercano(lat, lng):
     origen = (lat, lng)
     taxistas = Taxi.objects.select_related('user').filter(
@@ -370,10 +384,6 @@ def obtener_taxista_mas_cercano(lat, lng):
     )
     return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
 
-TELEGRAM_CHAT_ID_GRUPO_TAXISTAS = '-4767733103'
-
-# Guarda estados para clientes (chat_id: dict)
-usuarios_estado = {}
 
 @csrf_exempt
 def telegram_webhook(request):
@@ -381,9 +391,79 @@ def telegram_webhook(request):
         return JsonResponse({"ok": False, "error": "Método no permitido"})
 
     data = json.loads(request.body.decode("utf-8"))
+
+    # ==== Si es un callback_query (botón presionado) ====
+    if "callback_query" in data:
+        callback = data["callback_query"]
+        callback_data = callback.get("data")
+        from_user = callback.get("from", {})
+        telegram_user_id = str(from_user.get("id"))
+        chat_id = callback["message"]["chat"]["id"]
+        message_id = callback["message"]["message_id"]
+
+        if callback_data and callback_data.startswith("aceptar_"):
+            ride_id = callback_data.split("_")[1]
+
+            try:
+                taxista = AppUser.objects.get(telegram_chat_id=telegram_user_id, role='driver')
+            except AppUser.DoesNotExist:
+                requests.post(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/answerCallbackQuery", data={
+                    "callback_query_id": callback["id"],
+                    "text": "❌ Solo conductores registrados pueden aceptar carreras.",
+                    "show_alert": True
+                })
+                return JsonResponse({"ok": True})
+
+            try:
+                ride = Ride.objects.get(id=ride_id, status='requested')
+            except Ride.DoesNotExist:
+                requests.post(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/answerCallbackQuery", data={
+                    "callback_query_id": callback["id"],
+                    "text": "🚫 La carrera ya fue aceptada o no existe.",
+                    "show_alert": True
+                })
+                return JsonResponse({"ok": True})
+
+            # Asignar carrera al conductor
+            ride.driver = taxista
+            ride.status = "accepted"
+            ride.save()
+
+            # Eliminar botones del mensaje
+            requests.post(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup", data={
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "reply_markup": json.dumps({"inline_keyboard": []})
+            })
+
+            # Confirmar al conductor
+            requests.post(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/answerCallbackQuery", data={
+                "callback_query_id": callback["id"],
+                "text": "✅ Carrera aceptada. ¡Buena ruta!",
+                "show_alert": False
+            })
+
+            # Notificar al cliente
+            if ride.customer.telegram_chat_id:
+                enviar_telegram(
+                    ride.customer.telegram_chat_id,
+                    f"🚖 Tu carrera fue aceptada por {taxista.get_full_name()}.\n📞 Puedes contactarlo para coordinar."
+                )
+
+            # Notificar al grupo
+            enviar_telegram(
+                chat_id,
+                f"✅ La carrera ID {ride_id} fue aceptada por {taxista.get_full_name()}."
+            )
+
+            return JsonResponse({"ok": True})
+
+    # ==== Fin del manejo de botones ====
+
+    # ==== Inicio del manejo normal de mensajes ====
     mensaje = data.get("message", {})
     if not mensaje:
-        return JsonResponse({"ok": True})  # No hay mensaje
+        return JsonResponse({"ok": True})  # Nada que hacer
 
     chat = mensaje.get("chat", {})
     chat_id = chat.get("id")
@@ -395,10 +475,9 @@ def telegram_webhook(request):
     if not chat_id:
         return JsonResponse({"ok": False, "error": "No chat ID"})
 
-    # === 1. Registro de taxistas en grupo ===
+    # === 1. Registro de conductores desde grupo ===
     if str(chat_id) == TELEGRAM_CHAT_ID_GRUPO_TAXISTAS:
-        # El texto debe ser el número de celular
-        if texto and texto.replace("+","").isdigit() and len(texto) >= 7:
+        if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
             try:
                 taxista = AppUser.objects.get(phone_number=texto.strip(), role='driver')
                 if from_id:
@@ -421,10 +500,8 @@ def telegram_webhook(request):
 
     estado = usuarios_estado.get(chat_id, {}).get("estado")
 
-    # Paso 1: Solicitar número celular si no lo tiene registrado
     if usuario.phone_number in (None, "", "null"):
-        if texto and texto.replace("+","").isdigit() and len(texto) >= 7:
-            # Guardar número y continuar flujo
+        if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
             usuario.phone_number = texto.strip()
             usuario.save()
             usuarios_estado[chat_id] = {"estado": "esperando_origen"}
@@ -434,13 +511,11 @@ def telegram_webhook(request):
             enviar_telegram(chat_id, "📲 Por favor, envía tu número de celular para continuar.")
             return JsonResponse({"ok": True})
 
-    # Comando /start reinicia la solicitud de carrera
     if texto == "/start":
         usuarios_estado[chat_id] = {"estado": "esperando_origen"}
         enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
         return JsonResponse({"ok": True})
 
-    # Esperando origen
     if estado == "esperando_origen":
         if ubicacion:
             origen_lat = ubicacion['latitude']
@@ -467,7 +542,6 @@ def telegram_webhook(request):
             enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
-    # Esperando destino
     if estado == "esperando_destino":
         origen = usuarios_estado[chat_id]["origen"]
         if ubicacion:
@@ -492,7 +566,6 @@ def telegram_webhook(request):
                 enviar_telegram(chat_id, "🚫 No hay taxistas disponibles en este momento.")
                 return JsonResponse({"ok": True})
 
-            # Crear la carrera
             ride = Ride.objects.create(
                 customer=usuario,
                 origin=origen["direccion"],
@@ -509,26 +582,36 @@ def telegram_webhook(request):
                 order=0
             )
 
-            # Confirmar al cliente
             enviar_telegram(
                 chat_id,
                 f"✅ Tu carrera ha sido solicitada.\n\n"
                 f"🧭 <b>Origen:</b> {origen['direccion']}\n"
-                f"🏁 <b>Destino:</b> {destino_direccion}\n\n"
+                f"🏁 <b>Destino:</b> {destino_direccion}\n"
                 f"🛣️ <b>Distancia:</b> {distancia}\n"
                 f"⏱️ <b>Duración:</b> {duracion}\n\n"
                 f"📍 <a href='{mapa_url}'>Ver ruta en Google Maps</a>"
             )
 
-            # Notificar al conductor
+            # Botón para aceptar
+            botones = [[{"text": "✅ Aceptar carrera", "callback_data": f"aceptar_{ride.id}"}]]
+
             if taxista.user.telegram_chat_id:
                 enviar_telegram(
                     taxista.user.telegram_chat_id,
-                    f"🚖 Nueva carrera asignada.\n\n"
+                    f"🚖 Nueva carrera cerca tuyo:\n\n"
                     f"📍 Origen: {origen['direccion']}\n"
-                    f"🏁 Destino: {destino_direccion}\n"
-                    f"🧑 Cliente: {usuario.get_full_name() or 'Cliente desconocido'}"
+                    f"🏁 Destino: {destino_direccion}",
+                    botones=botones
                 )
+
+            # También al grupo
+            enviar_telegram(
+                TELEGRAM_CHAT_ID_GRUPO_TAXISTAS,
+                f"📣 ¡Nueva carrera disponible!\n\n"
+                f"📍 Origen: {origen['direccion']}\n"
+                f"🏁 Destino: {destino_direccion}",
+                botones=botones
+            )
 
             usuarios_estado.pop(chat_id, None)
         else:
@@ -537,6 +620,8 @@ def telegram_webhook(request):
 
     enviar_telegram(chat_id, "👋 Hola. Escribe /start para solicitar un taxi 🚕.")
     return JsonResponse({"ok": True})
+
+
 @login_required
 def request_ride(request):
     if request.method == 'POST':
@@ -553,6 +638,7 @@ def request_ride(request):
                 origin_lng = float(origin_lng)
                 price = float(price)
 
+                # Crear la solicitud de carrera
                 ride = Ride.objects.create(
                     customer=request.user,
                     origin=origin,
@@ -562,6 +648,7 @@ def request_ride(request):
                     status='requested',
                 )
 
+                # Crear destinos asociados
                 for i, destination in enumerate(destinations):
                     lat, lng = map(float, destination_coords[i].split(','))
                     RideDestination.objects.create(
@@ -572,9 +659,13 @@ def request_ride(request):
                         order=i
                     )
 
+                # Obtener dirección legible para origen
                 direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
+
+                # Formatear lista de destinos legibles
                 lista_destinos = "\n".join([f"➡️ Destino {i+1}: {d}" for i, d in enumerate(destinations)])
 
+                # Mensaje para el grupo de conductores
                 mensaje_grupo = (
                     f"🚕 <b>Nueva carrera solicitada</b>\n"
                     f"📍 Origen: {direccion_legible}\n"
@@ -583,12 +674,16 @@ def request_ride(request):
                     f"💰 Precio estimado: ${price:.2f}"
                 )
 
+                # Botones para el mensaje: Aceptar y Ver en Google Maps
                 botones = [[
                     {"text": "✅ Aceptar carrera", "callback_data": f"aceptar_{ride.id}"},
                     {"text": "🗺 Ver en Google Maps", "url": f"https://maps.google.com/?q={origin_lat},{origin_lng}"}
                 ]]
-                enviar_telegram(settings.TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
 
+                # Enviar mensaje al grupo de conductores
+                enviar_telegram(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
+
+                # Opcional: Notificar al taxista más cercano
                 taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
                 if taxista_cercano and taxista_cercano.user.telegram_chat_id:
                     mensaje_taxista = (
@@ -597,7 +692,6 @@ def request_ride(request):
                         f"👤 Cliente: {request.user.get_full_name()}"
                     )
                     enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
-
 
                 messages.success(request, '¡Carrera solicitada con éxito!')
                 return redirect(reverse('ride_detail', args=[ride.id]))

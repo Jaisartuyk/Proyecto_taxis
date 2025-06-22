@@ -480,17 +480,23 @@ def telegram_webhook(request):
         if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
             try:
                 taxista = AppUser.objects.get(phone_number=texto.strip(), role='driver')
-                if from_id:
+                
+                if taxista.telegram_chat_id:
+                    enviar_telegram(chat_id, f"⚠️ El conductor {taxista.get_full_name()} ya está registrado en Telegram.")
+                elif from_id:
                     taxista.telegram_chat_id = str(from_id)
                     taxista.save()
                     enviar_telegram(chat_id, f"✅ Se registró el conductor {taxista.get_full_name()} con número {texto}.")
                 else:
                     enviar_telegram(chat_id, "❌ No pude obtener tu ID de Telegram para registro.")
+                    
             except AppUser.DoesNotExist:
                 enviar_telegram(chat_id, "❌ No hay ningún conductor registrado con ese número.")
         else:
             enviar_telegram(chat_id, "📲 Por favor, envía solo tu número de celular para registro.")
+        
         return JsonResponse({"ok": True})
+
 
     # === 2. Flujo para clientes en chat privado ===
     usuario, _ = AppUser.objects.get_or_create(

@@ -384,7 +384,6 @@ def obtener_taxista_mas_cercano(lat, lng):
     )
     return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
 
-
 @csrf_exempt
 def telegram_webhook(request):
     if request.method != "POST":
@@ -626,6 +625,7 @@ def telegram_webhook(request):
 
     enviar_telegram(chat_id, "👋 Hola. Escribe /start para solicitar un taxi 🚕.")
     return JsonResponse({"ok": True})
+
 
 
 @login_required

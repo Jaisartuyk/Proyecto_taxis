@@ -391,7 +391,7 @@ def telegram_webhook(request):
 
     data = json.loads(request.body.decode("utf-8"))
 
-    # ==== Si es un callback_query (botón presionado) ====
+    # ==== Botón presionado ====
     if "callback_query" in data:
         callback = data["callback_query"]
         callback_data = callback.get("data")
@@ -423,46 +423,34 @@ def telegram_webhook(request):
                 })
                 return JsonResponse({"ok": True})
 
-            # Asignar carrera al conductor
             ride.driver = taxista
             ride.status = "accepted"
             ride.save()
 
-            # Eliminar botones del mensaje
             requests.post(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup", data={
                 "chat_id": chat_id,
                 "message_id": message_id,
                 "reply_markup": json.dumps({"inline_keyboard": []})
             })
 
-            # Confirmar al conductor
             requests.post(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/answerCallbackQuery", data={
                 "callback_query_id": callback["id"],
                 "text": "✅ Carrera aceptada. ¡Buena ruta!",
                 "show_alert": False
             })
 
-            # Notificar al cliente
             if ride.customer.telegram_chat_id:
                 enviar_telegram(
                     ride.customer.telegram_chat_id,
-                    f"🚖 Tu carrera fue aceptada por {taxista.get_full_name()}.\n📞 Puedes contactarlo para coordinar."
-                )
+                    f"🚖 Tu carrera fue aceptada por {taxista.get_full_name()}.")
 
-            # Notificar al grupo
-            enviar_telegram(
-                chat_id,
-                f"✅ La carrera ID {ride_id} fue aceptada por {taxista.get_full_name()}."
-            )
-
+            enviar_telegram(chat_id, f"✅ La carrera ID {ride_id} fue aceptada por {taxista.get_full_name()}.")
             return JsonResponse({"ok": True})
 
-    # ==== Fin del manejo de botones ====
-
-    # ==== Inicio del manejo normal de mensajes ====
+    # ==== Mensajes normales ====
     mensaje = data.get("message", {})
     if not mensaje:
-        return JsonResponse({"ok": True})  # Nada que hacer
+        return JsonResponse({"ok": True})
 
     chat = mensaje.get("chat", {})
     chat_id = chat.get("id")
@@ -474,153 +462,112 @@ def telegram_webhook(request):
     if not chat_id:
         return JsonResponse({"ok": False, "error": "No chat ID"})
 
-    # === 1. Registro de conductores desde grupo ===
-    if str(chat_id) == TELEGRAM_CHAT_ID_GRUPO_TAXISTAS:
+    # === Registro conductores (grupo) ===
+    if str(chat_id) == str(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS):
         if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
             try:
                 taxista = AppUser.objects.get(phone_number=texto.strip(), role='driver')
-                
                 if taxista.telegram_chat_id:
-                    enviar_telegram(chat_id, f"⚠️ El conductor {taxista.get_full_name()} ya está registrado en Telegram.")
-                elif from_id:
+                    enviar_telegram(chat_id, f"⚠️ El conductor {taxista.get_full_name()} ya está registrado.")
+                else:
                     taxista.telegram_chat_id = str(from_id)
                     taxista.save()
-                    enviar_telegram(chat_id, f"✅ Se registró el conductor {taxista.get_full_name()} con número {texto}.")
-                else:
-                    enviar_telegram(chat_id, "❌ No pude obtener tu ID de Telegram para registro.")
-                    
+                    enviar_telegram(chat_id, f"✅ Conductor {taxista.get_full_name()} vinculado con éxito.")
             except AppUser.DoesNotExist:
-                enviar_telegram(chat_id, "❌ No hay ningún conductor registrado con ese número.")
+                enviar_telegram(chat_id, "❌ No hay ningún conductor con ese número registrado.")
         else:
-            enviar_telegram(chat_id, "📲 Por favor, envía solo tu número de celular para registro.")
-        
+            enviar_telegram(chat_id, "📲 Envía tu número celular para vincular tu cuenta.")
         return JsonResponse({"ok": True})
 
-
-    # === 2. Flujo para clientes en chat privado ===
-    usuario, _ = AppUser.objects.get_or_create(
-        telegram_chat_id=str(chat_id),
-        defaults={"role": "customer"}
-    )
+    # === Clientes (chat privado) ===
+    try:
+        usuario = AppUser.objects.get(telegram_chat_id=str(chat_id))
+    except AppUser.DoesNotExist:
+        if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
+            try:
+                usuario = AppUser.objects.get(phone_number=texto.strip(), role="customer")
+                usuario.telegram_chat_id = str(chat_id)
+                usuario.save()
+                usuarios_estado[chat_id] = {"estado": "esperando_origen"}
+                enviar_telegram(chat_id, "✅ Número verificado. Ahora envía tu <b>ubicación de origen</b>.")
+            except AppUser.DoesNotExist:
+                enviar_telegram(chat_id, "❌ Tu número no está registrado. Regístrate desde la app web.")
+        else:
+            enviar_telegram(chat_id, "📲 Envía tu número celular para verificar tu cuenta.")
+        return JsonResponse({"ok": True})
 
     estado = usuarios_estado.get(chat_id, {}).get("estado")
 
-    if usuario.phone_number in (None, "", "null"):
-        if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
-            usuario.phone_number = texto.strip()
-            usuario.save()
-            usuarios_estado[chat_id] = {"estado": "esperando_origen"}
-            enviar_telegram(chat_id, "✅ Número registrado.\nAhora envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
-            return JsonResponse({"ok": True})
-        else:
-            enviar_telegram(chat_id, "📲 Por favor, envía tu número de celular para continuar.")
-            return JsonResponse({"ok": True})
-
     if texto == "/start":
         usuarios_estado[chat_id] = {"estado": "esperando_origen"}
-        enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b> escribiéndola o compartiéndola.")
+        enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b>.")
         return JsonResponse({"ok": True})
 
     if estado == "esperando_origen":
         if ubicacion:
-            origen_lat = ubicacion['latitude']
-            origen_lng = ubicacion['longitude']
-            origen_direccion = obtener_direccion_google(origen_lat, origen_lng, settings.GOOGLE_API_KEY)
+            lat, lng = ubicacion["latitude"], ubicacion["longitude"]
+            direccion = obtener_direccion_google(lat, lng, settings.GOOGLE_API_KEY)
         elif texto:
-            origen_direccion = texto
-            origen_lat, origen_lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
+            direccion = texto
+            lat, lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
         else:
-            enviar_telegram(chat_id, "❌ Necesito una dirección o ubicación válida.")
+            enviar_telegram(chat_id, "❌ Envíame una dirección o ubicación válida.")
             return JsonResponse({"ok": True})
 
-        if origen_lat and origen_lng:
+        if lat and lng:
             usuarios_estado[chat_id] = {
                 "estado": "esperando_destino",
-                "origen": {
-                    "direccion": origen_direccion,
-                    "lat": origen_lat,
-                    "lng": origen_lng
-                }
+                "origen": {"direccion": direccion, "lat": lat, "lng": lng}
             }
-            enviar_telegram(chat_id, "🗺️ Ahora envía tu <b>ubicación de destino</b>.")
+            enviar_telegram(chat_id, "📍 Ahora envía tu <b>destino</b>.")
         else:
-            enviar_telegram(chat_id, "❌ No pude encontrar esa dirección. Intenta de nuevo.")
+            enviar_telegram(chat_id, "❌ Dirección no encontrada. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
     if estado == "esperando_destino":
         origen = usuarios_estado[chat_id]["origen"]
         if ubicacion:
-            destino_lat = ubicacion['latitude']
-            destino_lng = ubicacion['longitude']
-            destino_direccion = obtener_direccion_google(destino_lat, destino_lng, settings.GOOGLE_API_KEY)
+            lat, lng = ubicacion["latitude"], ubicacion["longitude"]
+            direccion = obtener_direccion_google(lat, lng, settings.GOOGLE_API_KEY)
         elif texto:
-            destino_direccion = texto
-            destino_lat, destino_lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
+            direccion = texto
+            lat, lng = direccion_a_coordenadas(texto, settings.GOOGLE_API_KEY)
         else:
-            enviar_telegram(chat_id, "❌ Necesito una dirección o ubicación válida.")
+            enviar_telegram(chat_id, "❌ Dirección de destino no válida.")
             return JsonResponse({"ok": True})
 
-        if destino_lat and destino_lng:
-            distancia, duracion = get_distance_duration(
-                origen["lat"], origen["lng"], destino_lat, destino_lng
-            )
-            mapa_url = get_map_url(origen["lat"], origen["lng"], destino_lat, destino_lng)
-
-            taxista = obtener_taxista_mas_cercano(origen["lat"], origen["lng"])
-            if not taxista:
-                enviar_telegram(chat_id, "🚫 No hay taxistas disponibles en este momento.")
-                return JsonResponse({"ok": True})
+        if lat and lng:
+            distancia, duracion = get_distance_duration(origen["lat"], origen["lng"], lat, lng)
+            mapa = get_map_url(origen["lat"], origen["lng"], lat, lng)
 
             ride = Ride.objects.create(
                 customer=usuario,
                 origin=origen["direccion"],
                 origin_latitude=origen["lat"],
                 origin_longitude=origen["lng"],
-                status='requested'
+                status="requested"
             )
 
             RideDestination.objects.create(
                 ride=ride,
-                destination=destino_direccion,
-                destination_latitude=destino_lat,
-                destination_longitude=destino_lng,
+                destination=direccion,
+                destination_latitude=lat,
+                destination_longitude=lng,
                 order=0
             )
 
-            enviar_telegram(
-                chat_id,
-                f"✅ Tu carrera ha sido solicitada.\n\n"
-                f"🧭 <b>Origen:</b> {origen['direccion']}\n"
-                f"🏁 <b>Destino:</b> {destino_direccion}\n"
-                f"🛣️ <b>Distancia:</b> {distancia}\n"
-                f"⏱️ <b>Duración:</b> {duracion}\n\n"
-                f"📍 <a href='{mapa_url}'>Ver ruta en Google Maps</a>"
-            )
-
-            # Botón para aceptar
             botones = [[{"text": "✅ Aceptar carrera", "callback_data": f"aceptar_{ride.id}"}]]
 
-            if taxista.user.telegram_chat_id:
-                enviar_telegram(
-                    taxista.user.telegram_chat_id,
-                    f"🚖 Nueva carrera cerca tuyo:\n\n"
-                    f"📍 Origen: {origen['direccion']}\n"
-                    f"🏁 Destino: {destino_direccion}",
-                    botones=botones
-                )
+            enviar_telegram(chat_id, f"✅ Carrera solicitada\n\n📍 Origen: {origen['direccion']}\n🏁 Destino: {direccion}\n🛣️ Distancia: {distancia}\n⏱️ Duración: {duracion}\n<a href='{mapa}'>📍 Ver mapa</a>")
 
-            # También al grupo
-            enviar_telegram(
-                TELEGRAM_CHAT_ID_GRUPO_TAXISTAS,
-                f"📣 ¡Nueva carrera disponible!\n\n"
-                f"📍 Origen: {origen['direccion']}\n"
-                f"🏁 Destino: {destino_direccion}",
-                botones=botones
-            )
+            taxista = obtener_taxista_mas_cercano(origen["lat"], origen["lng"])
+            if taxista and taxista.user.telegram_chat_id:
+                enviar_telegram(taxista.user.telegram_chat_id, f"🚖 Nueva carrera cerca tuyo:\n📍 {origen['direccion']}\n🏁 {direccion}", botones=botones)
 
+            enviar_telegram(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, f"📣 Nueva carrera disponible:\n📍 {origen['direccion']}\n🏁 {direccion}", botones=botones)
             usuarios_estado.pop(chat_id, None)
         else:
-            enviar_telegram(chat_id, "❌ No pude encontrar la dirección de destino. Intenta de nuevo.")
+            enviar_telegram(chat_id, "❌ Dirección no encontrada. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
     enviar_telegram(chat_id, "👋 Hola. Escribe /start para solicitar un taxi 🚕.")

@@ -469,6 +469,7 @@ def telegram_webhook(request):
     chat_id = chat.get("id")
     texto = mensaje.get("text")
     ubicacion = mensaje.get("location")
+    venue = mensaje.get("venue")
     from_user = mensaje.get("from", {})
     from_id = from_user.get("id")
 
@@ -526,8 +527,13 @@ def telegram_webhook(request):
         enviar_telegram(chat_id, "📍 Por favor, envía tu <b>ubicación de origen</b>.")
         return JsonResponse({"ok": True})
 
+    # ==== Esperando origen ====
     if estado == "esperando_origen":
-        if ubicacion:
+        # 🔹 NUEVO BLOQUE PARA TOMAR VENUE SI EXISTE
+        if venue:
+            direccion = venue.get("title") or venue.get("address")
+            lat, lng = venue.get("location", {}).get("latitude"), venue.get("location", {}).get("longitude")
+        elif ubicacion:
             lat, lng = ubicacion["latitude"], ubicacion["longitude"]
             direccion = obtener_direccion_google(lat, lng, settings.GOOGLE_API_KEY)
         elif texto:
@@ -547,9 +553,15 @@ def telegram_webhook(request):
             enviar_telegram(chat_id, "❌ Dirección no encontrada. Intenta de nuevo.")
         return JsonResponse({"ok": True})
 
+    # ==== Esperando destino ====
     if estado == "esperando_destino":
         origen = usuarios_estado[chat_id]["origen"]
-        if ubicacion:
+
+        # 🔹 NUEVO BLOQUE PARA TOMAR VENUE SI EXISTE
+        if venue:
+            direccion = venue.get("title") or venue.get("address")
+            lat, lng = venue.get("location", {}).get("latitude"), venue.get("location", {}).get("longitude")
+        elif ubicacion:
             lat, lng = ubicacion["latitude"], ubicacion["longitude"]
             direccion = obtener_direccion_google(lat, lng, settings.GOOGLE_API_KEY)
         elif texto:

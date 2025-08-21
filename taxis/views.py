@@ -323,37 +323,44 @@ def enviar_telegram(chat_id, mensaje, botones=None, parse_mode='HTML'):
 
 # 📍 Convertir dirección en coordenadas
 def direccion_a_coordenadas(direccion, api_key):
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(direccion)}&key={api_key}&language=es"
-    response = requests.get(url)
-    if response.status_code == 200:
-        datos = response.json()
-        if datos.get('results'):
-            loc = datos['results'][0]['geometry']['location']
-            return loc['lat'], loc['lng']
+    try:
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(direccion)}&key={api_key}&language=es"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            datos = response.json()
+            if datos.get('results'):
+                loc = datos['results'][0]['geometry']['location']
+                return loc['lat'], loc['lng']
+    except Exception as e:
+        print(f"❌ Error en direccion_a_coordenadas: {e}")
     return None, None
+
 
 
 # 🧭 Obtener dirección legible desde coordenadas usando Google Maps
 def obtener_direccion_google(lat, lng, api_key):
     try:
         url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=es"
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             datos = response.json()
             for resultado in datos.get("results", []):
                 tipos = resultado.get("types", [])
-                if "plus_code" not in tipos and any(t in tipos for t in ("street_address", "route", "premise")):
+                # Evitar plus_code y tomar tipo de calle o ruta
+                if "plus_code" not in tipos and any(t in tipos for t in ("street_address", "route", "premise", "sublocality")):
                     return resultado.get("formatted_address")
-            if datos["results"]:
+            if datos.get("results"):
                 return datos["results"][0].get("formatted_address")
     except Exception as e:
         print(f"❌ Error obteniendo dirección: {e}")
-    return f"{lat}, {lng}"
+    return "Dirección desconocida"
+
 
 
 # 🗺️ URL para ver ruta en Google Maps
 def get_map_url(lat1, lng1, lat2, lng2):
     return f"https://www.google.com/maps/dir/?api=1&origin={lat1},{lng1}&destination={lat2},{lng2}&travelmode=driving"
+
 
 
 # 📏 Obtener distancia y duración estimada entre dos puntos
@@ -363,13 +370,13 @@ def get_distance_duration(lat1, lng1, lat2, lng2):
             f"https://maps.googleapis.com/maps/api/distancematrix/json?units=metric"
             f"&origins={lat1},{lng1}&destinations={lat2},{lng2}&key={settings.GOOGLE_API_KEY}"
         )
-        response = requests.get(url).json()
-        if response['status'] == 'OK':
+        response = requests.get(url, timeout=5).json()
+        if response.get('status') == 'OK':
             element = response['rows'][0]['elements'][0]
-            if element['status'] == 'OK':
+            if element.get('status') == 'OK':
                 return element['distance']['text'], element['duration']['text']
     except Exception as e:
-        print("❌ Error en get_distance_duration:", e)
+        print(f"❌ Error en get_distance_duration: {e}")
     return None, None
 
 
@@ -382,7 +389,13 @@ def obtener_taxista_mas_cercano(lat, lng):
         latitude__isnull=False,
         longitude__isnull=False
     )
-    return min(taxistas, key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km, default=None)
+    if not taxistas.exists():
+        return None
+    return min(
+        taxistas,
+        key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km
+    )
+
 
 @csrf_exempt
 def telegram_webhook(request):
@@ -480,9 +493,18 @@ def telegram_webhook(request):
         return JsonResponse({"ok": True})
 
     # === Clientes (chat privado) ===
-    try:
-        usuario = AppUser.objects.get(telegram_chat_id=str(chat_id))
-    except AppUser.DoesNotExist:
+    
+    usuarios_duplicados = AppUser.objects.filter(telegram_chat_id=str(chat_id))
+    usuario = usuarios_duplicados.first()
+
+    if usuarios_duplicados.count() > 1:
+        # Mantener solo el primero y limpiar los demás
+        for u in usuarios_duplicados[1:]:
+            u.telegram_chat_id = None
+            u.save()
+
+    if not usuario:
+        # Registrar usuario usando número de teléfono
         if texto and texto.replace("+", "").isdigit() and len(texto) >= 7:
             try:
                 usuario = AppUser.objects.get(phone_number=texto.strip(), role="customer")
@@ -495,6 +517,7 @@ def telegram_webhook(request):
         else:
             enviar_telegram(chat_id, "📲 Envía tu número celular para verificar tu cuenta.")
         return JsonResponse({"ok": True})
+
 
     estado = usuarios_estado.get(chat_id, {}).get("estado")
 

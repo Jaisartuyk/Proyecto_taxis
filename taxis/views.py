@@ -170,12 +170,69 @@ def update_location(request):
 def driver_dashboard(request):
     if request.user.role != 'driver':
         return redirect('login')
-    return render(request, 'registration/driver_dashboard.html')
+    
+    # Obtener estadísticas del conductor
+    total_rides = Ride.objects.filter(driver=request.user).count()
+    completed_rides = Ride.objects.filter(driver=request.user, status='completed').count()
+    active_rides_count = Ride.objects.filter(
+        driver=request.user, 
+        status__in=['accepted', 'in_progress']
+    ).count()
+    
+    # Calcular ganancias del día (ejemplo: $5000 base + $2500 por km)
+    today_rides = Ride.objects.filter(
+        driver=request.user, 
+        status='completed',
+        requested_at__date=now().date()
+    )
+    earnings = today_rides.count() * 15000  # Estimado
+    
+    # Obtener carreras disponibles (sin conductor asignado)
+    available_rides_list = Ride.objects.filter(
+        status='requested',
+        driver__isnull=True
+    ).order_by('-requested_at')[:5]
+    
+    # Obtener carreras activas del conductor
+    active_rides_list = Ride.objects.filter(
+        driver=request.user,
+        status__in=['accepted', 'in_progress']
+    ).order_by('-requested_at')
+    
+    context = {
+        'total_rides': total_rides,
+        'completed_rides': completed_rides,
+        'active_rides': active_rides_count,
+        'earnings': earnings,
+        'available_rides': available_rides_list,
+        'active_rides_list': active_rides_list,
+    }
+    
+    return render(request, 'driver_dashboard.html', context)
 
 def customer_dashboard(request):
     if request.user.role != 'customer':
         return redirect('login')
-    return render(request, 'registration/customer_dashboard.html')
+    
+    # Obtener estadísticas del usuario
+    total_rides = Ride.objects.filter(customer=request.user).count()
+    completed_rides = Ride.objects.filter(customer=request.user, status='completed').count()
+    active_rides = Ride.objects.filter(
+        customer=request.user, 
+        status__in=['requested', 'accepted', 'in_progress']
+    ).count()
+    
+    # Obtener viajes recientes (últimos 5)
+    recent_rides = Ride.objects.filter(customer=request.user).order_by('-requested_at')[:5]
+    
+    context = {
+        'total_rides': total_rides,
+        'completed_rides': completed_rides,
+        'active_rides': active_rides,
+        'recent_rides': recent_rides,
+    }
+    
+    return render(request, 'customer_dashboard.html', context)
 
 def admin_dashboard(request):
     if request.user.role != 'admin':

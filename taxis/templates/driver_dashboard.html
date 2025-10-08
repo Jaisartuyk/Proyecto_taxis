@@ -1,0 +1,549 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #F59E0B;
+        --secondary-color: #10B981;
+        --danger-color: #EF4444;
+        --warning-color: #F59E0B;
+        --dark-color: #1F2937;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .dashboard-container {
+        padding: 2rem 1rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .driver-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 20px;
+        padding: 2.5rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .driver-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: pulse 15s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    .driver-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .driver-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        margin-top: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #10B981;
+        animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6B7280;
+        font-weight: 500;
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-action {
+        background: white;
+        color: var(--dark-color);
+        border: 2px solid #E5E7EB;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-action:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border-color: #f093fb;
+        color: #f5576c;
+    }
+
+    .btn-action.primary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+    }
+
+    .btn-action.primary:hover {
+        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+        color: white;
+    }
+
+    .rides-section {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .rides-section h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ride-card {
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #f093fb;
+        transition: all 0.3s ease;
+    }
+
+    .ride-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .ride-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .ride-id {
+        font-weight: 700;
+        color: var(--dark-color);
+        font-size: 1.1rem;
+    }
+
+    .ride-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .ride-badge.requested {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .ride-badge.accepted {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .ride-badge.in-progress {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .ride-details {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .ride-detail-item {
+        display: flex;
+        align-items: start;
+        gap: 0.5rem;
+        color: #4B5563;
+    }
+
+    .ride-detail-item strong {
+        color: var(--dark-color);
+    }
+
+    .ride-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-ride {
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-ride.accept {
+        background: #10B981;
+        color: white;
+    }
+
+    .btn-ride.accept:hover {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+
+    .btn-ride.start {
+        background: #F59E0B;
+        color: white;
+    }
+
+    .btn-ride.start:hover {
+        background: #D97706;
+        transform: translateY(-2px);
+    }
+
+    .btn-ride.complete {
+        background: #3B82F6;
+        color: white;
+    }
+
+    .btn-ride.complete:hover {
+        background: #2563EB;
+        transform: translateY(-2px);
+    }
+
+    .btn-ride.cancel {
+        background: #EF4444;
+        color: white;
+    }
+
+    .btn-ride.cancel:hover {
+        background: #DC2626;
+        transform: translateY(-2px);
+    }
+
+    .btn-ride.view {
+        background: #6B7280;
+        color: white;
+    }
+
+    .btn-ride.view:hover {
+        background: #4B5563;
+        transform: translateY(-2px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 0;
+        color: #6B7280;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+        .driver-header h1 {
+            font-size: 1.75rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            grid-template-columns: 1fr;
+        }
+
+        .ride-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Driver Header -->
+    <div class="driver-header">
+        <h1>🚕 Panel del Conductor</h1>
+        <p style="position: relative; z-index: 1; opacity: 0.95;">Bienvenido, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+        <div class="driver-status">
+            <span class="status-indicator"></span>
+            <span>En Línea y Disponible</span>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🚗</div>
+            <div class="stat-value">{{ total_rides|default:0 }}</div>
+            <div class="stat-label">Carreras Totales</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">✓</div>
+            <div class="stat-value">{{ completed_rides|default:0 }}</div>
+            <div class="stat-label">Completadas</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-value">{{ active_rides|default:0 }}</div>
+            <div class="stat-label">En Progreso</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value">${{ earnings|default:0|floatformat:0 }}</div>
+            <div class="stat-label">Ganancias del Día</div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'available_rides' %}" class="btn-action primary">
+            <span>🔍</span>
+            <span>Ver Carreras Disponibles</span>
+        </a>
+        <a href="{% url 'driver_in_progress_rides' %}" class="btn-action">
+            <span>🚗</span>
+            <span>Mis Carreras Activas</span>
+        </a>
+        <a href="{% url 'edit_profile' %}" class="btn-action">
+            <span>👤</span>
+            <span>Editar Perfil</span>
+        </a>
+        <a href="{% url 'comunicacion_conductores' %}" class="btn-action">
+            <span>💬</span>
+            <span>Chat Central</span>
+        </a>
+    </div>
+
+    <!-- Available Rides -->
+    <div class="rides-section">
+        <h2>
+            🔔 Carreras Disponibles
+        </h2>
+        
+        {% if available_rides %}
+            {% for ride in available_rides %}
+            <div class="ride-card">
+                <div class="ride-header">
+                    <div class="ride-id">Carrera #{{ ride.id }}</div>
+                    <div class="ride-badge requested">Nueva Solicitud</div>
+                </div>
+                <div class="ride-details">
+                    <div class="ride-detail-item">
+                        <span>👤</span>
+                        <div><strong>Cliente:</strong> {{ ride.customer.get_full_name }}</div>
+                    </div>
+                    <div class="ride-detail-item">
+                        <span>📍</span>
+                        <div><strong>Origen:</strong> {{ ride.origin }}</div>
+                    </div>
+                    <div class="ride-detail-item">
+                        <span>🎯</span>
+                        <div><strong>Destino:</strong> {{ ride.destinations.first.destination|default:"No especificado" }}</div>
+                    </div>
+                    <div class="ride-detail-item">
+                        <span>🕐</span>
+                        <div><strong>Solicitado:</strong> {{ ride.requested_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+                <div class="ride-actions">
+                    <a href="{% url 'update_ride_status' ride.id %}" class="btn-ride accept">✓ Aceptar Carrera</a>
+                    <a href="{% url 'ride_detail' ride.id %}" class="btn-ride view">👁️ Ver Detalles</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">🚕</div>
+                <p><strong>No hay carreras disponibles en este momento</strong></p>
+                <p style="font-size: 0.875rem;">Las nuevas solicitudes aparecerán aquí automáticamente</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Active Rides -->
+    <div class="rides-section">
+        <h2>
+            🚗 Mis Carreras Activas
+        </h2>
+        
+        {% if active_rides_list %}
+            {% for ride in active_rides_list %}
+            <div class="ride-card">
+                <div class="ride-header">
+                    <div class="ride-id">Carrera #{{ ride.id }}</div>
+                    <div class="ride-badge {{ ride.status }}">
+                        {% if ride.status == 'accepted' %}
+                            ✓ Aceptada
+                        {% elif ride.status == 'in_progress' %}
+                            🚗 En Progreso
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="ride-details">
+                    <div class="ride-detail-item">
+                        <span>👤</span>
+                        <div><strong>Cliente:</strong> {{ ride.customer.get_full_name }}</div>
+                    </div>
+                    <div class="ride-detail-item">
+                        <span>📍</span>
+                        <div><strong>Origen:</strong> {{ ride.origin }}</div>
+                    </div>
+                    <div class="ride-detail-item">
+                        <span>🎯</span>
+                        <div><strong>Destino:</strong> {{ ride.destinations.first.destination|default:"No especificado" }}</div>
+                    </div>
+                </div>
+                <div class="ride-actions">
+                    {% if ride.status == 'accepted' %}
+                        <a href="{% url 'update_ride_status' ride.id %}" class="btn-ride start">▶️ Iniciar Carrera</a>
+                    {% elif ride.status == 'in_progress' %}
+                        <a href="{% url 'complete_ride' ride.id %}" class="btn-ride complete">✓ Completar Carrera</a>
+                    {% endif %}
+                    <a href="{% url 'ride_detail' ride.id %}" class="btn-ride view">👁️ Ver Detalles</a>
+                    <a href="{% url 'ride_cancel' ride.id %}" class="btn-ride cancel" onclick="return confirm('¿Estás seguro de cancelar esta carrera?')">✗ Cancelar</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p><strong>No tienes carreras activas</strong></p>
+                <p style="font-size: 0.875rem;">Acepta una carrera disponible para comenzar</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Auto-refresh para nuevas carreras cada 30 segundos
+    setInterval(function() {
+        // Verificar si hay nuevas carreras
+        fetch("{% url 'check_new_rides' %}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.new_rides > 0) {
+                    // Mostrar notificación o recargar la página
+                    if (confirm(`¡Hay ${data.new_rides} nueva(s) carrera(s) disponible(s)! ¿Deseas actualizar?`)) {
+                        location.reload();
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }, 30000);
+
+    // Animación de entrada
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.stat-card, .ride-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

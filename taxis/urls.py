@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
 
 
 
@@ -44,5 +45,10 @@ urlpatterns = [
     path('ubicaciones_taxis/', views.ubicaciones_taxis, name='ubicaciones_taxis'),
     path('actualizar_ubicacion_taxi/', views.actualizar_ubicacion_taxi, name='actualizar_ubicacion_taxi'),
     path('webhook/telegram/', views.telegram_webhook, name='telegram_webhook'),
+    
+    # WhatsApp Webhook endpoints
+    path('webhook/whatsapp/', whatsapp_webhook, name='whatsapp_webhook'),
+    path('webhook/whatsapp/status/', whatsapp_status_webhook, name='whatsapp_status_webhook'),
+    path('api/whatsapp/send-notification/', whatsapp_send_notification, name='whatsapp_send_notification'),
 
 ]

@@ -223,30 +223,58 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
         elif accion == 'procesar_origen':
             # Intentar geocodificar la dirección
             try:
+                logger.info(f"🗺️ Geocodificando origen: {mensaje}")
                 location = self.geolocator.geocode(mensaje, timeout=10)
+                
                 if location:
                     conversacion['datos']['origen'] = mensaje
                     conversacion['datos']['origen_lat'] = location.latitude
                     conversacion['datos']['origen_lng'] = location.longitude
                     conversacion['estado'] = 'esperando_destino'
+                    logger.info(f"✅ Origen geocodificado: {location.latitude}, {location.longitude}")
+                    
+                    # Confirmar y pedir destino
+                    respuesta = f"✅ Perfecto, te vamos a recoger en:\n📍 {location.address}\n\n¿Y a dónde te llevamos? Escribe el destino o envía la ubicación 🗺️"
+                    self.enviar_mensaje(numero_telefono, respuesta)
                 else:
-                    # Claude ya respondió, solo actualizamos estado
-                    pass
-            except:
-                pass
+                    logger.warning(f"⚠️ No se pudo geocodificar el origen: {mensaje}")
+                    self.enviar_mensaje(
+                        numero_telefono,
+                        f"🤔 No pude encontrar la dirección '{mensaje}'.\n\n¿Podrías ser más específico? Por ejemplo: 'Av. 9 de Octubre, Guayaquil' o envía tu ubicación GPS 📍"
+                    )
+            except Exception as e:
+                logger.error(f"❌ Error al geocodificar origen: {str(e)}", exc_info=True)
+                self.enviar_mensaje(
+                    numero_telefono,
+                    "❌ Hubo un problema al buscar la dirección. ¿Podrías intentar de nuevo o enviar tu ubicación GPS? 📍"
+                )
         
         elif accion == 'procesar_destino':
             # Intentar geocodificar el destino
             try:
+                logger.info(f"🗺️ Geocodificando destino: {mensaje}")
                 location = self.geolocator.geocode(mensaje, timeout=10)
+                
                 if location:
                     conversacion['datos']['destino'] = mensaje
                     conversacion['datos']['destino_lat'] = location.latitude
                     conversacion['datos']['destino_lng'] = location.longitude
+                    logger.info(f"✅ Destino geocodificado: {location.latitude}, {location.longitude}")
+                    
                     # Mostrar resumen
                     self._mostrar_resumen_carrera(numero_telefono, conversacion)
-            except:
-                pass
+                else:
+                    logger.warning(f"⚠️ No se pudo geocodificar el destino: {mensaje}")
+                    self.enviar_mensaje(
+                        numero_telefono,
+                        f"🤔 No pude encontrar la dirección '{mensaje}'.\n\n¿Podrías ser más específico? Por ejemplo: 'Malecón 2000, Guayaquil' o envía tu ubicación GPS 📍"
+                    )
+            except Exception as e:
+                logger.error(f"❌ Error al geocodificar destino: {str(e)}", exc_info=True)
+                self.enviar_mensaje(
+                    numero_telefono,
+                    "❌ Hubo un problema al buscar la dirección. ¿Podrías intentar de nuevo o enviar tu ubicación GPS? 📍"
+                )
         
         elif accion == 'crear_carrera':
             self._crear_carrera_confirmada(numero_telefono, conversacion)
@@ -363,13 +391,36 @@ Puedes seguir el estado escribiendo *ESTADO*
             self.enviar_mensaje(numero_telefono, respuesta)
             return True
             
-        except Exception as e:
-            logger.error(f"Error al crear carrera: {str(e)}", exc_info=True)
+        except KeyError as e:
+            logger.error(f"Error: Falta información en la conversación: {str(e)}", exc_info=True)
             conversacion['estado'] = 'inicio'
             self.enviar_mensaje(
                 numero_telefono,
-                "❌ Hubo un error al crear la carrera. Por favor, intenta nuevamente escribiendo *MENU*"
+                "❌ Falta información para crear la carrera. Por favor, intenta nuevamente escribiendo *SOLICITAR* 🚕"
             )
+            return False
+        except Taxi.DoesNotExist:
+            logger.error(f"Error: No se encontró el taxista sugerido")
+            conversacion['estado'] = 'inicio'
+            self.enviar_mensaje(
+                numero_telefono,
+                "❌ No hay conductores disponibles en este momento. Por favor, intenta más tarde 😔"
+            )
+            return False
+        except Exception as e:
+            logger.error(f"❌ Error al crear carrera: {str(e)}", exc_info=True)
+            conversacion['estado'] = 'inicio'
+            
+            # Mensaje de error más específico
+            error_msg = str(e)
+            if "taxista_sugerido" in error_msg or "driver" in error_msg:
+                mensaje = "❌ No hay conductores disponibles. Intenta más tarde 😔"
+            elif "origen" in error_msg or "destino" in error_msg:
+                mensaje = "❌ Hubo un problema con las direcciones. Intenta nuevamente escribiendo *SOLICITAR* 📍"
+            else:
+                mensaje = f"❌ Hubo un error al crear la carrera: {error_msg}\n\nPor favor, intenta nuevamente escribiendo *MENU*"
+            
+            self.enviar_mensaje(numero_telefono, mensaje)
             return False
     
     def _guardar_ubicacion_tiempo_real(self, numero_telefono, lat, lng, tipo='tracking'):

@@ -421,12 +421,21 @@ Por favor, intenta más tarde o escribe *MENU* para volver al inicio."""
                 conversacion['estado'] = 'inicio'
                 return False
             
+            # Calcular precio basado en distancia
+            precio_estimado = self._calcular_precio(
+                conversacion['datos']['origen_lat'],
+                conversacion['datos']['origen_lng'],
+                conversacion['datos']['destino_lat'],
+                conversacion['datos']['destino_lng']
+            )
+            
             # Crear la carrera SIN conductor asignado (status='requested')
             ride = Ride.objects.create(
                 customer=usuario,
                 origin=conversacion['datos']['origen'],
                 origin_latitude=conversacion['datos']['origen_lat'],
                 origin_longitude=conversacion['datos']['origen_lng'],
+                price=precio_estimado,
                 status='requested'  # Estado inicial: solicitada, esperando aceptación
                 # created_at se crea automáticamente con auto_now_add=True
             )
@@ -600,6 +609,35 @@ Puedes seguir el estado escribiendo *ESTADO*"""
 ¡Dirígete al punto de recogida! 🚗💨"""
         
         self.enviar_mensaje(numero_conductor, mensaje)
+    
+    def _calcular_precio(self, lat1, lng1, lat2, lng2):
+        """Calcula el precio estimado basado en la distancia"""
+        from math import radians, sin, cos, sqrt, atan2
+        
+        # Calcular distancia usando fórmula de Haversine
+        R = 6371  # Radio de la Tierra en km
+        
+        lat1, lng1, lat2, lng2 = map(radians, [lat1, lng1, lat2, lng2])
+        dlat = lat2 - lat1
+        dlon = lng2 - lng1
+        
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        distancia_km = R * c
+        
+        # Lógica de precio igual a request_ride.html:
+        # - Si distancia <= 4.44 km: $2.00 (tarifa base)
+        # - Si distancia > 4.44 km: distancia * $0.45 por km
+        threshold = 4.44  # Límite para tarifa base
+        price_per_km = 0.45  # Precio por kilómetro
+        
+        if distancia_km <= threshold:
+            precio = 2.00  # Tarifa base
+        else:
+            precio = distancia_km * price_per_km
+        
+        # Redondear a 2 decimales
+        return round(precio, 2)
     
     def _buscar_taxista_cercano(self, lat, lng):
         """Busca el taxista disponible más cercano a las coordenadas dadas"""

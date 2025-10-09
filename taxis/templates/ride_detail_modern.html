@@ -305,7 +305,6 @@
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap" async defer></script>
 <script>
 let map;
 let driverMarker;
@@ -436,4 +435,6 @@ function updateDriverLocation() {
         .catch(error => console.log('Error actualizando ubicación:', error));
 }
 </script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap" async defer></script>
 {% endblock %}

@@ -948,13 +948,37 @@ def ride_detail(request, ride_id):
             'destination_address': destination_address,
         }
 
-        return render(request, 'ride_detail.html', context)
+        return render(request, 'ride_detail_modern.html', context)
 
     except Ride.DoesNotExist:
         messages.error(request, 'Carrera no encontrada.')
         return redirect('available_rides')
 
 
+@login_required
+def driver_location_api(request, driver_id):
+    """API para obtener la ubicación en tiempo real del conductor"""
+    try:
+        driver = AppUser.objects.get(id=driver_id, role='driver')
+        taxi = Taxi.objects.filter(user=driver).first()
+        
+        if taxi and taxi.latitude and taxi.longitude:
+            return JsonResponse({
+                'success': True,
+                'latitude': taxi.latitude,
+                'longitude': taxi.longitude,
+                'updated_at': taxi.updated_at.isoformat() if taxi.updated_at else None
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Ubicación no disponible'
+            }, status=404)
+    except AppUser.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Conductor no encontrado'
+        }, status=404)
 
 
 @login_required

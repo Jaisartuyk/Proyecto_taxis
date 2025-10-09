@@ -1,0 +1,433 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/theme.css' %}">
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 400px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    
+    .ride-header {
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        color: #1a1a1a;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(255, 215, 0, 0.4);
+        border: 3px solid #1a1a1a;
+    }
+    
+    .ride-header h1 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 2rem;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 700;
+        margin-top: 0.5rem;
+    }
+    
+    .status-requested { background: #FFA500; color: #1a1a1a; }
+    .status-accepted { background: #10B981; color: white; }
+    .status-in_progress { background: #3B82F6; color: white; }
+    .status-completed { background: #22C55E; color: white; }
+    .status-canceled { background: #EF4444; color: white; }
+    
+    .map-container {
+        background: #1f1f1f;
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 3px solid #FFD700;
+        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+    }
+    
+    #map {
+        height: 500px;
+        border-radius: 15px;
+        border: 2px solid #2d2d2d;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .info-card {
+        background: #1f1f1f;
+        border-radius: 15px;
+        padding: 1.5rem;
+        border: 3px solid #FFD700;
+        transition: all 0.3s ease;
+    }
+    
+    .info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(255, 215, 0, 0.4);
+    }
+    
+    .info-card h3 {
+        color: #FFD700;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: start;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        color: #ffffff;
+    }
+    
+    .info-item strong {
+        color: #FFD700;
+        min-width: 100px;
+    }
+    
+    .location-live {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #10B981;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+    
+    .btn-action {
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        color: #1a1a1a;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(255, 215, 0, 0.5);
+    }
+    
+    .btn-secondary {
+        background: #2d2d2d;
+        color: #FFD700;
+        border: 2px solid #FFD700;
+    }
+    
+    .btn-secondary:hover {
+        background: #FFD700;
+        color: #1a1a1a;
+    }
+    
+    .price-display {
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #FFD700;
+        text-align: center;
+        margin: 1rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Header -->
+    <div class="ride-header">
+        <h1>🚕 Carrera #{{ ride.id }}</h1>
+        <span class="status-badge status-{{ ride.status }}">
+            {% if ride.status == 'requested' %}⏳ Solicitada
+            {% elif ride.status == 'accepted' %}✅ Aceptada
+            {% elif ride.status == 'in_progress' %}🚗 En Progreso
+            {% elif ride.status == 'completed' %}✓ Completada
+            {% elif ride.status == 'canceled' %}✗ Cancelada
+            {% endif %}
+        </span>
+    </div>
+
+    <!-- Mapa en Tiempo Real -->
+    <div class="map-container">
+        <h3 style="color: #FFD700; margin-bottom: 1rem;">📍 Mapa en Tiempo Real</h3>
+        {% if driver_lat and driver_lng %}
+        <div class="location-live">
+            <span style="width: 8px; height: 8px; background: white; border-radius: 50%;"></span>
+            Ubicación del conductor actualizada en tiempo real
+        </div>
+        {% endif %}
+        <div id="map"></div>
+    </div>
+
+    <!-- Información de la Carrera -->
+    <div class="info-grid">
+        <!-- Información General -->
+        <div class="info-card">
+            <h3>📋 Información General</h3>
+            <div class="info-item">
+                <strong>Fecha:</strong>
+                <span>{{ ride.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Precio:</strong>
+                <div class="price-display">${{ ride.price|default:"Por definir" }}</div>
+            </div>
+        </div>
+
+        <!-- Origen y Destino -->
+        <div class="info-card">
+            <h3>🗺️ Ruta</h3>
+            <div class="info-item">
+                <strong>📍 Origen:</strong>
+                <span>{{ origin_address|default:ride.origin }}</span>
+            </div>
+            <div class="info-item">
+                <strong>🎯 Destino:</strong>
+                <span>{{ destination_address }}</span>
+            </div>
+        </div>
+
+        <!-- Información del Cliente -->
+        {% if request.user == ride.driver or request.user.is_superuser %}
+        <div class="info-card">
+            <h3>👤 Cliente</h3>
+            <div class="info-item">
+                <strong>Nombre:</strong>
+                <span>{{ ride.customer.get_full_name }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Teléfono:</strong>
+                <span>{{ ride.customer.phone_number|default:"No disponible" }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Email:</strong>
+                <span>{{ ride.customer.email }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Información del Conductor -->
+        {% if request.user == ride.customer or request.user.is_superuser %}
+        <div class="info-card">
+            <h3>🚗 Conductor</h3>
+            {% if ride.driver %}
+            <div class="info-item">
+                <strong>Nombre:</strong>
+                <span>{{ ride.driver.get_full_name }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Teléfono:</strong>
+                <span>{{ ride.driver.phone_number|default:"No disponible" }}</span>
+            </div>
+            {% if ride.driver.taxi %}
+            <div class="info-item">
+                <strong>Vehículo:</strong>
+                <span>{{ ride.driver.taxi.vehicle_description }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Placa:</strong>
+                <span>{{ ride.driver.taxi.plate_number }}</span>
+            </div>
+            {% endif %}
+            {% else %}
+            <p style="color: #9ca3af;">Aún no se ha asignado un conductor</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="action-buttons">
+        <a href="{% url 'driver_dashboard' %}" class="btn-action btn-secondary">
+            ← Volver al Dashboard
+        </a>
+        {% if ride.status == 'accepted' and request.user == ride.driver %}
+        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="in_progress">
+            <button type="submit" class="btn-action btn-primary">
+                ▶️ Iniciar Carrera
+            </button>
+        </form>
+        {% elif ride.status == 'in_progress' and request.user == ride.driver %}
+        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="completed">
+            <button type="submit" class="btn-action btn-primary">
+                ✓ Completar Carrera
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDXX7NJgR7yNlQdDQKKDXX7NJgR7yNlQdDQKKD&callback=initMap" async defer></script>
+<script>
+let map;
+let driverMarker;
+let originMarker;
+let destinationMarker;
+let directionsService;
+let directionsRenderer;
+
+function initMap() {
+    // Centro del mapa en el origen
+    const origin = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
+    
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: origin,
+        zoom: 14,
+        styles: [
+            { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a1a' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#FFD700' }] },
+            {
+                featureType: 'road',
+                elementType: 'geometry',
+                stylers: [{ color: '#2d2d2d' }]
+            },
+            {
+                featureType: 'road',
+                elementType: 'geometry.stroke',
+                stylers: [{ color: '#1a1a1a' }]
+            }
+        ]
+    });
+    
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true,
+        polylineOptions: {
+            strokeColor: '#FFD700',
+            strokeWeight: 5
+        }
+    });
+    
+    // Marcador de origen
+    originMarker = new google.maps.Marker({
+        position: origin,
+        map: map,
+        title: 'Origen',
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#10B981',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+        }
+    });
+    
+    // Marcador de destino
+    {% if destination_lat and destination_lng %}
+    const destination = { lat: {{ destination_lat }}, lng: {{ destination_lng }} };
+    destinationMarker = new google.maps.Marker({
+        position: destination,
+        map: map,
+        title: 'Destino',
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#EF4444',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+        }
+    });
+    
+    // Calcular y mostrar ruta
+    calculateRoute(origin, destination);
+    {% endif %}
+    
+    // Marcador del conductor (si existe)
+    {% if driver_lat and driver_lng %}
+    const driverPos = { lat: {{ driver_lat }}, lng: {{ driver_lng }} };
+    driverMarker = new google.maps.Marker({
+        position: driverPos,
+        map: map,
+        title: 'Conductor',
+        icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="18" fill="#FFD700" stroke="#1a1a1a" stroke-width="2"/>
+                    <text x="20" y="27" font-size="20" text-anchor="middle" fill="#1a1a1a">🚕</text>
+                </svg>
+            `),
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(20, 20)
+        }
+    });
+    
+    // Actualizar ubicación del conductor cada 5 segundos
+    setInterval(updateDriverLocation, 5000);
+    {% endif %}
+}
+
+function calculateRoute(origin, destination) {
+    directionsService.route({
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING
+    }, (result, status) => {
+        if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+        }
+    });
+}
+
+function updateDriverLocation() {
+    // Obtener ubicación actualizada del conductor via AJAX
+    fetch(`/api/driver-location/{{ ride.driver.id }}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.latitude && data.longitude && driverMarker) {
+                const newPos = { lat: data.latitude, lng: data.longitude };
+                driverMarker.setPosition(newPos);
+                
+                // Opcional: centrar mapa en el conductor
+                // map.panTo(newPos);
+            }
+        })
+        .catch(error => console.log('Error actualizando ubicación:', error));
+}
+</script>
+{% endblock %}

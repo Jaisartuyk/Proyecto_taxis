@@ -31,6 +31,7 @@ urlpatterns = [
     path('ride/<int:ride_id>/', views.ride_detail, name='ride_detail'),
     path('ride/<int:ride_id>/cancel/', views.cancel_ride, name='ride_cancel'),
     path('ride/<int:ride_id>/complete/', views.complete_ride, name='ride_complete'),
+    path('api/driver-location/<int:driver_id>/', views.driver_location_api, name='driver_location_api'),
     path('chat/<str:room_name>/', views.chat_room, name='chat_room'),
     path('customer/rides/', views.customer_rides, name='customer_rides'),
     path('driver/in-progress/', views.driver_in_progress_rides, name='driver_in_progress_rides'),

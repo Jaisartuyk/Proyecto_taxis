@@ -224,7 +224,13 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
             # Intentar geocodificar la dirección
             try:
                 logger.info(f"🗺️ Geocodificando origen: {mensaje}")
-                location = self.geolocator.geocode(mensaje, timeout=10)
+                # Agregar Guayaquil, Ecuador si no está en el mensaje
+                direccion_completa = mensaje
+                if 'guayaquil' not in mensaje.lower() and 'ecuador' not in mensaje.lower():
+                    direccion_completa = f"{mensaje}, Guayaquil, Ecuador"
+                    logger.info(f"📍 Dirección completa: {direccion_completa}")
+                
+                location = self.geolocator.geocode(direccion_completa, timeout=10)
                 
                 if location:
                     conversacion['datos']['origen'] = mensaje
@@ -253,7 +259,13 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
             # Intentar geocodificar el destino
             try:
                 logger.info(f"🗺️ Geocodificando destino: {mensaje}")
-                location = self.geolocator.geocode(mensaje, timeout=10)
+                # Agregar Guayaquil, Ecuador si no está en el mensaje
+                direccion_completa = mensaje
+                if 'guayaquil' not in mensaje.lower() and 'ecuador' not in mensaje.lower():
+                    direccion_completa = f"{mensaje}, Guayaquil, Ecuador"
+                    logger.info(f"📍 Dirección completa: {direccion_completa}")
+                
+                location = self.geolocator.geocode(direccion_completa, timeout=10)
                 
                 if location:
                     conversacion['datos']['destino'] = mensaje
@@ -351,8 +363,8 @@ Por favor, intenta más tarde o escribe *MENU* para volver al inicio."""
                 origin=conversacion['datos']['origen'],
                 origin_latitude=conversacion['datos']['origen_lat'],
                 origin_longitude=conversacion['datos']['origen_lng'],
-                status='accepted',
-                requested_at=timezone.now()
+                status='accepted'
+                # created_at se crea automáticamente con auto_now_add=True
             )
             
             # Crear destino

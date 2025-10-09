@@ -605,9 +605,15 @@ Puedes seguir el estado escribiendo *ESTADO*"""
         """Busca el taxista disponible más cercano a las coordenadas dadas"""
         from math import radians, sin, cos, sqrt, atan2
         
-        # Obtener todos los taxis activos sin carrera asignada
+        # Obtener todos los taxis que no tienen carreras activas
+        taxis_con_carreras = Ride.objects.filter(
+            status__in=['requested', 'accepted', 'in_progress']
+        ).values_list('driver_id', flat=True)
+        
         taxis_disponibles = Taxi.objects.filter(
-            is_active=True
+            user__role='driver'
+        ).exclude(
+            user_id__in=taxis_con_carreras
         ).select_related('user')
         
         if not taxis_disponibles.exists():

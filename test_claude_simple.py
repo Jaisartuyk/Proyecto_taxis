@@ -4,8 +4,8 @@ Test simple de Claude sin Django
 import anthropic
 import os
 
-# Configurar API key
-api_key = os.environ.get('CLAUDE_API_KEY', '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')
+# Configurar API key desde variable de entorno
+api_key = os.environ.get('CLAUDE_API_KEY', '')
 
 print("🤖 Probando Claude AI...\n")
 print(f"API Key: {api_key[:20]}...{api_key[-10:]}\n")

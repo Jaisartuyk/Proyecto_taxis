@@ -269,7 +269,7 @@
         flex-wrap: wrap;
     }
 
-    .btn-ride {
+    .btn-ride, button.btn-ride {
         padding: 0.5rem 1.25rem;
         border-radius: 8px;
         font-weight: 600;
@@ -279,6 +279,7 @@
         transition: all 0.3s ease;
         text-decoration: none;
         display: inline-block;
+        font-family: inherit;
     }
 
     .btn-ride.accept {
@@ -503,12 +504,24 @@
                 </div>
                 <div class="ride-actions">
                     {% if ride.status == 'accepted' %}
-                        <a href="{% url 'update_ride_status' ride.id %}" class="btn-ride start">▶️ Iniciar Carrera</a>
+                        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn-ride start">▶️ Iniciar Carrera</button>
+                        </form>
                     {% elif ride.status == 'in_progress' %}
-                        <a href="{% url 'complete_ride' ride.id %}" class="btn-ride complete">✓ Completar Carrera</a>
+                        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="btn-ride complete">✓ Completar Carrera</button>
+                        </form>
                     {% endif %}
                     <a href="{% url 'ride_detail' ride.id %}" class="btn-ride view">👁️ Ver Detalles</a>
-                    <a href="{% url 'ride_cancel' ride.id %}" class="btn-ride cancel" onclick="return confirm('¿Estás seguro de cancelar esta carrera?')">✗ Cancelar</a>
+                    <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de cancelar esta carrera?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="canceled">
+                        <button type="submit" class="btn-ride cancel">✗ Cancelar</button>
+                    </form>
                 </div>
             </div>
             {% endfor %}

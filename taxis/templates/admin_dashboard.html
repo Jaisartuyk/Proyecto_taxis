@@ -235,29 +235,5 @@
             </table>
         </div>
     </div>
-    {% endblock %}
-                <th>Precio</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ride in rides %}
-            <tr>
-                <td>{{ ride.customer.username }}</td>
-                <td>{{ ride.driver.username }}</td>
-                <td>{{ ride.get_status_display }}</td>
-                <td>{{ ride.created_at|date:"Y-m-d H:i" }}</td>
-                <td>${{ ride.price }}</td>
-                <td>
-                    <a href="{% url 'ride_detail' ride.id %}" class="btn btn-info btn-sm">Ver Detalle</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No se encontraron carreras con los filtros aplicados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
 {% endblock %}

@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
 import logging
-from .whatsapp_agent import whatsapp_agent
+from .whatsapp_agent_ai import whatsapp_agent_ai
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +52,110 @@ def whatsapp_webhook(request):
         event_type = payload.get('event', '')
         data = payload.get('data', {})
         
-        # Procesar solo mensajes recibidos
-        if event_type == 'message.received':
+        # Procesar mensajes recibidos (formato WASender: messages.upsert)
+        if event_type == 'messages.upsert':
+            # Extraer datos del formato WASender
+            messages_data = data.get('messages', {})
+            
+            # Obtener el número de teléfono
+            key = messages_data.get('key', {})
+            remote_jid = key.get('remoteJid', '')
+            from_me = key.get('fromMe', False)
+            
+            # Solo procesar mensajes que NO son enviados por nosotros
+            if from_me:
+                logger.info("Mensaje enviado por nosotros, ignorando")
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Message from bot, ignored'
+                })
+            
+            # Extraer número de teléfono (formato: 593968192046@s.whatsapp.net)
+            numero_telefono = remote_jid.split('@')[0] if '@' in remote_jid else remote_jid
+            # Agregar código de país si no lo tiene
+            if not numero_telefono.startswith('+'):
+                numero_telefono = '+' + numero_telefono
+            
+            # Extraer mensaje
+            message_content = messages_data.get('message', {})
+            mensaje_texto = message_content.get('conversation', '')
+            
+            # Verificar si es una ubicación GPS
+            ubicacion_gps = message_content.get('locationMessage')
+            
+            # Extraer nombre
+            nombre_usuario = messages_data.get('pushName', 'Usuario')
+            
+            # Si es una ubicación GPS
+            if ubicacion_gps:
+                lat = ubicacion_gps.get('degreesLatitude')
+                lng = ubicacion_gps.get('degreesLongitude')
+                
+                logger.info(f"📍 Ubicación GPS recibida de {numero_telefono}: {lat}, {lng}")
+                
+                try:
+                    whatsapp_agent_ai.procesar_mensaje_entrante(
+                        numero_telefono=numero_telefono,
+                        nombre_usuario=nombre_usuario,
+                        ubicacion={'latitude': lat, 'longitude': lng}
+                    )
+                    
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Location processed successfully'
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Error al procesar ubicación: {str(e)}", exc_info=True)
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Error processing location: {str(e)}'
+                    }, status=500)
+            
+            # Si es un mensaje de texto
+            if not mensaje_texto:
+                logger.warning(f"Webhook sin mensaje de texto ni ubicación: {payload}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No text or location found'
+                }, status=400)
+            
+            logger.info(f"💬 Procesando mensaje de {numero_telefono}: {mensaje_texto}")
+            
+            # Procesar el mensaje con el agente de IA mejorado
+            try:
+                whatsapp_agent_ai.procesar_mensaje_entrante(
+                    numero_telefono=numero_telefono,
+                    mensaje=mensaje_texto,
+                    nombre_usuario=nombre_usuario
+                )
+                
+                logger.info(f"✅ Mensaje procesado exitosamente")
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Message processed successfully'
+                })
+                
+            except Exception as e:
+                logger.error(f"❌ Error al procesar mensaje: {str(e)}", exc_info=True)
+                
+                # Enviar mensaje de error al usuario
+                try:
+                    whatsapp_agent_ai.enviar_mensaje(
+                        numero_telefono,
+                        "Disculpa, tuve un problema al procesar tu mensaje. ¿Podrías intentarlo de nuevo? 😊"
+                    )
+                except:
+                    pass
+                
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Error processing message: {str(e)}'
+                }, status=500)
+        
+        # Formato antiguo (message.received) - mantener compatibilidad
+        elif event_type == 'message.received':
             numero_telefono = data.get('from', '')
             mensaje_texto = data.get('text', '')
             nombre_usuario = data.get('name', 'Usuario')

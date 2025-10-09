@@ -46,19 +46,28 @@ class WhatsAppAgent:
             botones: Lista de botones opcionales
         """
         try:
+            # Limpiar el número de teléfono (remover @s.whatsapp.net si existe)
+            numero_limpio = numero_telefono.split('@')[0] if '@' in numero_telefono else numero_telefono
+            
+            # Asegurar que tenga el formato correcto
+            if not numero_limpio.startswith('+'):
+                numero_limpio = '+' + numero_limpio
+            
             headers = {
                 "Authorization": f"Bearer {WASENDER_TOKEN}",
                 "Content-Type": "application/json"
             }
             
             payload = {
-                "to": numero_telefono,
+                "to": numero_limpio,
                 "text": mensaje
             }
             
             # Si hay botones, agregarlos al payload
             if botones:
                 payload["buttons"] = botones
+            
+            logger.info(f"Enviando mensaje a {numero_limpio}: {mensaje[:50]}...")
             
             response = requests.post(
                 WASENDER_API_URL,
@@ -68,14 +77,14 @@ class WhatsAppAgent:
             )
             
             if response.status_code == 200:
-                logger.info(f"Mensaje enviado exitosamente a {numero_telefono}")
+                logger.info(f"✅ Mensaje enviado exitosamente a {numero_limpio}")
                 return True
             else:
-                logger.error(f"Error al enviar mensaje: {response.status_code} - {response.text}")
+                logger.error(f"❌ Error al enviar mensaje: {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Excepción al enviar mensaje: {str(e)}")
+            logger.error(f"❌ Excepción al enviar mensaje: {str(e)}")
             return False
     
     def procesar_mensaje_entrante(self, numero_telefono, mensaje, nombre_usuario=None):

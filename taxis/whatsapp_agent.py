@@ -306,7 +306,7 @@ Por favor, intenta nuevamente."""
                     origin_latitude=conversacion['datos']['origen_lat'],
                     origin_longitude=conversacion['datos']['origen_lng'],
                     status='accepted',
-                    requested_at=timezone.now()
+                    # created_at se crea automáticamente
                 )
                 
                 # Crear destino
@@ -472,7 +472,7 @@ Comandos disponibles:
                 carreras_activas = Ride.objects.filter(
                     customer=usuario,
                     status__in=['requested', 'accepted', 'in_progress']
-                ).order_by('-requested_at')
+                ).order_by('-created_at')
                 
                 if carreras_activas.exists():
                     respuesta = "🚕 *Tus carreras activas:*\n\n"

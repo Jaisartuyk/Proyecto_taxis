@@ -621,7 +621,7 @@ Escribe *MENU* para más opciones 😊"""
                 carreras_activas = Ride.objects.filter(
                     customer=usuario,
                     status__in=['requested', 'accepted', 'in_progress']
-                ).order_by('-requested_at')
+                ).order_by('-created_at')
                 
                 if carreras_activas.exists():
                     respuesta = "🚕 *Tus carreras activas:*\n\n"

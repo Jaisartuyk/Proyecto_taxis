@@ -274,7 +274,7 @@ def customer_dashboard(request):
     ).count()
     
     # Obtener viajes recientes (últimos 5)
-    recent_rides = Ride.objects.filter(customer=request.user).order_by('-requested_at')[:5]
+    recent_rides = Ride.objects.filter(customer=request.user).order_by('-created_at')[:5]
     
     context = {
         'total_rides': total_rides,

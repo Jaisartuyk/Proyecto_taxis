@@ -83,6 +83,37 @@ class WhatsAppAgentAI:
         # Normalizar número de teléfono
         numero_telefono = self._normalizar_telefono(numero_telefono)
         
+        # VALIDAR QUE EL USUARIO ESTÉ REGISTRADO
+        # Convertir +593968192046 a 0968192046
+        numero_local = numero_telefono.replace('+593', '0') if numero_telefono.startswith('+593') else numero_telefono
+        
+        try:
+            usuario = AppUser.objects.filter(
+                phone_number__in=[numero_telefono, numero_local]
+            ).first()
+            
+            if not usuario:
+                logger.warning(f"⚠️ Usuario no registrado: {numero_telefono}")
+                self.enviar_mensaje(
+                    numero_telefono,
+                    "❌ *Lo sentimos*\n\n"
+                    "Tu número no está registrado en nuestro sistema.\n\n"
+                    "📱 Para usar nuestro servicio de taxis, debes registrarte primero.\n\n"
+                    "👉 Visita nuestra página web o contacta con un administrador para registrarte.\n\n"
+                    f"Tu número: {numero_local}"
+                )
+                return
+                
+            logger.info(f"✅ Usuario registrado: {usuario.get_full_name()} ({numero_local})")
+            
+        except Exception as e:
+            logger.error(f"❌ Error al validar usuario: {str(e)}")
+            self.enviar_mensaje(
+                numero_telefono,
+                "❌ Hubo un error al validar tu usuario. Por favor, intenta más tarde."
+            )
+            return
+        
         # Obtener o crear conversación
         if numero_telefono not in conversaciones:
             conversaciones[numero_telefono] = {

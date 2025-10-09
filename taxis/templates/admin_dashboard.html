@@ -1,13 +1,149 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/theme.css' %}">
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 400px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    
+    .admin-header {
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        color: #1a1a1a;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(255, 215, 0, 0.4);
+        border: 3px solid #1a1a1a;
+    }
+    
+    .admin-header h1 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 2rem;
+    }
+    
+    .filter-card {
+        background-color: #1f1f1f;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 2px solid #2d2d2d;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background-color: #1f1f1f;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 2px solid #FFD700;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+    }
+    
+    .stat-card h3 {
+        color: #FFD700;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .value {
+        color: #ffffff;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .table-container {
+        background-color: #1f1f1f;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 2px solid #2d2d2d;
+        overflow-x: auto;
+    }
+    
+    .table {
+        color: #ffffff;
+        margin-bottom: 0;
+    }
+    
+    .table thead th {
+        background-color: #FFD700;
+        color: #1a1a1a;
+        border: none;
+        font-weight: 700;
+    }
+    
+    .table tbody tr {
+        border-bottom: 1px solid #2d2d2d;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #2a2a2a;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        color: #1a1a1a;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+    }
+    
+    .form-control, .form-select {
+        background-color: #2d2d2d;
+        border: 2px solid #3d3d3d;
+        color: #ffffff;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background-color: #2d2d2d;
+        border-color: #FFD700;
+        color: #ffffff;
+        box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
+    }
+    
+    .form-label {
+        color: #FFD700;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h1>Panel de Control del Administrador</h1>
-    <hr>
+    <div class="admin-header">
+        <h1>🎯 Panel de Control del Administrador</h1>
+        <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Gestión completa del sistema De Aquí Pa'llá</p>
+    </div>
 
     <!-- Formulario de filtros -->
-    <form method="get" class="mb-4">
-        <div class="row">
+    <div class="filter-card">
+        <h3 style="color: #FFD700; margin-bottom: 1rem;">🔍 Filtros de Búsqueda</h3>
+        <form method="get">
+            <div class="row">
             <div class="col-md-3">
                 <label for="id_status" class="form-label">Estado</label>
                 {{ form.status|default:"" }}
@@ -25,8 +161,9 @@
                 {{ form.end_date|default:"" }}
             </div>
         </div>
-        <button type="submit" class="btn btn-primary mt-3">Filtrar</button>
-    </form>
+            <button type="submit" class="btn btn-primary mt-3">🔎 Filtrar</button>
+        </form>
+    </div>
 
     <!-- Datos de Carreras -->
     <h2 class="mt-4">Resumen de Carreras</h2>
@@ -66,18 +203,39 @@
                     <p class="card-text">Carreras que han sido canceladas.</p>
                 </div>
             </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Conductor</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Precio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ride in rides %}
+                    <tr>
+                        <td>{{ ride.customer.username }}</td>
+                        <td>{{ ride.driver.username }}</td>
+                        <td>{{ ride.get_status_display }}</td>
+                        <td>{{ ride.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>${{ ride.price }}</td>
+                        <td>
+                            <a href="{% url 'ride_detail' ride.id %}" class="btn btn-info btn-sm">Ver Detalle</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No se encontraron carreras con los filtros aplicados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-
-    <!-- Tabla de Carreras -->
-    <h2 class="mt-4">Listado de Carreras</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Cliente</th>
-                <th>Conductor</th>
-                <th>Estado</th>
-                <th>Fecha</th>
+    {% endblock %}
                 <th>Precio</th>
                 <th>Acciones</th>
             </tr>

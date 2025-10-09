@@ -79,7 +79,9 @@ class ClaudeAssistant:
             return resultado
             
         except Exception as e:
-            logger.error(f"Error al generar respuesta con Claude: {str(e)}")
+            logger.error(f"❌ Error al generar respuesta con Claude: {str(e)}", exc_info=True)
+            logger.error(f"📝 Mensaje del usuario: {mensaje_usuario}")
+            logger.error(f"📊 Contexto: {contexto}")
             return {
                 'respuesta': "Disculpa, tuve un problema al procesar tu mensaje. ¿Podrías repetirlo?",
                 'accion': 'error',

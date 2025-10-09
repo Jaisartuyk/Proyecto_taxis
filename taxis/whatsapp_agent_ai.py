@@ -10,7 +10,8 @@ from .models import Ride, AppUser, Taxi, RideDestination
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import logging
-from .ai_assistant import claude_assistant
+# Temporalmente usando asistente simple hasta configurar CLAUDE_API_KEY en Railway
+from .ai_assistant_simple import simple_ai_assistant
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +112,8 @@ class WhatsAppAgentAI:
                 "content": mensaje
             })
             
-            # Generar respuesta con Claude AI
-            resultado = claude_assistant.generar_respuesta_contextual(
+            # Generar respuesta con el asistente de IA
+            resultado = simple_ai_assistant.generar_respuesta_contextual(
                 mensaje_usuario=mensaje,
                 estado_conversacion=conversacion['estado'],
                 datos_usuario={

@@ -171,41 +171,92 @@ def driver_dashboard(request):
     if request.user.role != 'driver':
         return redirect('login')
     
+    # Obtener el taxi del conductor
+    try:
+        taxi = Taxi.objects.get(user=request.user)
+    except Taxi.DoesNotExist:
+        taxi = None
+    
     # Obtener estadísticas del conductor
     total_rides = Ride.objects.filter(driver=request.user).count()
     completed_rides = Ride.objects.filter(driver=request.user, status='completed').count()
+    canceled_rides = Ride.objects.filter(driver=request.user, status='canceled').count()
     active_rides_count = Ride.objects.filter(
         driver=request.user, 
         status__in=['accepted', 'in_progress']
     ).count()
     
-    # Calcular ganancias del día (ejemplo: $5000 base + $2500 por km)
-    today_rides = Ride.objects.filter(
+    # Calcular ganancias (basado en precio de carreras completadas)
+    from django.db.models import Sum
+    today = now().date()
+    
+    # Ganancias del día
+    today_earnings = Ride.objects.filter(
         driver=request.user, 
         status='completed',
-        requested_at__date=now().date()
-    )
-    earnings = today_rides.count() * 15000  # Estimado
+        created_at__date=today,
+        price__isnull=False
+    ).aggregate(total=Sum('price'))['total'] or 0
+    
+    # Ganancias del mes
+    month_earnings = Ride.objects.filter(
+        driver=request.user, 
+        status='completed',
+        created_at__year=today.year,
+        created_at__month=today.month,
+        price__isnull=False
+    ).aggregate(total=Sum('price'))['total'] or 0
+    
+    # Ganancias totales
+    total_earnings = Ride.objects.filter(
+        driver=request.user, 
+        status='completed',
+        price__isnull=False
+    ).aggregate(total=Sum('price'))['total'] or 0
+    
+    # Carreras de hoy
+    today_rides_count = Ride.objects.filter(
+        driver=request.user, 
+        status='completed',
+        created_at__date=today
+    ).count()
     
     # Obtener carreras disponibles (sin conductor asignado)
     available_rides_list = Ride.objects.filter(
         status='requested',
         driver__isnull=True
-    ).order_by('-requested_at')[:5]
+    ).select_related('customer').order_by('-created_at')[:10]
     
     # Obtener carreras activas del conductor
     active_rides_list = Ride.objects.filter(
         driver=request.user,
         status__in=['accepted', 'in_progress']
-    ).order_by('-requested_at')
+    ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
+    
+    # Obtener últimas carreras completadas
+    recent_completed = Ride.objects.filter(
+        driver=request.user,
+        status='completed'
+    ).select_related('customer').order_by('-created_at')[:5]
+    
+    # Calcular rating promedio (si existe campo de rating)
+    # Por ahora usamos un placeholder
+    rating = 4.8
     
     context = {
+        'taxi': taxi,
         'total_rides': total_rides,
         'completed_rides': completed_rides,
+        'canceled_rides': canceled_rides,
         'active_rides': active_rides_count,
-        'earnings': earnings,
+        'today_rides': today_rides_count,
+        'today_earnings': today_earnings,
+        'month_earnings': month_earnings,
+        'total_earnings': total_earnings,
+        'rating': rating,
         'available_rides': available_rides_list,
         'active_rides_list': active_rides_list,
+        'recent_completed': recent_completed,
     }
     
     return render(request, 'driver_dashboard.html', context)

@@ -581,8 +581,10 @@ Escribe *MENU* para volver al inicio"""
         # Eliminar espacios y caracteres especiales
         numero = numero.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
         
-        # Asegurar que tenga el código de país
-        if not numero.startswith('+'):
+        # Convertir formato local 0XXX a internacional +593XXX
+        if numero.startswith('0') and len(numero) == 10:
+            numero = '+593' + numero[1:]  # Reemplazar 0 inicial con +593
+        elif not numero.startswith('+'):
             numero = '+' + numero
         
         return numero

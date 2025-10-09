@@ -20,7 +20,7 @@ class ClaudeAssistant:
     
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
-        self.model = "claude-3-opus-20240229"  # Claude 3 Opus
+        self.model = "claude-3-haiku-20240307"  # Claude 3 Haiku (más económico y disponible)
         
     def generar_respuesta(self, mensaje_usuario, contexto=None, historial=None):
         """

@@ -208,7 +208,13 @@
             </div>
             <div class="info-item">
                 <strong>Precio:</strong>
-                <div class="price-display">${{ ride.price|default:"Por definir" }}</div>
+                <div class="price-display">
+                    {% if ride.price %}
+                        ${{ ride.price|floatformat:2 }} USD
+                    {% else %}
+                        Por definir
+                    {% endif %}
+                </div>
             </div>
         </div>
 
@@ -299,7 +305,7 @@
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDXX7NJgR7yNlQdDQKKDXX7NJgR7yNlQdDQKKD&callback=initMap" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap" async defer></script>
 <script>
 let map;
 let driverMarker;

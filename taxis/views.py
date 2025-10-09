@@ -946,6 +946,7 @@ def ride_detail(request, ride_id):
             'driver_lng': driver_lng,
             'origin_address': origin_address,
             'destination_address': destination_address,
+            'GOOGLE_MAPS_API_KEY': settings.GOOGLE_API_KEY,
         }
 
         return render(request, 'ride_detail_modern.html', context)

@@ -137,6 +137,25 @@ class WhatsAppAgentAI:
     def _manejar_mensaje_texto(self, numero_telefono, mensaje, conversacion):
         """Maneja mensajes de texto usando Claude AI"""
         try:
+            mensaje_upper = mensaje.upper().strip()
+            
+            # Manejar comandos del conductor: ACEPTAR o RECHAZAR carrera
+            if mensaje_upper.startswith('ACEPTAR '):
+                try:
+                    ride_id = int(mensaje_upper.split()[1])
+                    return self._conductor_aceptar_carrera(numero_telefono, ride_id)
+                except (IndexError, ValueError):
+                    self.enviar_mensaje(numero_telefono, "❌ Formato incorrecto. Usa: *ACEPTAR [número]*")
+                    return True
+            
+            if mensaje_upper.startswith('RECHAZAR '):
+                try:
+                    ride_id = int(mensaje_upper.split()[1])
+                    return self._conductor_rechazar_carrera(numero_telefono, ride_id)
+                except (IndexError, ValueError):
+                    self.enviar_mensaje(numero_telefono, "❌ Formato incorrecto. Usa: *RECHAZAR [número]*")
+                    return True
+            
             # Agregar mensaje al historial
             conversacion['historial'].append({
                 "role": "user",
@@ -388,14 +407,27 @@ Por favor, intenta más tarde o escribe *MENU* para volver al inicio."""
             # Buscar o crear usuario
             usuario = self._obtener_o_crear_usuario(numero_telefono, conversacion['nombre'])
             
-            # Crear la carrera
+            # Buscar conductor más cercano disponible
+            lat_origen = conversacion['datos']['origen_lat']
+            lng_origen = conversacion['datos']['origen_lng']
+            taxista_cercano = self._buscar_taxista_cercano(lat_origen, lng_origen)
+            
+            if not taxista_cercano:
+                self.enviar_mensaje(
+                    numero_telefono,
+                    "❌ Lo sentimos, no hay conductores disponibles en este momento.\n\n"
+                    "Por favor, intenta más tarde. 😔"
+                )
+                conversacion['estado'] = 'inicio'
+                return False
+            
+            # Crear la carrera SIN conductor asignado (status='requested')
             ride = Ride.objects.create(
                 customer=usuario,
-                driver_id=conversacion['datos']['taxista_sugerido'],
                 origin=conversacion['datos']['origen'],
                 origin_latitude=conversacion['datos']['origen_lat'],
                 origin_longitude=conversacion['datos']['origen_lng'],
-                status='accepted'
+                status='requested'  # Estado inicial: solicitada, esperando aceptación
                 # created_at se crea automáticamente con auto_now_add=True
             )
             
@@ -409,28 +441,25 @@ Por favor, intenta más tarde o escribe *MENU* para volver al inicio."""
             )
             
             conversacion['datos']['ride_id'] = ride.id
-            conversacion['estado'] = 'carrera_activa'
+            conversacion['datos']['taxista_id'] = taxista_cercano.id
+            conversacion['estado'] = 'esperando_conductor'
             
-            # Notificar al conductor
-            taxista = Taxi.objects.get(id=conversacion['datos']['taxista_sugerido'])
-            if taxista.user.phone_number:
-                self._notificar_conductor(taxista.user.phone_number, ride)
+            # Notificar al conductor más cercano
+            if taxista_cercano.user.phone_number:
+                self._notificar_conductor_nueva_carrera(taxista_cercano.user.phone_number, ride)
             
-            respuesta = f"""✅ *¡Carrera confirmada!* 🎉
-
-Tu carrera ha sido asignada exitosamente.
+            # Notificar al cliente que estamos buscando conductor
+            respuesta = f"""✅ *¡Carrera creada!* 🎉
 
 📱 *Número de carrera:* #{ride.id}
-🚕 *Conductor:* {taxista.user.get_full_name()}
-📞 *Teléfono:* {taxista.user.phone_number or 'No disponible'}
-🚗 *Vehículo:* {taxista.vehicle_description}
-🔢 *Placa:* {taxista.plate_number}
+📍 *Origen:* {ride.origin}
+🎯 *Destino:* {conversacion['datos']['destino']}
 
-⏱️ El conductor llegará en aproximadamente 5-10 minutos.
+🔍 Estamos buscando el conductor más cercano...
 
-Puedes seguir el estado escribiendo *ESTADO*
+Te notificaremos cuando un conductor acepte tu carrera. ⏱️
 
-¡Buen viaje! 🚗💨"""
+Puedes seguir el estado escribiendo *ESTADO*"""
             
             self.enviar_mensaje(numero_telefono, respuesta)
             return True
@@ -571,6 +600,180 @@ Puedes seguir el estado escribiendo *ESTADO*
 ¡Dirígete al punto de recogida! 🚗💨"""
         
         self.enviar_mensaje(numero_conductor, mensaje)
+    
+    def _buscar_taxista_cercano(self, lat, lng):
+        """Busca el taxista disponible más cercano a las coordenadas dadas"""
+        from math import radians, sin, cos, sqrt, atan2
+        
+        # Obtener todos los taxis activos sin carrera asignada
+        taxis_disponibles = Taxi.objects.filter(
+            is_active=True
+        ).select_related('user')
+        
+        if not taxis_disponibles.exists():
+            return None
+        
+        # Función para calcular distancia usando fórmula de Haversine
+        def calcular_distancia(lat1, lon1, lat2, lon2):
+            R = 6371  # Radio de la Tierra en km
+            
+            lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            
+            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+            c = 2 * atan2(sqrt(a), sqrt(1-a))
+            
+            return R * c
+        
+        # Buscar el taxi más cercano
+        taxista_cercano = None
+        distancia_minima = float('inf')
+        
+        for taxi in taxis_disponibles:
+            # Por ahora usamos coordenadas fijas o las últimas conocidas
+            # En producción, esto vendría de un sistema de tracking en tiempo real
+            taxi_lat = -2.1709  # Coordenadas de ejemplo (Guayaquil)
+            taxi_lng = -79.9224
+            
+            distancia = calcular_distancia(lat, lng, taxi_lat, taxi_lng)
+            
+            if distancia < distancia_minima:
+                distancia_minima = distancia
+                taxista_cercano = taxi
+        
+        return taxista_cercano
+    
+    def _notificar_conductor_nueva_carrera(self, numero_conductor, ride):
+        """Notifica al conductor sobre una nueva carrera disponible para aceptar"""
+        destino = ride.destinations.first().destination if ride.destinations.exists() else 'No especificado'
+        
+        mensaje = f"""🚕 *¡Nueva carrera disponible!*
+
+📱 Carrera #{ride.id}
+👤 Cliente: {ride.customer.get_full_name()}
+📞 Teléfono: {ride.customer.phone_number or 'No disponible'}
+📍 Origen: {ride.origin}
+🎯 Destino: {destino}
+
+Para ACEPTAR esta carrera, responde:
+*ACEPTAR {ride.id}*
+
+Para RECHAZAR, responde:
+*RECHAZAR {ride.id}*
+
+⏱️ Tienes 2 minutos para responder."""
+        
+        self.enviar_mensaje(numero_conductor, mensaje)
+    
+    def _conductor_aceptar_carrera(self, numero_telefono, ride_id):
+        """Maneja cuando un conductor acepta una carrera"""
+        try:
+            # Buscar la carrera
+            ride = Ride.objects.get(id=ride_id, status='requested')
+            
+            # Buscar el conductor
+            numero_normalizado = self._normalizar_telefono(numero_telefono)
+            conductor = AppUser.objects.filter(
+                phone_number__in=[numero_telefono, numero_normalizado],
+                role='driver'
+            ).first()
+            
+            if not conductor:
+                self.enviar_mensaje(numero_telefono, "❌ No estás registrado como conductor.")
+                return True
+            
+            # Asignar conductor y cambiar estado
+            ride.driver = conductor
+            ride.status = 'accepted'
+            ride.save()
+            
+            # Notificar al conductor
+            taxi = Taxi.objects.filter(user=conductor).first()
+            mensaje_conductor = f"""✅ *¡Carrera aceptada!*
+
+📱 Carrera #{ride.id}
+👤 Cliente: {ride.customer.get_full_name()}
+📞 Teléfono: {ride.customer.phone_number or 'No disponible'}
+📍 Origen: {ride.origin}
+🎯 Destino: {ride.destinations.first().destination if ride.destinations.exists() else 'No especificado'}
+
+Dirígete al punto de recogida. ¡Buen viaje! 🚗💨"""
+            
+            self.enviar_mensaje(numero_telefono, mensaje_conductor)
+            
+            # Notificar al cliente
+            mensaje_cliente = f"""✅ *¡Conductor asignado!* 🎉
+
+📱 Carrera #{ride.id}
+🚕 Conductor: {conductor.get_full_name()}
+📞 Teléfono: {conductor.phone_number or 'No disponible'}"""
+            
+            if taxi:
+                mensaje_cliente += f"""
+🚗 Vehículo: {taxi.vehicle_description}
+🔢 Placa: {taxi.plate_number}"""
+            
+            mensaje_cliente += """
+
+⏱️ El conductor llegará en aproximadamente 5-10 minutos.
+
+Puedes seguir el estado escribiendo *ESTADO*
+
+¡Buen viaje! 🚗💨"""
+            
+            self.enviar_mensaje(ride.customer.phone_number, mensaje_cliente)
+            
+            return True
+            
+        except Ride.DoesNotExist:
+            self.enviar_mensaje(numero_telefono, f"❌ La carrera #{ride_id} no existe o ya fue asignada.")
+            return True
+        except Exception as e:
+            logger.error(f"Error al aceptar carrera: {str(e)}", exc_info=True)
+            self.enviar_mensaje(numero_telefono, "❌ Hubo un error al aceptar la carrera.")
+            return True
+    
+    def _conductor_rechazar_carrera(self, numero_telefono, ride_id):
+        """Maneja cuando un conductor rechaza una carrera"""
+        try:
+            # Buscar la carrera
+            ride = Ride.objects.get(id=ride_id, status='requested')
+            
+            # Confirmar rechazo
+            self.enviar_mensaje(numero_telefono, f"✅ Has rechazado la carrera #{ride_id}.")
+            
+            # Buscar otro conductor cercano
+            taxista_alternativo = self._buscar_taxista_cercano(
+                ride.origin_latitude,
+                ride.origin_longitude
+            )
+            
+            if taxista_alternativo and taxista_alternativo.user.phone_number:
+                # Notificar al siguiente conductor
+                self._notificar_conductor_nueva_carrera(taxista_alternativo.user.phone_number, ride)
+            else:
+                # No hay más conductores, cancelar carrera
+                ride.status = 'canceled'
+                ride.save()
+                
+                mensaje_cliente = f"""❌ Lo sentimos, no hay conductores disponibles en este momento.
+
+Tu carrera #{ride.id} ha sido cancelada.
+
+Por favor, intenta más tarde. 😔"""
+                
+                self.enviar_mensaje(ride.customer.phone_number, mensaje_cliente)
+            
+            return True
+            
+        except Ride.DoesNotExist:
+            self.enviar_mensaje(numero_telefono, f"❌ La carrera #{ride_id} no existe o ya fue asignada.")
+            return True
+        except Exception as e:
+            logger.error(f"Error al rechazar carrera: {str(e)}", exc_info=True)
+            self.enviar_mensaje(numero_telefono, "❌ Hubo un error al procesar tu respuesta.")
+            return True
     
     def _mostrar_estado_carrera(self, numero_telefono, conversacion):
         """Muestra el estado de la carrera activa"""

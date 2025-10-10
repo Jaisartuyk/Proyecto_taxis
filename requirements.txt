@@ -42,3 +42,5 @@ tzdata==2025.2
 urllib3==2.4.0
 whitenoise==6.9.0
 zope.interface==7.2
+dj-database-url
+psycopg2-binary

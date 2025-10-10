@@ -170,13 +170,14 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 
-# Channels configuration
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
+# Channels configuration
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": ["redis://default:PmdhUmFVXhjnezMlExGTbnBpitccmaPr@redis.railway.internal:6379"],
+            "hosts": [REDIS_URL],
         },
     },
 }

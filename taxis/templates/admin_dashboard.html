@@ -394,7 +394,7 @@
             <h3>Carreras Activas</h3>
             <p>Monitorear viajes en tiempo real</p>
         </a>
-        <a href="{% url 'comunicacion' %}" class="action-card">
+        <a href="{% url 'comunicacion_conductores' %}" class="action-card">
             <i class="fas fa-comments"></i>
             <h3>Comunicación</h3>
             <p>Chat y notificaciones del sistema</p>
@@ -441,7 +441,13 @@
         <div class="stat-card">
             <h3>✅ Carreras Completadas</h3>
             <div class="value">{{ completed_rides }}</div>
-            <div class="change positive">{{ completed_rides|floatformat:1 }}% del total</div>
+            <div class="change positive">
+                {% if total_rides > 0 %}
+                    {% widthratio completed_rides total_rides 100 %}% del total
+                {% else %}
+                    0% del total
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -589,7 +595,7 @@
                 </a>
             </div>
             <div class="col-md-4 mb-3">
-                <a href="{% url 'comunicacion' %}" class="btn btn-secondary w-100">
+                <a href="{% url 'comunicacion_conductores' %}" class="btn btn-secondary w-100">
                     <i class="fas fa-comments"></i> Centro de Comunicación
                 </a>
             </div>

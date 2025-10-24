@@ -7,7 +7,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import json
 from django.views.decorators.csrf import csrf_exempt
-from .models import Taxi, TaxiRoute, Ride, RideDestination, AppUser, ConversacionTelegram
+from .models import Taxi, TaxiRoute, Ride, RideDestination, AppUser, ConversacionTelegram, Rating
 from django.contrib.auth import login, logout
 from .forms import CustomerRegistrationForm,CustomerProfileForm, DriverProfileForm, TaxiForm, TaxiRouteForm, RideFilterForm, DriverRegistrationForm, AdminProfileForm
 #from django.contrib.auth.forms import DriverRegistrationForm, CustomerRegistrationForm
@@ -288,7 +288,70 @@ def customer_dashboard(request):
 def admin_dashboard(request):
     if request.user.role != 'admin':
         return redirect('login')
-    return render(request, 'registration/admin_dashboard.html')
+    
+    # Estadísticas generales
+    total_users = AppUser.objects.count()
+    total_drivers = AppUser.objects.filter(role='driver').count()
+    total_customers = AppUser.objects.filter(role='customer').count()
+    total_rides = Ride.objects.count()
+    
+    # Carreras por estado
+    requested_rides = Ride.objects.filter(status='requested').count()
+    accepted_rides = Ride.objects.filter(status='accepted').count()
+    in_progress_rides = Ride.objects.filter(status='in_progress').count()
+    completed_rides = Ride.objects.filter(status='completed').count()
+    canceled_rides = Ride.objects.filter(status='canceled').count()
+    
+    # Ingresos
+    from django.db.models import Sum
+    total_revenue = Ride.objects.filter(status='completed', price__isnull=False).aggregate(
+        total=Sum('price')
+    )['total'] or 0
+    
+    # Carreras de hoy
+    from django.utils import timezone
+    today = timezone.now().date()
+    today_rides = Ride.objects.filter(created_at__date=today).count()
+    today_revenue = Ride.objects.filter(
+        status='completed', 
+        price__isnull=False,
+        created_at__date=today
+    ).aggregate(total=Sum('price'))['total'] or 0
+    
+    # Conductores activos (con ubicación)
+    active_drivers = Taxi.objects.exclude(
+        latitude__isnull=True, 
+        longitude__isnull=True
+    ).count()
+    
+    # Carreras recientes
+    recent_rides = Ride.objects.select_related('customer', 'driver').order_by('-created_at')[:10]
+    
+    # Calificaciones promedio
+    from django.db.models import Avg
+    avg_rating = Rating.objects.aggregate(avg=Avg('rating'))['avg'] or 0
+    total_ratings = Rating.objects.count()
+    
+    context = {
+        'total_users': total_users,
+        'total_drivers': total_drivers,
+        'total_customers': total_customers,
+        'total_rides': total_rides,
+        'requested_rides': requested_rides,
+        'accepted_rides': accepted_rides,
+        'in_progress_rides': in_progress_rides,
+        'completed_rides': completed_rides,
+        'canceled_rides': canceled_rides,
+        'total_revenue': total_revenue,
+        'today_rides': today_rides,
+        'today_revenue': today_revenue,
+        'active_drivers': active_drivers,
+        'recent_rides': recent_rides,
+        'avg_rating': round(avg_rating, 1) if avg_rating else 0,
+        'total_ratings': total_ratings,
+    }
+    
+    return render(request, 'admin_dashboard.html', context)
 
 
 @login_required
@@ -1189,3 +1252,78 @@ def actualizar_ubicacion_taxi(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+
+@login_required
+def rate_ride(request, ride_id):
+    """Calificar un viaje completado"""
+    try:
+        ride = get_object_or_404(Ride, id=ride_id, status='completed')
+        
+        # Verificar que el usuario puede calificar este viaje
+        if request.user not in [ride.customer, ride.driver]:
+            messages.error(request, "No tienes permiso para calificar este viaje.")
+            return redirect('customer_dashboard' if request.user.role == 'customer' else 'driver_dashboard')
+        
+        if request.method == 'POST':
+            rating_value = int(request.POST.get('rating'))
+            comment = request.POST.get('comment', '')
+            
+            # Determinar quién califica a quién
+            if request.user == ride.customer:
+                rated_user = ride.driver
+            else:
+                rated_user = ride.customer
+            
+            # Crear o actualizar calificación
+            rating, created = Rating.objects.get_or_create(
+                ride=ride,
+                rater=request.user,
+                rated=rated_user,
+                defaults={'rating': rating_value, 'comment': comment}
+            )
+            
+            if not created:
+                rating.rating = rating_value
+                rating.comment = comment
+                rating.save()
+            
+            messages.success(request, f"¡Gracias por calificar con {rating_value} estrellas! ⭐")
+            return redirect('ride_detail', ride_id=ride.id)
+        
+        # Mostrar formulario de calificación
+        context = {
+            'ride': ride,
+            'rated_user': ride.driver if request.user == ride.customer else ride.customer,
+        }
+        return render(request, 'rate_ride.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"Error al calificar: {str(e)}")
+        return redirect('customer_dashboard' if request.user.role == 'customer' else 'driver_dashboard')
+
+
+@login_required
+def user_ratings(request, user_id):
+    """Ver calificaciones de un usuario"""
+    try:
+        user = get_object_or_404(AppUser, id=user_id)
+        ratings = Rating.objects.filter(rated=user).order_by('-created_at')
+        
+        # Calcular promedio
+        if ratings.exists():
+            avg_rating = sum(r.rating for r in ratings) / len(ratings)
+        else:
+            avg_rating = 0
+        
+        context = {
+            'rated_user': user,
+            'ratings': ratings,
+            'avg_rating': round(avg_rating, 1),
+            'total_ratings': len(ratings),
+        }
+        return render(request, 'user_ratings.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"Error al cargar calificaciones: {str(e)}")
+        return redirect('home')

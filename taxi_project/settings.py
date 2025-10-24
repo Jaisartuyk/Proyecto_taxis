@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'daphne',
     'channels',
+    'corsheaders',
     'taxis',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -105,6 +107,39 @@ DATABASES = {
         default=f'sqlite:///{BASE_DIR / 'db.sqlite3'}'
     )
 }
+
+# Configuración específica para Railway
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Usar PostgreSQL en Railway
+    DATABASES['default'] = dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True,
+        default=os.environ.get('DATABASE_URL', f'sqlite:///{BASE_DIR / 'db.sqlite3'}')
+    )
+    
+    # Configuración de seguridad para Railway
+    DEBUG = False
+    SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+    
+    # Hosts permitidos para Railway
+    ALLOWED_HOSTS = [
+        'taxis-deaquipalla.up.railway.app',
+        'taxis-django-channels-production.up.railway.app',
+        '*.up.railway.app',
+        'localhost',
+        '127.0.0.1',
+    ]
+    
+    # Configuración SSL para Railway
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    print("🚀 Configuración de Railway activada")
+    print(f"📊 Base de datos: {DATABASES['default']['ENGINE']}")
+    print(f"🔴 Redis URL: {os.environ.get('REDIS_URL', 'No configurado')}")
+    print(f"🌐 Hosts permitidos: {ALLOWED_HOSTS}")
 
 
 # Password validation
@@ -170,7 +205,13 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 
+# Configuración de Redis
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+
+# Configuración específica para Railway Redis
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Railway proporciona REDIS_URL automáticamente
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
 # Channels configuration
 CHANNEL_LAYERS = {
@@ -178,6 +219,8 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [REDIS_URL],
+            "capacity": 1500,
+            "expiry": 60,
         },
     },
 }

@@ -203,3 +203,32 @@ class ConversacionTelegram(models.Model):
 
     def __str__(self):
         return f"{self.chat_id} - {self.paso_actual}"
+
+
+class Rating(models.Model):
+    """Sistema de calificaciones para conductores y pasajeros"""
+    RATING_CHOICES = [
+        (1, '1 estrella'),
+        (2, '2 estrellas'),
+        (3, '3 estrellas'),
+        (4, '4 estrellas'),
+        (5, '5 estrellas'),
+    ]
+    
+    ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name='ratings')
+    rater = models.ForeignKey(AppUser, on_delete=models.CASCADE, related_name='ratings_given')
+    rated = models.ForeignKey(AppUser, on_delete=models.CASCADE, related_name='ratings_received')
+    rating = models.IntegerField(choices=RATING_CHOICES)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['ride', 'rater', 'rated']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.rater.get_full_name()} calificó a {self.rated.get_full_name()} con {self.rating} estrellas"
+    
+    @property
+    def stars_display(self):
+        return '★' * self.rating + '☆' * (5 - self.rating)

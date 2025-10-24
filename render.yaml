@@ -3,12 +3,16 @@ services:
     name: taxis-django-channels
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
     startCommand: "daphne -b 0.0.0.0 -p $PORT taxi_project.asgi:application"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: taxi_project.settings
+      - key: RAILWAY_ENVIRONMENT
+        value: "production"
       - key: REDIS_URL
         value: "redis://default:AXvhAAIjcDEzMmZmMGExYmI2NDI0MzIyYWNjYmQyZmQwMmRlMmU0N3AxMA@intense-walrus-31713.upstash.io:6379"
+      - key: DATABASE_URL
+        value: "postgresql://postgres:password@localhost:5432/taxis_db"
     staticPublishPath: staticfiles
 

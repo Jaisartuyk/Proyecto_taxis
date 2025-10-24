@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .ratings-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        border-radius: 16px;
+        color: white;
+    }
+
+    .user-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-weight: 700;
+    }
+
+    .user-header p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .rating-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .summary-card {
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        border: 2px solid #E5E7EB;
+    }
+
+    .summary-card h3 {
+        color: #1F2937;
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .summary-card p {
+        color: #6B7280;
+        margin: 0;
+    }
+
+    .stars-display {
+        font-size: 1.5rem;
+        color: #F59E0B;
+        margin: 0.5rem 0;
+    }
+
+    .rating-item {
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #10B981;
+    }
+
+    .rating-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .rater-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .rater-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+    }
+
+    .rater-details h4 {
+        margin: 0;
+        color: #1F2937;
+        font-weight: 600;
+    }
+
+    .rater-details p {
+        margin: 0;
+        color: #6B7280;
+        font-size: 0.9rem;
+    }
+
+    .rating-stars {
+        font-size: 1.2rem;
+        color: #F59E0B;
+    }
+
+    .rating-comment {
+        color: #4B5563;
+        font-style: italic;
+        margin-top: 0.5rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+    }
+
+    .rating-date {
+        color: #9CA3AF;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .no-ratings {
+        text-align: center;
+        padding: 3rem;
+        color: #6B7280;
+    }
+
+    .no-ratings i {
+        font-size: 3rem;
+        color: #D1D5DB;
+        margin-bottom: 1rem;
+    }
+
+    .btn-back {
+        background: #6B7280;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 2rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-back:hover {
+        background: #4B5563;
+        color: white;
+        text-decoration: none;
+    }
+</style>
+
+<div class="ratings-container">
+    <div class="user-header">
+        <h1>⭐ Calificaciones de {{ rated_user.get_full_name }}</h1>
+        <p>{{ rated_user.get_role_display }}</p>
+    </div>
+
+    {% if ratings %}
+        <div class="rating-summary">
+            <div class="summary-card">
+                <h3>{{ avg_rating }}</h3>
+                <div class="stars-display">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= avg_rating %}
+                            ★
+                        {% else %}
+                            ☆
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <p>Calificación promedio</p>
+            </div>
+            <div class="summary-card">
+                <h3>{{ total_ratings }}</h3>
+                <p>Total de calificaciones</p>
+            </div>
+        </div>
+
+        <div class="ratings-list">
+            {% for rating in ratings %}
+                <div class="rating-item">
+                    <div class="rating-header">
+                        <div class="rater-info">
+                            <div class="rater-avatar">
+                                {{ rating.rater.first_name|first }}{{ rating.rater.last_name|first }}
+                            </div>
+                            <div class="rater-details">
+                                <h4>{{ rating.rater.get_full_name }}</h4>
+                                <p>{{ rating.rater.get_role_display }}</p>
+                            </div>
+                        </div>
+                        <div class="rating-stars">
+                            {{ rating.stars_display }}
+                        </div>
+                    </div>
+                    
+                    {% if rating.comment %}
+                        <div class="rating-comment">
+                            "{{ rating.comment }}"
+                        </div>
+                    {% endif %}
+                    
+                    <div class="rating-date">
+                        {{ rating.created_at|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-ratings">
+            <i class="fas fa-star"></i>
+            <h3>Sin calificaciones</h3>
+            <p>Este usuario aún no tiene calificaciones.</p>
+        </div>
+    {% endif %}
+
+    <div class="text-center">
+        <a href="javascript:history.back()" class="btn-back">
+            ← Volver
+        </a>
+    </div>
+</div>
+{% endblock %}
+

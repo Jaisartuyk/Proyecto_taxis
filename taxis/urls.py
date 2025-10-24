@@ -51,5 +51,9 @@ urlpatterns = [
     path('webhook/whatsapp/', whatsapp_webhook, name='whatsapp_webhook'),
     path('webhook/whatsapp/status/', whatsapp_status_webhook, name='whatsapp_status_webhook'),
     path('api/whatsapp/send-notification/', whatsapp_send_notification, name='whatsapp_send_notification'),
+    
+    # Sistema de calificaciones
+    path('ride/<int:ride_id>/rate/', views.rate_ride, name='rate_ride'),
+    path('user/<int:user_id>/ratings/', views.user_ratings, name='user_ratings'),
 
 ]

@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .rating-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .rating-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .rating-header h1 {
+        color: #1F2937;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .rating-header p {
+        color: #6B7280;
+        font-size: 1.1rem;
+    }
+
+    .ride-info {
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid #10B981;
+    }
+
+    .ride-info h3 {
+        color: #1F2937;
+        margin-bottom: 1rem;
+    }
+
+    .ride-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-item i {
+        color: #10B981;
+        width: 20px;
+    }
+
+    .stars-container {
+        text-align: center;
+        margin: 2rem 0;
+    }
+
+    .stars {
+        font-size: 3rem;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .star {
+        color: #E5E7EB;
+        transition: color 0.2s ease;
+        margin: 0 0.2rem;
+    }
+
+    .star:hover,
+    .star.active {
+        color: #FCD34D;
+    }
+
+    .star.filled {
+        color: #F59E0B;
+    }
+
+    .rating-form {
+        margin-top: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #1F2937;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #10B981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: 100%;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-cancel {
+        background: #6B7280;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 1rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-cancel:hover {
+        background: #4B5563;
+        color: white;
+        text-decoration: none;
+    }
+</style>
+
+<div class="rating-container">
+    <div class="rating-header">
+        <h1>⭐ Calificar Viaje</h1>
+        <p>¿Cómo calificarías tu experiencia con {{ rated_user.get_full_name }}?</p>
+    </div>
+
+    <div class="ride-info">
+        <h3>📋 Detalles del Viaje</h3>
+        <div class="ride-details">
+            <div class="detail-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <span><strong>Origen:</strong> {{ ride.origin }}</span>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-flag-checkered"></i>
+                <span><strong>Destino:</strong> {{ ride.destinations.first.destination }}</span>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-calendar"></i>
+                <span><strong>Fecha:</strong> {{ ride.created_at|date:"d/m/Y" }}</span>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-clock"></i>
+                <span><strong>Hora:</strong> {{ ride.created_at|time:"H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="rating-form">
+        {% csrf_token %}
+        
+        <div class="stars-container">
+            <div class="stars" id="stars">
+                <span class="star" data-rating="1">★</span>
+                <span class="star" data-rating="2">★</span>
+                <span class="star" data-rating="3">★</span>
+                <span class="star" data-rating="4">★</span>
+                <span class="star" data-rating="5">★</span>
+            </div>
+            <p id="rating-text" class="text-muted">Selecciona una calificación</p>
+        </div>
+
+        <input type="hidden" name="rating" id="rating-input" value="0" required>
+
+        <div class="form-group">
+            <label for="comment">💬 Comentario (opcional)</label>
+            <textarea 
+                name="comment" 
+                id="comment" 
+                class="form-control" 
+                rows="4" 
+                placeholder="Cuéntanos sobre tu experiencia..."
+            ></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">
+            ⭐ Enviar Calificación
+        </button>
+    </form>
+
+    <div class="text-center">
+        <a href="{% url 'ride_detail' ride.id %}" class="btn-cancel">
+            ← Volver al Detalle del Viaje
+        </a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.star');
+    const ratingInput = document.getElementById('rating-input');
+    const ratingText = document.getElementById('rating-text');
+    
+    const ratingTexts = {
+        0: 'Selecciona una calificación',
+        1: 'Muy malo',
+        2: 'Malo',
+        3: 'Regular',
+        4: 'Bueno',
+        5: 'Excelente'
+    };
+
+    stars.forEach((star, index) => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            ratingInput.value = rating;
+            
+            // Actualizar visualización
+            stars.forEach((s, i) => {
+                if (i < rating) {
+                    s.classList.add('filled');
+                } else {
+                    s.classList.remove('filled');
+                }
+            });
+            
+            ratingText.textContent = ratingTexts[rating];
+        });
+
+        star.addEventListener('mouseenter', function() {
+            const rating = parseInt(this.dataset.rating);
+            stars.forEach((s, i) => {
+                if (i < rating) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+        });
+    });
+
+    document.querySelector('.stars').addEventListener('mouseleave', function() {
+        stars.forEach(s => s.classList.remove('active'));
+    });
+});
+</script>
+{% endblock %}
+

@@ -232,3 +232,16 @@ class Rating(models.Model):
     @property
     def stars_display(self):
         return '★' * self.rating + '☆' * (5 - self.rating)
+
+
+class WebPushSubscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='webpush_subscriptions'
+    )
+    subscription_info = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Suscripción de {self.user.username}"

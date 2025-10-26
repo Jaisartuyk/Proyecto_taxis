@@ -86,6 +86,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'taxi_project.context_processors.webpush_settings', # <-- Añadido
             ],
         },
     },
@@ -234,3 +235,10 @@ GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', 'AIzaSyAtEPZgbPBwnJGrvIuwplRJD
 
 TELEGRAM_BOT_TOKEN = '7754998885:AAGOEJhcCE8t3NMYS2mQ-v8xM56j6aFPRoY'
 TELEGRAM_CHAT_ID_GRUPO_TAXISTAS = '-4767733103'
+
+# --- Configuración de Web Push ---
+WEBPUSH_SETTINGS = {
+    "VAPID_PUBLIC_KEY": "REEMPLAZA_CON_TU_CLAVE_PUBLICA",
+    "VAPID_PRIVATE_KEY": "REEMPLAZA_CON_TU_CLAVE_PRIVADA",
+    "VAPID_ADMIN_EMAIL": "mailto:tu_email@ejemplo.com"
+}

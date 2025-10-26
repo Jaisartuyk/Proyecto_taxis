@@ -1207,7 +1207,13 @@ def comunicacion_conductores(request):
     if not (request.user.role == 'driver' or request.user.is_superuser):
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
 
-    return render(request, 'comunicacion.html')
+    if request.user.is_superuser:
+        context = {
+            'GOOGLE_API_KEY': settings.GOOGLE_API_KEY
+        }
+        return render(request, 'comunicacion.html', context)
+    else:
+        return render(request, 'comunicacion_driver.html')
 
 
 def ubicaciones_taxis(request):
@@ -1327,3 +1333,23 @@ def user_ratings(request, user_id):
     except Exception as e:
         messages.error(request, f"Error al cargar calificaciones: {str(e)}")
         return redirect('home')
+
+def offline_view(request):
+    return render(request, 'offline.html')
+
+
+@login_required
+def chat_central(request):
+    # Solo admin y conductores pueden entrar
+    if not (request.user.is_superuser or request.user.role == 'driver'):
+        messages.error(request, "No tienes permiso para acceder a esta página.")
+        return redirect('home')
+
+    drivers = AppUser.objects.filter(role='driver')
+    admin_user = AppUser.objects.filter(is_superuser=True).first()
+
+    context = {
+        'drivers': drivers,
+        'admin_user_id': admin_user.id if admin_user else None
+    }
+    return render(request, 'central_comunicacion.html', context)

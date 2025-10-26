@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sin Conexión - De Aquí P-Allá{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">Estás sin conexión</h1>
+                    <p class="card-text">Parece que has perdido tu conexión a internet. Esta página no puede ser mostrada.</p>
+                    <p class="card-text">Por favor, revisa tu conexión y vuelve a intentarlo.</p>
+                    <img src="{% static 'imagenes/logo1.png' %}" alt="Logo" class="img-fluid mt-4" style="max-width: 200px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

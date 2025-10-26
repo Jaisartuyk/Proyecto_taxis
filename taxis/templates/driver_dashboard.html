@@ -567,3 +567,100 @@
     });
 </script>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para obtener el token de autenticación desde localStorage
+    function getAuthToken() {
+        return localStorage.getItem('authToken'); // Asumiendo que el token se guarda aquí
+    }
+
+    // Función para enviar la ubicación al backend
+    function sendLocation(latitude, longitude) {
+        const token = getAuthToken();
+        if (!token) {
+            console.error('No se encontró el token de autenticación. El usuario debe iniciar sesión.');
+            return;
+        }
+
+        console.log(`Enviando ubicación: ${latitude}, ${longitude}`);
+        fetch("{% url 'api_update_location' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${token}`
+            },
+            body: JSON.stringify({
+                latitude: latitude,
+                longitude: longitude
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.message) {
+                console.log('Backend dice:', data.message);
+            } else if (data.error) {
+                console.error('Error del backend:', data.error);
+            }
+        })
+        .catch(error => console.error('Error al enviar ubicación:', error));
+    }
+
+    // Iniciar el seguimiento de la ubicación
+    if ('geolocation' in navigator) {
+        console.log('Geolocalización disponible. Iniciando seguimiento...');
+        
+        const watchOptions = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.watchPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                sendLocation(latitude, longitude);
+            },
+            (error) => {
+                console.error(`Error de geolocalización: ${error.message} (código: ${error.code})`);
+            },
+            watchOptions
+        );
+    } else {
+        console.error('Geolocalización no está disponible en este navegador.');
+    }
+
+    // --- REGISTRO DE SINCRONIZACIÓN PERIÓDICA EN SEGUNDO PLANO ---
+    async function registerPeriodicSync() {
+        // 1. Verificar que el Service Worker esté listo y que el navegador soporte PeriodicSyncManager
+        const registration = await navigator.serviceWorker.ready;
+        if (!('periodicSync' in registration)) {
+            console.warn('La sincronización periódica en segundo plano no es soportada por este navegador.');
+            return;
+        }
+
+        // 2. Consultar el estado del permiso
+        const status = await navigator.permissions.query({
+            name: 'periodic-background-sync',
+        });
+
+        if (status.state === 'granted') {
+            // 3. Si el permiso está concedido, registrar la tarea
+            try {
+                await registration.periodicSync.register('update-location-sync', {
+                    minInterval: 10 * 60 * 1000, // 10 minutos en milisegundos
+                });
+                console.log('Sincronización periódica de ubicación registrada con éxito.');
+            } catch (error) {
+                console.error('Fallo al registrar la sincronización periódica:', error);
+            }
+        } else {
+            console.warn('Permiso para sincronización periódica en segundo plano no concedido.');
+        }
+    }
+
+    registerPeriodicSync();
+});
+</script>
+{% endblock %}

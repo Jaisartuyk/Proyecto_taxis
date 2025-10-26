@@ -7,6 +7,7 @@ from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsap
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('offline/', views.offline_view, name='offline'),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     #path('register/', views.register_view, name='register'),
@@ -55,5 +56,8 @@ urlpatterns = [
     # Sistema de calificaciones
     path('ride/<int:ride_id>/rate/', views.rate_ride, name='rate_ride'),
     path('user/<int:user_id>/ratings/', views.user_ratings, name='user_ratings'),
+
+    # Chat Central
+    path('central-comunicacion/', views.chat_central, name='chat_central'),
 
 ]

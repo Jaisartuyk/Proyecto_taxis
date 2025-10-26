@@ -163,7 +163,7 @@
 </div>
 
 <script>
-    const Maps_API_KEY = "AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ"; // ⭐⭐ ¡TU CLAVE REAL! ⭐⭐
+    const Maps_API_KEY = "{{ GOOGLE_API_KEY }}";
     const roomName = "conductores"; // ⭐⭐ ¡DEBE COINCIDIR CON LA ROOM_NAME DE TU CONSUMER/Android! ⭐⭐
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     
@@ -199,10 +199,15 @@
         console.log("Mapa de Google Maps inicializado.");
         setupWebSocket();
         setupCentralAudioControls(); // Configurar los controles de audio de la central
+
+        // Iniciar la actualización periódica de ubicaciones desde la API
+        setInterval(fetchDriverLocations, 10000); // Cada 10 segundos
+        fetchDriverLocations(); // Carga inicial
     };
 
     function setupWebSocket() {
-        socket = new WebSocket(`${wsProtocol}taxis-deaquipalla.up.railway.app/ws/audio/${roomName}/`);
+        const host = window.location.host;
+        socket = new WebSocket(`${wsProtocol}${host}/ws/audio/${roomName}/`);
 
         socket.onopen = function(event) {
             console.log('Conexión WebSocket abierta.');
@@ -266,8 +271,47 @@
         };
     }
 
+        }
+    }
+
+    // --- NUEVO: Función para obtener ubicaciones desde la API ---
+    async function fetchDriverLocations() {
+        try {
+            const response = await fetch('/api/taxis_ubicacion/');
+            if (!response.ok) {
+                logMessage('Error al obtener ubicaciones de la API.');
+                return;
+            }
+            const taxis = await response.json();
+            console.log('Ubicaciones recibidas de la API:', taxis);
+
+            // Crear un set con los IDs de los taxis activos para limpiar los inactivos
+            const activeTaxiIds = new Set();
+
+            taxis.forEach(taxi => {
+                if (taxi.lat && taxi.lng) {
+                    updateDriverLocation(taxi.id, taxi.lat, taxi.lng, taxi.nombre);
+                    activeTaxiIds.add(taxi.id.toString());
+                }
+            });
+
+            // Limpiar marcadores de conductores que ya no están en la API
+            for (const driverId in driverMarkers) {
+                if (!activeTaxiIds.has(driverId)) {
+                    driverMarkers[driverId].setMap(null); // Ocultar del mapa
+                    delete driverMarkers[driverId]; // Eliminar de la lista
+                    logMessage(`Conductor ${driverId} desconectado o sin ubicación.`);
+                }
+            }
+
+        } catch (error) {
+            console.error('Error en fetchDriverLocations:', error);
+            logMessage('Fallo la conexión con la API de ubicaciones.');
+        }
+    }
+
     // --- Funciones para el mapa ---
-    function updateDriverLocation(driverId, lat, lng) {
+    function updateDriverLocation(driverId, lat, lng, driverName = null) {
         const position = { lat: lat, lng: lng };
 
         if (!map) {
@@ -275,15 +319,27 @@
             return;
         }
 
+        const title = driverName ? `${driverName} (${driverId})` : `Conductor ${driverId}`;
+
         if (!driverMarkers[driverId]) {
             driverMarkers[driverId] = new google.maps.Marker({
                 position: position,
                 map: map,
-                title: `Conductor ${driverId}`,
+                title: title,
+                icon: {
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 4,
+                    rotation: 0,
+                    fillColor: '#007bff',
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: '#ffffff'
+                }
             });
             console.log(`Marcador creado para conductor ${driverId}`);
         } else {
             driverMarkers[driverId].setPosition(position);
+            driverMarkers[driverId].setTitle(title);
             console.log(`Marcador de conductor ${driverId} actualizado.`);
         }
     }

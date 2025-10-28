@@ -207,6 +207,7 @@ function updateDriverLocation(driverId, lat, lng, driverName = null) {
 // Funciones de utilidad
 function logMessage(msg) {
     const logDiv = document.getElementById('log');
+    if (!logDiv) return; // Verificar si el elemento existe
     const p = document.createElement('p');
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     logDiv.appendChild(p);
@@ -215,6 +216,7 @@ function logMessage(msg) {
 
 function logAudio(msg) {
     const audioLogDiv = document.getElementById('audioLog');
+    if (!audioLogDiv) return; // Verificar si el elemento existe
     const p = document.createElement('p');
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     audioLogDiv.appendChild(p);

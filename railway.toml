@@ -1,0 +1,19 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacksPlan.phases.setup]
+nixPkgs = ["python39", "postgresql"]
+
+[build.nixpacksPlan.phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[build.nixpacksPlan.phases.build]
+cmds = [
+    "python manage.py collectstatic --noinput",
+    "python manage.py migrate --noinput"
+]
+
+[deploy]
+startCommand = "daphne -b 0.0.0.0 -p $PORT taxi_project.asgi:application"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10

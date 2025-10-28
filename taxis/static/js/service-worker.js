@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taxi-app-v3';
+const CACHE_NAME = 'taxi-app-v4';
 const OFFLINE_URL = '/offline/';
 const ASSETS_TO_CACHE = [
   '/',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   '/static/js/main.js',
   '/static/js/comunicacion.js',
   '/static/js/notifications.js',
+  '/static/js/install-prompt.js',
   '/static/imagenes/logo1.png'
 ];
 

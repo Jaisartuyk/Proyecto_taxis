@@ -195,9 +195,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # default static files settings for PythonAnywhere.
 # see https://help.pythonanywhere.com/pages/DjangoStaticFiles for more info
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # carpeta destino para producción
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # carpeta fuente
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'taxis', 'static'),  # Archivos estáticos de la app taxis
+]
 
 MEDIA_URL = '/media/'  # La URL para acceder a los archivos multimedia
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # El directorio donde se guardarán los archivos multimedia

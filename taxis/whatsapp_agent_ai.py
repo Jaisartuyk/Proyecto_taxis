@@ -426,7 +426,8 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
                     "❌ Hubo un problema al buscar la dirección. ¿Podrías intentar de nuevo o enviar tu ubicación GPS? 📍"
                 )
         
-        elif accion == 'crear_carrera':
+        elif accion == 'crear_carrera' or accion == 'confirmar_carrera':
+            # Ambas acciones crean la carrera
             self._crear_carrera_confirmada(numero_telefono, conversacion)
         
         elif accion == 'cancelar_solicitud':

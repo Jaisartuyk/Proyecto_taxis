@@ -83,27 +83,29 @@
                 
                 if (data.type === 'audio_broadcast') {
                     // No reproducir mi propio audio (comparar username)
-                    const myUsername = '{{ request.user.username }}';
-                    const senderUsername = String(data.senderId);
+                    const myUsername = String('{{ request.user.username }}').trim();
+                    const senderUsername = String(data.senderId || '').trim();
                     
-                    console.log('🔍 COMPARACIÓN:');
-                    console.log('  Mi username:', myUsername, '(tipo:', typeof myUsername, ')');
-                    console.log('  Sender:', senderUsername, '(tipo:', typeof senderUsername, ')');
+                    console.log('🔍 COMPARACIÓN DETALLADA:');
+                    console.log('  Mi username:', `"${myUsername}"`, '(tipo:', typeof myUsername, 'length:', myUsername.length, ')');
+                    console.log('  Sender:', `"${senderUsername}"`, '(tipo:', typeof senderUsername, 'length:', senderUsername.length, ')');
                     console.log('  ¿Son iguales?:', senderUsername === myUsername);
+                    console.log('  Sender Role:', data.senderRole);
                     
+                    // Filtrar mi propio audio
                     if (senderUsername === myUsername) {
                         log('🔇 Audio propio ignorado - Mi username: ' + myUsername);
-                        console.log('🔇 ✅ FILTRADO CORRECTAMENTE - No reproducir');
-                        return;
+                        console.log('🔇 ✅ FILTRADO CORRECTAMENTE - NO REPRODUCIR');
+                        return; // ⚠️ IMPORTANTE: NO REPRODUCIR
                     }
                     
-                    console.log('✅ Audio de otra persona - REPRODUCIENDO');
+                    console.log('✅ Audio de OTRA PERSONA - REPRODUCIENDO');
                     
                     if (data.senderRole === 'Central') {
                         log(`🔊 Audio recibido de la Central`);
                         playAudioFromBase64(data.audio);
                     } else if (data.senderRole === 'Taxi') {
-                        log(`🔊 Audio recibido de conductor: ${data.senderId}`);
+                        log(`🔊 Audio recibido de otro conductor: ${data.senderId}`);
                         playAudioFromBase64(data.audio);
                     }
                 }

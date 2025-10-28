@@ -162,11 +162,16 @@
             <div id="no-chat-selected">Selecciona una conversación para comenzar</div>
         </div>
         <div class="chat-input-area" id="chat-input-container" style="display: none;">
+            <button id="record-audio-btn" style="margin-right: 10px; background: #28a745; color: white; border: none; border-radius: 20px; padding: 10px 20px; cursor: pointer;">🎤 Grabar Audio</button>
+            <button id="stop-audio-btn" style="margin-right: 10px; background: #dc3545; color: white; border: none; border-radius: 20px; padding: 10px 20px; cursor: pointer; display: none;">⏹️ Detener</button>
             <input id="chat-message-input" type="text" placeholder="Escribe un mensaje...">
             <button id="chat-message-submit">Enviar</button>
         </div>
     </div>
 </div>
+
+<audio id="audio-player" style="display: none;"></audio>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -274,8 +279,116 @@ document.addEventListener('DOMContentLoaded', function() {
         if (noChatSelected) noChatSelected.style.display = 'none';
     }
 
-    // Iniciar la conexión
-    setupWebSocket();
+    // ==================== FUNCIONALIDAD DE AUDIO ====================
+    let mediaRecorder;
+    let audioChunks = [];
+    const recordBtn = document.getElementById('record-audio-btn');
+    const stopBtn = document.getElementById('stop-audio-btn');
+    const audioPlayer = document.getElementById('audio-player');
+
+    // Botón para iniciar grabación
+    recordBtn.addEventListener('click', async function() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendAudioMessage(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            recordBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-block';
+            console.log('🎤 Grabando audio...');
+        } catch (error) {
+            console.error('Error al acceder al micrófono:', error);
+            alert('No se pudo acceder al micrófono. Verifica los permisos.');
+        }
+    });
+
+    // Botón para detener grabación
+    stopBtn.addEventListener('click', function() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            stopBtn.style.display = 'none';
+            recordBtn.style.display = 'inline-block';
+            console.log('⏹️ Grabación detenida');
+        }
+    });
+
+    // Enviar audio por WebSocket
+    function sendAudioMessage(audioBlob) {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            const base64Audio = reader.result.split(',')[1];
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN && activeChatRecipientId) {
+                chatSocket.send(JSON.stringify({
+                    'audio': base64Audio,
+                    'recipient_id': activeChatRecipientId
+                }));
+                console.log('🔊 Audio enviado');
+                appendAudioMessage('Tú', true);
+            } else {
+                console.error('WebSocket no está conectado o no hay destinatario seleccionado');
+            }
+        };
+        reader.readAsDataURL(audioBlob);
+    }
+
+    // Agregar mensaje de audio al chat
+    function appendAudioMessage(senderName, isSent) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(isSent ? 'sent' : 'received');
+
+        messageDiv.innerHTML = `
+            <div>
+                <div class="message-sender">${senderName}</div>
+                <div class="message-bubble">🔊 Mensaje de audio</div>
+            </div>
+        `;
+        chatLog.appendChild(messageDiv);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // Modificar onmessage para manejar audio
+    const originalOnMessage = chatSocket ? chatSocket.onmessage : null;
+    
+    function setupWebSocketWithAudio() {
+        setupWebSocket();
+        
+        // Esperar a que chatSocket esté definido
+        setTimeout(() => {
+            if (chatSocket) {
+                chatSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    
+                    // Manejar mensajes de audio
+                    if (data.audio && (data.sender_id == activeChatRecipientId || data.sender_id == currentUser.id)) {
+                        const audioData = 'data:audio/webm;base64,' + data.audio;
+                        audioPlayer.src = audioData;
+                        audioPlayer.play();
+                        appendAudioMessage(data.sender_name || 'Conductor', data.sender_id != currentUser.id);
+                        console.log('🔊 Audio recibido y reproduciendo');
+                    }
+                    // Manejar mensajes de texto
+                    else if (data.message && (data.sender_id == activeChatRecipientId || data.sender_id == currentUser.id)) {
+                        appendMessage(data.message, data.sender_id, data.sender_name);
+                    }
+                };
+            }
+        }, 100);
+    }
+
+    // Iniciar la conexión con soporte de audio
+    setupWebSocketWithAudio();
 });
 </script>
 {% endblock %}

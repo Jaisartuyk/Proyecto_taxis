@@ -238,35 +238,28 @@ class WhatsAppAgentAI:
                     self.enviar_mensaje(numero_telefono, "❌ Formato incorrecto. Usa: *RECHAZAR [número]*")
                     return True
             
-            # Agregar mensaje al historial
-            conversacion['historial'].append({
-                "role": "user",
-                "content": mensaje
-            })
+            # Obtener historial de mensajes de la BD
+            mensajes_recientes = conversacion.messages.all().order_by('-created_at')[:10]
+            historial = []
+            for msg in reversed(mensajes_recientes):
+                historial.append({
+                    "role": "user" if msg.direction == 'incoming' else "assistant",
+                    "content": msg.content
+                })
             
             # Generar respuesta con el asistente de IA
             resultado = simple_ai_assistant.generar_respuesta_contextual(
                 mensaje_usuario=mensaje,
-                estado_conversacion=conversacion['estado'],
+                estado_conversacion=conversacion.state,
                 datos_usuario={
-                    'nombre': conversacion['nombre'],
-                    'datos': conversacion['datos']
+                    'nombre': conversacion.name,
+                    'datos': conversacion.data
                 }
             )
             
             respuesta_texto = resultado['respuesta']
             accion = resultado['accion']
             datos_extraidos = resultado['datos_extraidos']
-            
-            # Agregar respuesta al historial
-            conversacion['historial'].append({
-                "role": "assistant",
-                "content": respuesta_texto
-            })
-            
-            # Limitar historial a últimos 10 mensajes
-            if len(conversacion['historial']) > 10:
-                conversacion['historial'] = conversacion['historial'][-10:]
             
             # Ejecutar acción según lo que Claude determine
             self._ejecutar_accion(numero_telefono, accion, mensaje, conversacion, datos_extraidos)

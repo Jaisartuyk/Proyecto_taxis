@@ -17,16 +17,34 @@ def whatsapp_webhook(request):
     """
     Endpoint para recibir webhooks de WASender
     
-    Formato esperado:
+    Formatos soportados:
+    1. Test webhook:
     {
-        "event": "message.received",
+        "event": "webhook.test",
         "timestamp": "1757318059855",
         "session_id": 8359,
         "data": {
-            "from": "+1234567890",
-            "text": "Hola",
-            "name": "Juan Pérez",
-            "message_id": "ABC123"
+            "message": "This is a test webhook from WASender",
+            "test": true
+        }
+    }
+    
+    2. Mensaje recibido:
+    {
+        "event": "messages.upsert",
+        "timestamp": "1757318059855",
+        "session_id": 8359,
+        "data": {
+            "messages": {
+                "key": {
+                    "remoteJid": "593968192046@s.whatsapp.net",
+                    "fromMe": false
+                },
+                "message": {
+                    "conversation": "Hola"
+                },
+                "pushName": "Juan Pérez"
+            }
         }
     }
     """
@@ -36,21 +54,37 @@ def whatsapp_webhook(request):
         return JsonResponse({
             'status': 'ok',
             'message': 'WhatsApp Webhook is active',
-            'service': 'De Aquí Pa\'llá - Taxi Service'
+            'service': 'De Aquí Pa\'llá - Taxi Service',
+            'endpoint': '/webhook/whatsapp/'
         })
     
     try:
+        # Verificar firma del webhook (seguridad)
+        webhook_signature = request.headers.get('X-Webhook-Signature', '')
+        if webhook_signature:
+            logger.info(f"🔐 Webhook signature recibida: {webhook_signature[:20]}...")
+        
         # Parsear el cuerpo de la solicitud
         if request.content_type == 'application/json':
             payload = json.loads(request.body.decode('utf-8'))
         else:
             payload = request.POST.dict()
         
-        logger.info(f"Webhook recibido: {payload}")
+        logger.info(f"📥 Webhook recibido: {json.dumps(payload, indent=2)}")
         
         # Extraer información del webhook
         event_type = payload.get('event', '')
         data = payload.get('data', {})
+        
+        # Manejar webhook de prueba
+        if event_type == 'webhook.test':
+            logger.info("✅ Webhook test recibido correctamente")
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Test webhook received successfully',
+                'timestamp': payload.get('timestamp'),
+                'session_id': payload.get('session_id')
+            })
         
         # Procesar mensajes recibidos (formato WASender: messages.upsert)
         if event_type == 'messages.upsert':

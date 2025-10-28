@@ -7,9 +7,16 @@
 <style>
     /* === DISEÑO PROFESIONAL CENTRO DE COMANDO === */
     body {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        margin: 0;
-        padding: 0;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Sobrescribir estilos del contenedor principal de base.html */
+    .container, .container-fluid {
+        background: transparent !important;
+        padding: 0 !important;
+        max-width: 100% !important;
     }
 
     .command-center-header {
@@ -449,9 +456,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Manejar audio de conductores
             if (data.type === 'audio_broadcast' && data.audio) {
-                // No reproducir mi propio audio
-                if (data.senderRole === 'Central') {
-                    console.log('🔇 Audio propio de la Central ignorado');
+                // No reproducir mi propio audio (comparar por ID de usuario)
+                if (data.senderId === currentUser.id || data.senderId === String(currentUser.id)) {
+                    console.log('🔇 Audio propio ignorado (ID:', data.senderId, ')');
                     return;
                 }
                 
@@ -459,9 +466,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 audioPlayer.src = audioData;
                 audioPlayer.play();
                 
-                const senderName = data.senderId || 'Conductor';
+                const senderName = data.senderRole === 'Central' ? 'Central' : (data.senderId || 'Conductor');
                 appendAudioMessage(senderName, false);
-                console.log('🔊 Audio de conductor reproduciendo');
+                console.log('🔊 Audio reproduciendo de:', senderName);
             }
         };
     }
@@ -557,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 audioSocket.send(JSON.stringify({
                     'type': 'central_audio_message',
                     'audio': base64Audio,
+                    'senderId': currentUser.id,  // ID del usuario admin
                     'senderRole': 'Central'
                 }));
                 console.log('🔊 Audio enviado a conductores');

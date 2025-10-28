@@ -58,6 +58,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
             # --- Mensajes desde la central ---
             elif message_type == 'central_audio_message':
                 audio_data_base64 = data.get('audio')
+                sender_id = data.get('senderId', 'Central')  # ID real del admin
                 sender_role = data.get('senderRole', 'Central')
 
                 if audio_data_base64:
@@ -65,12 +66,12 @@ class AudioConsumer(AsyncWebsocketConsumer):
                         self.room_group_name,
                         {
                             'type': 'send_audio_to_clients',
-                            'senderId': sender_role,
-                            'senderRole': sender_role,  # 👈 También incluido
+                            'senderId': sender_id,  # ID real para filtrar
+                            'senderRole': sender_role,
                             'audio': audio_data_base64,
                         }
                     )
-                    print(f"🔊 Audio de la {sender_role} retransmitido a los taxis.")
+                    print(f"🔊 Audio de la {sender_role} (ID: {sender_id}) retransmitido a los taxis.")
                 else:
                     print(f"⚠️ Mensaje de audio incompleto recibido desde la web: {data}")
 

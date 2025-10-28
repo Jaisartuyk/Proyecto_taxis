@@ -67,14 +67,101 @@
         50% { opacity: 0.5; transform: scale(1.2); }
     }
 
+    .main-layout {
+        display: flex;
+        height: calc(100vh - 80px);
+        gap: 0;
+    }
+
     .chat-container {
         display: flex;
-        height: calc(100vh - 140px);
+        flex: 1;
         background: #fff;
         border-radius: 0;
         box-shadow: none;
         overflow: hidden;
         margin: 0;
+    }
+
+    .audio-log-panel {
+        width: 300px;
+        background: linear-gradient(180deg, #16213e 0%, #0f1419 100%);
+        border-left: 2px solid #0f3460;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .audio-log-header {
+        padding: 20px;
+        background: rgba(15, 52, 96, 0.5);
+        color: #fff;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.9rem;
+        border-bottom: 2px solid #0f3460;
+    }
+
+    .audio-log-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+
+    .audio-log-item {
+        background: rgba(255,255,255,0.05);
+        border-left: 3px solid #4CAF50;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        animation: slideInRight 0.3s ease;
+    }
+
+    .audio-log-item.sent {
+        border-left-color: #667eea;
+    }
+
+    .audio-log-item.received {
+        border-left-color: #4CAF50;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .audio-log-sender {
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .audio-log-sender::before {
+        content: "🎤";
+        font-size: 1rem;
+    }
+
+    .audio-log-time {
+        color: rgba(255,255,255,0.5);
+        font-size: 0.75rem;
+    }
+
+    .audio-log-empty {
+        color: rgba(255,255,255,0.3);
+        text-align: center;
+        padding: 40px 20px;
+        font-size: 0.9rem;
     }
 
     .user-list {
@@ -288,6 +375,7 @@
     </div>
 </div>
 
+<div class="main-layout">
 <div class="chat-container">
     {% if request.user.is_superuser %}
     <div class="user-list">
@@ -318,6 +406,19 @@
     </div>
 </div>
 
+<!-- PANEL DE REGISTRO DE AUDIO -->
+<div class="audio-log-panel">
+    <div class="audio-log-header">
+        📻 Registro de Audio
+    </div>
+    <div class="audio-log-content" id="audio-log">
+        <div class="audio-log-empty">
+            No hay comunicaciones de audio aún
+        </div>
+    </div>
+</div>
+</div>
+
 <audio id="audio-player" style="display: none;"></audio>
 
 {% endblock %}
@@ -337,9 +438,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const messageSubmit = document.getElementById('chat-message-submit');
     const inputContainer = document.getElementById('chat-input-container');
     const noChatSelected = document.getElementById('no-chat-selected');
+    const audioLogPanel = document.getElementById('audio-log');
 
     let activeChatRecipientId = null;
     let chatSocket = null;
+
+    // Función para agregar entrada al registro de audio
+    function addAudioLogEntry(senderName, type) {
+        const emptyMsg = audioLogPanel.querySelector('.audio-log-empty');
+        if (emptyMsg) emptyMsg.remove();
+
+        const logItem = document.createElement('div');
+        logItem.className = `audio-log-item ${type}`;
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        logItem.innerHTML = `
+            <div class="audio-log-sender">${senderName}</div>
+            <div class="audio-log-time">${timeStr}</div>
+        `;
+        
+        audioLogPanel.insertBefore(logItem, audioLogPanel.firstChild);
+        
+        // Mantener solo los últimos 20 registros
+        const items = audioLogPanel.querySelectorAll('.audio-log-item');
+        if (items.length > 20) {
+            items[items.length - 1].remove();
+        }
+    }
 
     function setupWebSocket() {
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -452,22 +579,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
         audioSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            console.log('🔊 Mensaje de audio recibido:', data);
+            console.log('🔊 Mensaje de audio recibido completo:', data);
+            console.log('🔍 Mi ID:', currentUser.id, 'Sender ID:', data.senderId, 'Tipo:', typeof data.senderId);
             
             // Manejar audio de conductores
             if (data.type === 'audio_broadcast' && data.audio) {
-                // No reproducir mi propio audio (comparar por ID de usuario)
-                if (data.senderId === currentUser.id || data.senderId === String(currentUser.id)) {
-                    console.log('🔇 Audio propio ignorado (ID:', data.senderId, ')');
+                // No reproducir mi propio audio (comparar por ID de usuario - ambos como string)
+                const myId = String(currentUser.id);
+                const senderId = String(data.senderId);
+                
+                if (senderId === myId) {
+                    console.log('🔇 Audio propio ignorado - Mi ID:', myId, 'Sender:', senderId);
                     return;
                 }
+                
+                console.log('✅ Audio de otra persona - reproduciendo');
                 
                 const audioData = 'data:audio/webm;base64,' + data.audio;
                 audioPlayer.src = audioData;
                 audioPlayer.play();
                 
-                const senderName = data.senderRole === 'Central' ? 'Central' : (data.senderId || 'Conductor');
+                const senderName = data.senderRole === 'Central' ? 'Otra Central' : (data.senderId || 'Conductor');
                 appendAudioMessage(senderName, false);
+                
+                // Agregar al registro de audio
+                addAudioLogEntry(`📥 ${senderName}`, 'received');
                 console.log('🔊 Audio reproduciendo de:', senderName);
             }
         };
@@ -567,8 +703,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     'senderId': currentUser.id,  // ID del usuario admin
                     'senderRole': 'Central'
                 }));
-                console.log('🔊 Audio enviado a conductores');
+                console.log('📤 Audio enviado a conductores con ID:', currentUser.id);
                 appendAudioMessage('Tú (Central)', true);
+                
+                // Agregar al registro de audio
+                addAudioLogEntry('📤 Tú (Central)', 'sent');
             } else {
                 console.error('Audio WebSocket no está conectado');
                 alert('No se puede enviar audio. WebSocket desconectado.');

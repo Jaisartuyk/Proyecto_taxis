@@ -22,8 +22,12 @@ COPY . .
 # Recolectar archivos estáticos
 RUN python manage.py collectstatic --noinput
 
+# Copiar y dar permisos al entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Exponer puerto
 EXPOSE 8080
 
-# Comando de inicio (usar forma shell para expansión de variables)
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8080} taxi_project.asgi:application"]
+# Comando de inicio
+ENTRYPOINT ["/entrypoint.sh"]

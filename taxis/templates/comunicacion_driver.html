@@ -78,12 +78,21 @@
         socket.onmessage = (event) => {
             if (typeof event.data === 'string') {
                 const data = JSON.parse(event.data);
+                console.log('🔊 Mensaje recibido:', data);
+                console.log('🔍 Mi username:', '{{ request.user.username }}', 'Sender:', data.senderId);
+                
                 if (data.type === 'audio_broadcast') {
-                    // No reproducir mi propio audio
-                    if (data.senderId === '{{ request.user.username }}') {
-                        log('🔇 Audio propio ignorado');
+                    // No reproducir mi propio audio (comparar username)
+                    const myUsername = '{{ request.user.username }}';
+                    const senderUsername = String(data.senderId);
+                    
+                    if (senderUsername === myUsername) {
+                        log('🔇 Audio propio ignorado - Mi username: ' + myUsername);
+                        console.log('🔇 Audio propio ignorado');
                         return;
                     }
+                    
+                    console.log('✅ Audio de otra persona - reproduciendo');
                     
                     if (data.senderRole === 'Central') {
                         log(`🔊 Audio recibido de la Central`);

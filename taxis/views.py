@@ -1351,6 +1351,7 @@ def chat_central(request):
 
     context = {
         'drivers': drivers,
-        'admin_user_id': admin_user.id if admin_user else None
+        'admin_user_id': admin_user.id if admin_user else None,
+        'GOOGLE_API_KEY': settings.GOOGLE_API_KEY  # Para el mapa
     }
     return render(request, 'central_comunicacion.html', context)

@@ -351,6 +351,11 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
             conversacion.state = 'esperando_origen'
             conversacion.save()
         
+        elif accion == 'solicitar_destino':
+            # Claude indica que debe pedir destino
+            conversacion.state = 'esperando_destino'
+            conversacion.save()
+        
         elif accion == 'procesar_origen':
             # Intentar geocodificar la dirección
             try:

@@ -233,8 +233,8 @@ CSRF_COOKIE_SECURE = True
 
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', 'AIzaSyAtEPZgbPBwnJGrvIuwplRJDFbr0tmbnyQ')
 
-# Google Maps
-GOOGLE_MAPS_API_KEY = 'TU_API_KEY_AQUI'
+# Google Maps - Usar la misma variable que ya está configurada en Railway
+GOOGLE_MAPS_API_KEY = GOOGLE_API_KEY
 
 TELEGRAM_BOT_TOKEN = '7754998885:AAGOEJhcCE8t3NMYS2mQ-v8xM56j6aFPRoY'
 TELEGRAM_CHAT_ID_GRUPO_TAXISTAS = '-4767733103'

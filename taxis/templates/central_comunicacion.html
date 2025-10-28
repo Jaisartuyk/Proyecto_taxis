@@ -605,11 +605,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         audioSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
+            
+            // Solo procesar mensajes de audio (ignorar ubicaciones)
+            if (data.type !== 'audio_broadcast') {
+                return;
+            }
+            
             console.log('🔊 Mensaje de audio recibido completo:', data);
             console.log('🔍 Mi ID:', currentUser.id, 'Sender ID:', data.senderId, 'Tipo:', typeof data.senderId);
             
             // Manejar audio de conductores
-            if (data.type === 'audio_broadcast' && data.audio) {
+            if (data.audio) {
                 // No reproducir mi propio audio (comparar por ID de usuario - ambos como string)
                 const myId = String(currentUser.id);
                 const senderId = String(data.senderId);
@@ -760,11 +766,16 @@ document.addEventListener('DOMContentLoaded', function() {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    // ==================== MAPA DE GOOGLE MAPS ====================
-    let map;
-    let markers = {};
+    // Iniciar conexiones
+    setupWebSocket();
+    setupAudioWebSocket();
+});
 
-    function initMap() {
+// ==================== MAPA DE GOOGLE MAPS ====================
+let map;
+let markers = {};
+
+function initMap() {
         // Centro en Bogotá por defecto
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: 4.7110, lng: -74.0721 },
@@ -865,12 +876,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 markers[location.driver_id] = marker;
             }
         });
-    }
-
-    // Iniciar conexiones
-    setupWebSocket();
-    setupAudioWebSocket();
-});
+}
 </script>
 
 <!-- Google Maps API -->

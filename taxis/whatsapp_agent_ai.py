@@ -481,71 +481,54 @@ Por favor, intenta más tarde o escribe *MENU* para volver al inicio."""
             return False
     
     def _crear_carrera_confirmada(self, numero_telefono, conversacion):
-        """Crea la carrera en la base de datos"""
+        """Crea la carrera en la base de datos usando la función del sistema"""
         try:
             # Buscar o crear usuario
-            usuario = self._obtener_o_crear_usuario(numero_telefono, conversacion['nombre'])
-            
-            # Buscar conductor más cercano disponible
-            lat_origen = conversacion['datos']['origen_lat']
-            lng_origen = conversacion['datos']['origen_lng']
-            taxista_cercano = self._buscar_taxista_cercano(lat_origen, lng_origen)
-            
-            if not taxista_cercano:
-                self.enviar_mensaje(
-                    numero_telefono,
-                    "❌ Lo sentimos, no hay conductores disponibles en este momento.\n\n"
-                    "Por favor, intenta más tarde. 😔"
-                )
-                conversacion['estado'] = 'inicio'
-                return False
+            usuario = self._obtener_o_crear_usuario(numero_telefono, conversacion.name)
             
             # Calcular precio basado en distancia
             precio_estimado = self._calcular_precio(
-                conversacion['datos']['origen_lat'],
-                conversacion['datos']['origen_lng'],
-                conversacion['datos']['destino_lat'],
-                conversacion['datos']['destino_lng']
+                conversacion.data['origen_lat'],
+                conversacion.data['origen_lng'],
+                conversacion.data['destino_lat'],
+                conversacion.data['destino_lng']
             )
             
-            # Crear la carrera SIN conductor asignado (status='requested')
-            ride = Ride.objects.create(
-                customer=usuario,
-                origin=conversacion['datos']['origen'],
-                origin_latitude=conversacion['datos']['origen_lat'],
-                origin_longitude=conversacion['datos']['origen_lng'],
-                price=precio_estimado,
-                status='requested'  # Estado inicial: solicitada, esperando aceptación
-                # created_at se crea automáticamente con auto_now_add=True
+            # Usar la función del sistema para crear la carrera
+            # Esto garantiza que se use la misma lógica que el resto del sistema
+            from .views import crear_carrera_desde_whatsapp
+            
+            ride = crear_carrera_desde_whatsapp(
+                user=usuario,
+                origin=conversacion.data['origen'],
+                origin_lat=conversacion.data['origen_lat'],
+                origin_lng=conversacion.data['origen_lng'],
+                destination=conversacion.data['destino'],
+                dest_lat=conversacion.data['destino_lat'],
+                dest_lng=conversacion.data['destino_lng'],
+                price=precio_estimado
             )
             
-            # Crear destino
-            RideDestination.objects.create(
-                ride=ride,
-                destination=conversacion['datos']['destino'],
-                destination_latitude=conversacion['datos']['destino_lat'],
-                destination_longitude=conversacion['datos']['destino_lng'],
-                order=1
-            )
+            # Actualizar conversación
+            conversacion.ride = ride
+            conversacion.state = 'carrera_activa'
+            conversacion.data['ride_id'] = ride.id
+            conversacion.save()
             
-            conversacion['datos']['ride_id'] = ride.id
-            conversacion['datos']['taxista_id'] = taxista_cercano.id
-            conversacion['estado'] = 'esperando_conductor'
+            # Actualizar estadísticas
+            self._actualizar_stats(conversacion, ride_requested=True)
             
-            # Notificar al conductor más cercano
-            if taxista_cercano.user.phone_number:
-                self._notificar_conductor_nueva_carrera(taxista_cercano.user.phone_number, ride)
-            
-            # Notificar al cliente que estamos buscando conductor
+            # Notificar al cliente
             respuesta = f"""✅ *¡Carrera creada!* 🎉
 
 📱 *Número de carrera:* #{ride.id}
 📍 *Origen:* {ride.origin}
-🎯 *Destino:* {conversacion['datos']['destino']}
+🎯 *Destino:* {conversacion.data['destino']}
+💰 *Precio estimado:* ${precio_estimado:.2f}
 
-🔍 Estamos buscando el conductor más cercano...
+🔍 Estamos notificando a los conductores disponibles...
 
-Te notificaremos cuando un conductor acepte tu carrera. ⏱️
+Te avisaremos cuando un conductor acepte tu carrera. ⏱️
 
 Puedes seguir el estado escribiendo *ESTADO*"""
             

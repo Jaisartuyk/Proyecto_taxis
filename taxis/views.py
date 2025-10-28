@@ -865,6 +865,94 @@ def request_ride(request):
         'direccion_legible': 'Aún no se ha seleccionado un origen'
     })
 
+
+def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destination, dest_lat, dest_lng, price):
+    """
+    Función auxiliar para crear carreras desde WhatsApp
+    Usa la misma lógica que request_ride pero sin request HTTP
+    
+    Args:
+        user: Usuario (AppUser)
+        origin: Dirección de origen (str)
+        origin_lat: Latitud de origen (float)
+        origin_lng: Longitud de origen (float)
+        destination: Dirección de destino (str)
+        dest_lat: Latitud de destino (float)
+        dest_lng: Longitud de destino (float)
+        price: Precio estimado (float)
+        
+    Returns:
+        Ride object creado
+    """
+    try:
+        # Crear la solicitud de carrera
+        ride = Ride.objects.create(
+            customer=user,
+            origin=origin,
+            origin_latitude=origin_lat,
+            origin_longitude=origin_lng,
+            price=price,
+            status='requested',
+        )
+        
+        # Crear destino asociado
+        RideDestination.objects.create(
+            ride=ride,
+            destination=destination,
+            destination_latitude=dest_lat,
+            destination_longitude=dest_lng,
+            order=0
+        )
+        
+        # Obtener dirección legible para origen
+        direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
+        
+        # Mensaje para el grupo de conductores
+        mensaje_grupo = (
+            f"🚕 <b>Nueva carrera solicitada (WhatsApp)</b>\n"
+            f"📍 Origen: {direccion_legible}\n"
+            f"➡️ Destino: {destination}\n"
+            f"👤 Cliente: {user.get_full_name()}\n"
+            f"📱 Teléfono: {user.phone_number}\n"
+            f"💰 Precio estimado: ${price:.2f}"
+        )
+        
+        # Botones para el mensaje
+        botones = [[
+            {"text": "✅ Aceptar carrera", "callback_data": f"aceptar_{ride.id}"},
+            {"text": "🗺 Ver en Google Maps", "url": f"https://maps.google.com/?q={origin_lat},{origin_lng}"}
+        ]]
+        
+        # Enviar mensaje al grupo de conductores (si está configurado)
+        try:
+            from .telegram_bot import enviar_telegram, TELEGRAM_CHAT_ID_GRUPO_TAXISTAS
+            enviar_telegram(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
+        except Exception as e:
+            logger.warning(f"⚠️ No se pudo enviar a Telegram: {e}")
+        
+        # Notificar al taxista más cercano
+        taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
+        if taxista_cercano and taxista_cercano.user.telegram_chat_id:
+            mensaje_taxista = (
+                f"📣 Hola {taxista_cercano.user.get_full_name()}, hay una carrera cerca de ti:\n"
+                f"🛫 Desde: {direccion_legible}\n"
+                f"🎯 Hasta: {destination}\n"
+                f"👤 Cliente: {user.get_full_name()}"
+            )
+            try:
+                from .telegram_bot import enviar_telegram
+                enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo enviar a taxista: {e}")
+        
+        logger.info(f"✅ Carrera creada desde WhatsApp: {ride.id}")
+        return ride
+        
+    except Exception as e:
+        logger.error(f"❌ Error al crear carrera desde WhatsApp: {e}")
+        raise
+
+
 @login_required
 def available_rides(request):
     if not request.user.is_superuser and request.user.role != 'driver':

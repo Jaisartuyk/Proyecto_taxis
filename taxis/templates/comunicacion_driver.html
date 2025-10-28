@@ -46,8 +46,15 @@
 </div>
 
 <script>
-    // VERSION: 2025-10-28-v3 - FILTRO DE AUDIO MEJORADO
-    console.log('🔄 Script de comunicación cargado - Versión 2025-10-28-v3');
+    // VERSION: 2025-10-28-v4 - FILTRO MÓVIL MEJORADO
+    console.log('🔄 Script de comunicación cargado - Versión 2025-10-28-v4');
+    
+    // Deshabilitar Service Worker para esta página (evita caché)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            console.log('🔧 Service Workers encontrados:', registrations.length);
+        });
+    }
     
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -95,17 +102,24 @@
                     // ⚠️ FILTRO DE AUDIO: No reproducir mi propio audio
                     const senderUsername = String(data.senderId || '').trim();
                     
-                    console.log('🔍 COMPARACIÓN DETALLADA (v3):');
+                    console.log('🔍 COMPARACIÓN DETALLADA (v4):');
                     console.log('  Mi username:', `"${MY_USERNAME}"`, '(tipo:', typeof MY_USERNAME, 'length:', MY_USERNAME.length, ')');
                     console.log('  Sender:', `"${senderUsername}"`, '(tipo:', typeof senderUsername, 'length:', senderUsername.length, ')');
                     console.log('  ¿Son iguales?:', senderUsername === MY_USERNAME);
                     console.log('  Sender Role:', data.senderRole);
                     
-                    // FILTRO: Comparar con variable global
-                    if (senderUsername === MY_USERNAME) {
+                    // ⚠️ FILTRO TRIPLE: Tres verificaciones para máxima seguridad
+                    const isMyAudio = (
+                        senderUsername === MY_USERNAME ||
+                        data.senderId === MY_USERNAME ||
+                        senderUsername === '{{ request.user.username }}'.trim()
+                    );
+                    
+                    if (isMyAudio) {
                         log('🔇 Audio propio ignorado - Mi username: ' + MY_USERNAME);
                         console.log('🔇 ✅ FILTRADO CORRECTAMENTE - NO REPRODUCIR');
                         console.warn('⚠️ IMPORTANTE: Este audio NO se debe reproducir porque es mío');
+                        console.error('🚫 BLOQUEADO: Audio propio detectado');
                         return; // ⚠️ SALIR SIN REPRODUCIR
                     }
                     

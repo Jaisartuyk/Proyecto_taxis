@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <title>Comunicación con la Central</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         body { font-family: Arial, sans-serif; background-color: #f1f1f1; margin: 0; padding: 20px; }
         .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
@@ -43,6 +46,9 @@
 </div>
 
 <script>
+    // VERSION: 2025-10-28-v3 - FILTRO DE AUDIO MEJORADO
+    console.log('🔄 Script de comunicación cargado - Versión 2025-10-28-v3');
+    
     const roomName = "conductores";
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     const host = window.location.host;
@@ -51,7 +57,11 @@
     let socket;
     let mediaRecorder;
     let audioStream;
-    let audioContext;
+    let isRecording = false;
+    
+    // ⚠️ IMPORTANTE: Username del conductor actual
+    const MY_USERNAME = '{{ request.user.username }}'.trim();
+    console.log('👤 Mi username:', MY_USERNAME);
     let audioQueue = [];
     let isPlayingAudio = false;
 
@@ -82,21 +92,21 @@
                 console.log('🔍 Mi username:', '{{ request.user.username }}', 'Sender:', data.senderId);
                 
                 if (data.type === 'audio_broadcast') {
-                    // No reproducir mi propio audio (comparar username)
-                    const myUsername = String('{{ request.user.username }}').trim();
+                    // ⚠️ FILTRO DE AUDIO: No reproducir mi propio audio
                     const senderUsername = String(data.senderId || '').trim();
                     
-                    console.log('🔍 COMPARACIÓN DETALLADA:');
-                    console.log('  Mi username:', `"${myUsername}"`, '(tipo:', typeof myUsername, 'length:', myUsername.length, ')');
+                    console.log('🔍 COMPARACIÓN DETALLADA (v3):');
+                    console.log('  Mi username:', `"${MY_USERNAME}"`, '(tipo:', typeof MY_USERNAME, 'length:', MY_USERNAME.length, ')');
                     console.log('  Sender:', `"${senderUsername}"`, '(tipo:', typeof senderUsername, 'length:', senderUsername.length, ')');
-                    console.log('  ¿Son iguales?:', senderUsername === myUsername);
+                    console.log('  ¿Son iguales?:', senderUsername === MY_USERNAME);
                     console.log('  Sender Role:', data.senderRole);
                     
-                    // Filtrar mi propio audio
-                    if (senderUsername === myUsername) {
-                        log('🔇 Audio propio ignorado - Mi username: ' + myUsername);
+                    // FILTRO: Comparar con variable global
+                    if (senderUsername === MY_USERNAME) {
+                        log('🔇 Audio propio ignorado - Mi username: ' + MY_USERNAME);
                         console.log('🔇 ✅ FILTRADO CORRECTAMENTE - NO REPRODUCIR');
-                        return; // ⚠️ IMPORTANTE: NO REPRODUCIR
+                        console.warn('⚠️ IMPORTANTE: Este audio NO se debe reproducir porque es mío');
+                        return; // ⚠️ SALIR SIN REPRODUCIR
                     }
                     
                     console.log('✅ Audio de OTRA PERSONA - REPRODUCIENDO');

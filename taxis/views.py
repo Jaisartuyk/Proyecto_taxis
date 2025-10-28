@@ -1355,3 +1355,130 @@ def chat_central(request):
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY  # Para el mapa
     }
     return render(request, 'central_comunicacion.html', context)
+
+
+# ============================================
+# VISTAS DE WHATSAPP
+# ============================================
+
+@login_required
+def whatsapp_panel(request):
+    """Panel principal de WhatsApp"""
+    if not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para acceder a esta página.")
+        return redirect('home')
+    
+    from .models import WhatsAppConversation, WhatsAppMessage, WhatsAppStats
+    from datetime import date, timedelta
+    from django.db.models import Count, Q
+    
+    # Estadísticas de hoy
+    today = date.today()
+    stats_today = WhatsAppStats.objects.filter(date=today).first()
+    
+    # Conversaciones activas
+    active_conversations = WhatsAppConversation.objects.filter(
+        status='active'
+    ).order_by('-last_message_at')[:10]
+    
+    # Conversaciones recientes (últimas 24 horas)
+    yesterday = timezone.now() - timedelta(days=1)
+    recent_conversations = WhatsAppConversation.objects.filter(
+        last_message_at__gte=yesterday
+    ).order_by('-last_message_at')
+    
+    # Estadísticas de la última semana
+    week_ago = today - timedelta(days=7)
+    stats_week = WhatsAppStats.objects.filter(
+        date__gte=week_ago
+    ).order_by('date')
+    
+    context = {
+        'stats_today': stats_today,
+        'active_conversations': active_conversations,
+        'recent_conversations': recent_conversations,
+        'stats_week': stats_week,
+        'total_conversations': WhatsAppConversation.objects.count(),
+        'total_messages': WhatsAppMessage.objects.count(),
+    }
+    
+    return render(request, 'whatsapp_panel.html', context)
+
+
+@login_required
+def whatsapp_conversation_detail(request, conversation_id):
+    """Detalle de una conversación de WhatsApp"""
+    if not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para acceder a esta página.")
+        return redirect('home')
+    
+    from .models import WhatsAppConversation
+    
+    conversation = get_object_or_404(WhatsAppConversation, id=conversation_id)
+    messages_list = conversation.messages.all().order_by('created_at')
+    
+    context = {
+        'conversation': conversation,
+        'messages': messages_list,
+    }
+    
+    return render(request, 'whatsapp_conversation_detail.html', context)
+
+
+@login_required
+@csrf_exempt
+def whatsapp_send_message(request):
+    """Enviar mensaje manual de WhatsApp"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+    
+    if request.method == 'POST':
+        from .whatsapp_agent_ai import whatsapp_agent_ai
+        
+        data = json.loads(request.body)
+        phone_number = data.get('phone_number')
+        message = data.get('message')
+        
+        if not phone_number or not message:
+            return JsonResponse({'error': 'Faltan datos'}, status=400)
+        
+        success = whatsapp_agent_ai.enviar_mensaje(phone_number, message)
+        
+        if success:
+            return JsonResponse({'success': True, 'message': 'Mensaje enviado'})
+        else:
+            return JsonResponse({'error': 'Error al enviar mensaje'}, status=500)
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+def whatsapp_stats_api(request):
+    """API para obtener estadísticas de WhatsApp"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+    
+    from .models import WhatsAppStats, WhatsAppConversation
+    from datetime import date, timedelta
+    
+    today = date.today()
+    stats_today = WhatsAppStats.objects.filter(date=today).first()
+    
+    # Conversaciones por estado
+    conversations_by_status = WhatsAppConversation.objects.values('status').annotate(
+        count=Count('id')
+    )
+    
+    data = {
+        'today': {
+            'total_messages': stats_today.total_messages if stats_today else 0,
+            'incoming_messages': stats_today.incoming_messages if stats_today else 0,
+            'outgoing_messages': stats_today.outgoing_messages if stats_today else 0,
+            'new_conversations': stats_today.new_conversations if stats_today else 0,
+            'active_conversations': stats_today.active_conversations if stats_today else 0,
+            'rides_requested': stats_today.rides_requested if stats_today else 0,
+        },
+        'conversations_by_status': list(conversations_by_status),
+    }
+    
+    return JsonResponse(data)

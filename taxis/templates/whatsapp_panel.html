@@ -1,0 +1,562 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de WhatsApp - De Aquí Pa'llá</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: #25D366;
+            font-size: 32px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #25D366;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-secondary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5568d3;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card.messages .icon {
+            background: #E3F2FD;
+            color: #2196F3;
+        }
+
+        .stat-card.conversations .icon {
+            background: #F3E5F5;
+            color: #9C27B0;
+        }
+
+        .stat-card.rides .icon {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        .stat-card.active .icon {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 25px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .conversation-item:hover {
+            background: #f8f9fa;
+        }
+
+        .conversation-item:last-child {
+            border-bottom: none;
+        }
+
+        .conversation-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .conversation-info {
+            flex: 1;
+        }
+
+        .conversation-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .conversation-phone {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .conversation-meta {
+            text-align: right;
+        }
+
+        .conversation-time {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .conversation-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        .status-waiting {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        .status-completed {
+            background: #E3F2FD;
+            color: #2196F3;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .send-message-form {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #25D366;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-success {
+            background: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="fab fa-whatsapp"></i>
+                Panel de WhatsApp
+            </h1>
+            <div>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats-grid">
+            <div class="stat-card messages">
+                <div class="icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Mensajes Hoy</h3>
+                <div class="value">{{ stats_today.total_messages|default:0 }}</div>
+            </div>
+
+            <div class="stat-card conversations">
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>Conversaciones Activas</h3>
+                <div class="value">{{ stats_today.active_conversations|default:0 }}</div>
+            </div>
+
+            <div class="stat-card rides">
+                <div class="icon">
+                    <i class="fas fa-taxi"></i>
+                </div>
+                <h3>Carreras Solicitadas</h3>
+                <div class="value">{{ stats_today.rides_requested|default:0 }}</div>
+            </div>
+
+            <div class="stat-card active">
+                <div class="icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h3>Total Conversaciones</h3>
+                <div class="value">{{ total_conversations }}</div>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="content-grid">
+            <!-- Conversaciones Activas -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-comment-dots"></i>
+                        Conversaciones Activas
+                    </h2>
+                    <span class="badge badge-success">{{ active_conversations|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if active_conversations %}
+                        {% for conv in active_conversations %}
+                        <div class="conversation-item" onclick="window.location.href='{% url 'whatsapp_conversation_detail' conv.id %}'">
+                            <div class="conversation-avatar">
+                                {{ conv.name|first|upper }}
+                            </div>
+                            <div class="conversation-info">
+                                <div class="conversation-name">{{ conv.name|default:"Sin nombre" }}</div>
+                                <div class="conversation-phone">{{ conv.phone_number }}</div>
+                            </div>
+                            <div class="conversation-meta">
+                                <div class="conversation-time">{{ conv.last_message_at|timesince }} ago</div>
+                                <span class="conversation-status status-{{ conv.status }}">
+                                    {{ conv.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No hay conversaciones activas</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Enviar Mensaje -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar Mensaje
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form id="sendMessageForm">
+                        <div class="form-group">
+                            <label for="phone_number">
+                                <i class="fas fa-phone"></i> Número de Teléfono
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="phone_number" 
+                                placeholder="+593968192046"
+                                required
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="message">
+                                <i class="fas fa-comment"></i> Mensaje
+                            </label>
+                            <textarea 
+                                class="form-control" 
+                                id="message" 
+                                placeholder="Escribe tu mensaje aquí..."
+                                required
+                            ></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-paper-plane"></i> Enviar Mensaje
+                        </button>
+                    </form>
+                    <div id="sendStatus" style="margin-top: 15px; display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversaciones Recientes -->
+        <div class="card" style="margin-top: 30px;">
+            <div class="card-header">
+                <h2>
+                    <i class="fas fa-history"></i>
+                    Conversaciones Recientes (24h)
+                </h2>
+                <span class="badge badge-success">{{ recent_conversations|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if recent_conversations %}
+                    {% for conv in recent_conversations %}
+                    <div class="conversation-item" onclick="window.location.href='{% url 'whatsapp_conversation_detail' conv.id %}'">
+                        <div class="conversation-avatar">
+                            {{ conv.name|first|upper }}
+                        </div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">{{ conv.name|default:"Sin nombre" }}</div>
+                            <div class="conversation-phone">{{ conv.phone_number }}</div>
+                        </div>
+                        <div class="conversation-meta">
+                            <div class="conversation-time">{{ conv.last_message_at|date:"d/m/Y H:i" }}</div>
+                            <span class="conversation-status status-{{ conv.status }}">
+                                {{ conv.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No hay conversaciones recientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enviar mensaje
+        document.getElementById('sendMessageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('phone_number').value;
+            const message = document.getElementById('message').value;
+            const statusDiv = document.getElementById('sendStatus');
+            
+            try {
+                const response = await fetch('{% url "whatsapp_send_message" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        phone_number: phone,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.padding = '15px';
+                    statusDiv.style.borderRadius = '8px';
+                    statusDiv.style.background = '#E8F5E9';
+                    statusDiv.style.color = '#4CAF50';
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Mensaje enviado exitosamente';
+                    
+                    // Limpiar formulario
+                    document.getElementById('sendMessageForm').reset();
+                    
+                    // Ocultar mensaje después de 3 segundos
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || 'Error al enviar mensaje');
+                }
+            } catch (error) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.padding = '15px';
+                statusDiv.style.borderRadius = '8px';
+                statusDiv.style.background = '#FFEBEE';
+                statusDiv.style.color = '#F44336';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + error.message;
+            }
+        });
+
+        // Auto-refresh cada 30 segundos
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

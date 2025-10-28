@@ -1,0 +1,347 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversación - {{ conversation.name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 24px;
+        }
+
+        .user-info h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .user-info p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5568d3;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 20px 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chat-header h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .chat-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .chat-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chat-messages {
+            padding: 25px;
+            max-height: 600px;
+            overflow-y: auto;
+            background: #f0f2f5;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message.incoming {
+            justify-content: flex-start;
+        }
+
+        .message.outgoing {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .message.incoming .message-bubble {
+            background: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.outgoing .message-bubble {
+            background: #DCF8C6;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-content {
+            word-wrap: break-word;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .message-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message.incoming .message-icon {
+            background: #E3F2FD;
+            color: #2196F3;
+        }
+
+        .message.outgoing .message-icon {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        .status-waiting {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        .status-completed {
+            background: #E3F2FD;
+            color: #2196F3;
+        }
+
+        .status-abandoned {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-info">
+                <div class="avatar">
+                    {{ conversation.name|first|upper }}
+                </div>
+                <div class="user-info">
+                    <h1>{{ conversation.name|default:"Sin nombre" }}</h1>
+                    <p>
+                        <i class="fas fa-phone"></i> {{ conversation.phone_number }}
+                        {% if conversation.user %}
+                        | <i class="fas fa-user"></i> {{ conversation.user.get_full_name }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'whatsapp_panel' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>Conversación</h2>
+                <div class="chat-meta">
+                    <span>
+                        <i class="fas fa-circle"></i>
+                        <span class="status-badge status-{{ conversation.status }}">
+                            {{ conversation.get_status_display }}
+                        </span>
+                    </span>
+                    <span>
+                        <i class="fas fa-comments"></i>
+                        {{ messages|length }} mensajes
+                    </span>
+                    <span>
+                        <i class="fas fa-clock"></i>
+                        Última actividad: {{ conversation.last_message_at|timesince }} ago
+                    </span>
+                    {% if conversation.ride %}
+                    <span>
+                        <i class="fas fa-taxi"></i>
+                        <a href="{% url 'ride_detail' conversation.ride.id %}" style="color: #667eea;">
+                            Ver carrera
+                        </a>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div class="message {{ msg.direction }}">
+                        {% if msg.direction == 'incoming' %}
+                        <div class="message-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                {% if msg.message_type == 'location' %}
+                                    <i class="fas fa-map-marker-alt"></i> 
+                                    <strong>Ubicación GPS</strong><br>
+                                    {{ msg.content }}
+                                {% else %}
+                                    {{ msg.content }}
+                                {% endif %}
+                            </div>
+                            <div class="message-time">
+                                {{ msg.created_at|date:"d/m/Y H:i" }}
+                                {% if msg.direction == 'outgoing' %}
+                                    {% if msg.read %}
+                                        <i class="fas fa-check-double" style="color: #4FC3F7;"></i>
+                                    {% elif msg.delivered %}
+                                        <i class="fas fa-check-double"></i>
+                                    {% else %}
+                                        <i class="fas fa-check"></i>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if msg.direction == 'outgoing' %}
+                        <div class="message-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <p>No hay mensajes en esta conversación</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scroll al último mensaje
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    </script>
+</body>
+</html>

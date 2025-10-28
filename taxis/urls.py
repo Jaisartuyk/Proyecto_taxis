@@ -62,5 +62,11 @@ urlpatterns = [
     # Chat Central
     path('central-comunicacion/', views.chat_central, name='chat_central'),
     path('api/maps-key/', get_google_maps_key, name='get_maps_key'),
+    
+    # Panel de WhatsApp
+    path('whatsapp/panel/', views.whatsapp_panel, name='whatsapp_panel'),
+    path('whatsapp/conversation/<int:conversation_id>/', views.whatsapp_conversation_detail, name='whatsapp_conversation_detail'),
+    path('whatsapp/send-message/', views.whatsapp_send_message, name='whatsapp_send_message'),
+    path('api/whatsapp/stats/', views.whatsapp_stats_api, name='whatsapp_stats_api'),
 
 ]

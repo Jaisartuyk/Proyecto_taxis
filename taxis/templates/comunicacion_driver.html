@@ -39,7 +39,8 @@
     </p>
 
     <h2>Audio de la Central</h2>
-    <audio id="audioPlayer" controls autoplay style="width: 100%;"></audio>
+    <audio id="audioPlayer" controls style="width: 100%; display: none;"></audio>
+    <p id="audioStatus" style="text-align: center; color: #666; font-size: 14px;">Sin audio</p>
 
     <h2>Registro</h2>
     <div id="log" class="log-box"></div>
@@ -185,6 +186,11 @@
                 // WALKIE-TALKIE: Mantener presionado para hablar
                 startMicBtn.addEventListener('mousedown', () => {
                     if (socket && socket.readyState === WebSocket.OPEN) {
+                        // 🔇 Silenciar audio player mientras grabo
+                        audioPlayer.muted = true;
+                        audioPlayer.pause();
+                        console.log('🔇 Audio player silenciado durante grabación');
+                        
                         mediaRecorder.start();
                         log('🎙️ Grabando... (suelta para enviar)');
                         startMicBtn.style.backgroundColor = '#FF5722';
@@ -197,6 +203,12 @@
                         mediaRecorder.stop();
                         startMicBtn.style.backgroundColor = '#007bff';
                         startMicBtn.style.transform = 'scale(1)';
+                        
+                        // 🔊 Reactivar audio player después de grabar
+                        setTimeout(() => {
+                            audioPlayer.muted = false;
+                            console.log('🔊 Audio player reactivado');
+                        }, 500);
                     }
                 });
 
@@ -212,6 +224,11 @@
                 startMicBtn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     if (socket && socket.readyState === WebSocket.OPEN) {
+                        // 🔇 Silenciar audio player mientras grabo
+                        audioPlayer.muted = true;
+                        audioPlayer.pause();
+                        console.log('🔇 Audio player silenciado durante grabación (touch)');
+                        
                         mediaRecorder.start();
                         log('🎙️ Grabando... (suelta para enviar)');
                         startMicBtn.style.backgroundColor = '#FF5722';
@@ -225,6 +242,12 @@
                         mediaRecorder.stop();
                         startMicBtn.style.backgroundColor = '#007bff';
                         startMicBtn.style.transform = 'scale(1)';
+                        
+                        // 🔊 Reactivar audio player después de grabar
+                        setTimeout(() => {
+                            audioPlayer.muted = false;
+                            console.log('🔊 Audio player reactivado (touch)');
+                        }, 500);
                     }
                 });
 
@@ -243,10 +266,24 @@
         }
         
         console.log('▶️ Reproduciendo audio de:', senderId || 'desconocido');
+        
+        // 🔇 NUNCA reproducir si estoy grabando
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            console.error('🚫 NO REPRODUCIR: Estoy grabando');
+            return;
+        }
+        
         const audioBlob = new Blob([Uint8Array.from(atob(base64String), c => c.charCodeAt(0))], { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Actualizar estado visual
+        document.getElementById('audioStatus').textContent = `🔊 Reproduciendo audio de ${senderId}`;
+        
         audioPlayer.src = audioUrl;
-        audioPlayer.play();
+        audioPlayer.muted = false; // Asegurar que no esté silenciado
+        audioPlayer.play().catch(err => {
+            console.error('Error al reproducir:', err);
+        });
     }
 
     // 📍 ENVÍO AUTOMÁTICO DE UBICACIÓN

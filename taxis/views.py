@@ -932,18 +932,39 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
         
         # Notificar al taxista más cercano
         taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
-        if taxista_cercano and taxista_cercano.user.telegram_chat_id:
+        if taxista_cercano:
             mensaje_taxista = (
-                f"📣 Hola {taxista_cercano.user.get_full_name()}, hay una carrera cerca de ti:\n"
-                f"🛫 Desde: {direccion_legible}\n"
-                f"🎯 Hasta: {destination}\n"
-                f"👤 Cliente: {user.get_full_name()}"
+                f"🚕 *Nueva carrera cerca de ti!*\n\n"
+                f"📍 *Origen:* {direccion_legible}\n"
+                f"🎯 *Destino:* {destination}\n"
+                f"👤 *Cliente:* {user.get_full_name()}\n"
+                f"📱 *Teléfono:* {user.phone_number}\n"
+                f"💰 *Precio:* ${price:.2f}\n\n"
+                f"🆔 *Carrera #*{ride.id}\n\n"
+                f"Para aceptar, responde:\n"
+                f"*ACEPTAR {ride.id}*"
             )
-            try:
-                from .telegram_bot import enviar_telegram
-                enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
-            except Exception as e:
-                logger.warning(f"⚠️ No se pudo enviar a taxista: {e}")
+            
+            # Enviar por Telegram si tiene chat_id
+            if taxista_cercano.user.telegram_chat_id:
+                try:
+                    from .telegram_bot import enviar_telegram
+                    enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
+                    logger.info(f"✅ Notificación Telegram enviada a {taxista_cercano.user.get_full_name()}")
+                except Exception as e:
+                    logger.warning(f"⚠️ No se pudo enviar a Telegram: {e}")
+            
+            # Enviar por WhatsApp si tiene número
+            if taxista_cercano.user.phone_number:
+                try:
+                    from .whatsapp_agent_ai import whatsapp_agent_ai
+                    whatsapp_agent_ai.enviar_mensaje(
+                        taxista_cercano.user.phone_number,
+                        mensaje_taxista
+                    )
+                    logger.info(f"✅ Notificación WhatsApp enviada a {taxista_cercano.user.get_full_name()}")
+                except Exception as e:
+                    logger.warning(f"⚠️ No se pudo enviar WhatsApp: {e}")
         
         logger.info(f"✅ Carrera creada desde WhatsApp: {ride.id}")
         return ride

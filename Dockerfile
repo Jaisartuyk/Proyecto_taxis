@@ -25,5 +25,5 @@ RUN python manage.py collectstatic --noinput
 # Exponer puerto
 EXPOSE 8080
 
-# Comando de inicio
-CMD daphne -b 0.0.0.0 -p $PORT taxi_project.asgi:application
+# Comando de inicio (usar forma shell para expansión de variables)
+CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8080} taxi_project.asgi:application"]

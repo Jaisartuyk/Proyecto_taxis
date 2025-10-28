@@ -6,10 +6,14 @@ import requests
 import json
 from django.conf import settings
 from django.utils import timezone
-from .models import Ride, AppUser, Taxi, RideDestination
+from .models import (
+    Ride, AppUser, Taxi, RideDestination,
+    WhatsAppConversation, WhatsAppMessage, WhatsAppStats
+)
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import logging
+from datetime import date
 # Temporalmente usando asistente simple hasta configurar CLAUDE_API_KEY en Railway
 from .ai_assistant_simple import simple_ai_assistant
 
@@ -19,15 +23,51 @@ logger = logging.getLogger(__name__)
 WASENDER_API_URL = "https://wasenderapi.com/api/send-message"
 WASENDER_TOKEN = "e736f86d08e73ce5ee6f209098dc701a60deb8157f26b79485f66e1249aabee6"
 
-# Almacenamiento temporal de conversaciones (en producción usar Redis o DB)
-conversaciones = {}
-
 
 class WhatsAppAgentAI:
     """Agente de IA mejorado con Claude para conversaciones naturales"""
     
     def __init__(self):
         self.geolocator = Nominatim(user_agent="taxi_app_whatsapp")
+    
+    def _guardar_mensaje(self, conversation, direction, content, message_type='text', metadata=None):
+        """Guarda un mensaje en la base de datos"""
+        try:
+            WhatsAppMessage.objects.create(
+                conversation=conversation,
+                direction=direction,
+                message_type=message_type,
+                content=content,
+                metadata=metadata or {},
+                delivered=True if direction == 'outgoing' else False
+            )
+            logger.info(f"💾 Mensaje guardado en BD: {direction} - {content[:30]}...")
+        except Exception as e:
+            logger.error(f"❌ Error al guardar mensaje: {str(e)}")
+    
+    def _actualizar_stats(self, conversation=None, ride_requested=False, ride_completed=False):
+        """Actualiza las estadísticas diarias"""
+        try:
+            today = date.today()
+            stats, created = WhatsAppStats.objects.get_or_create(date=today)
+            
+            if conversation:
+                stats.total_messages += 1
+                if conversation.messages.filter(direction='incoming').exists():
+                    stats.incoming_messages += 1
+                if conversation.messages.filter(direction='outgoing').exists():
+                    stats.outgoing_messages += 1
+            
+            if ride_requested:
+                stats.rides_requested += 1
+            
+            if ride_completed:
+                stats.rides_completed += 1
+            
+            stats.save()
+            logger.info(f"📊 Stats actualizadas: {stats.total_messages} mensajes hoy")
+        except Exception as e:
+            logger.error(f"❌ Error al actualizar stats: {str(e)}")
     
     def enviar_mensaje(self, numero_telefono, mensaje, botones=None):
         """Envía un mensaje de WhatsApp usando WASender API"""
@@ -61,6 +101,18 @@ class WhatsAppAgentAI:
             
             if response.status_code == 200:
                 logger.info(f"✅ Mensaje enviado exitosamente")
+                
+                # Guardar mensaje en BD
+                try:
+                    conversation = WhatsAppConversation.objects.filter(
+                        phone_number=numero_limpio
+                    ).first()
+                    if conversation:
+                        self._guardar_mensaje(conversation, 'outgoing', mensaje)
+                        self._actualizar_stats(conversation)
+                except Exception as e:
+                    logger.error(f"Error al guardar mensaje saliente: {str(e)}")
+                
                 return True
             else:
                 logger.error(f"❌ Error al enviar: {response.status_code} - {response.text}")
@@ -114,25 +166,55 @@ class WhatsAppAgentAI:
             )
             return
         
-        # Obtener o crear conversación
-        if numero_telefono not in conversaciones:
-            conversaciones[numero_telefono] = {
-                'estado': 'inicio',
-                'datos': {},
-                'nombre': nombre_usuario or 'Usuario',
-                'historial': []
+        # Obtener o crear conversación en BD
+        conversation, created = WhatsAppConversation.objects.get_or_create(
+            phone_number=numero_telefono,
+            defaults={
+                'user': usuario,
+                'name': nombre_usuario or usuario.get_full_name(),
+                'status': 'active',
+                'state': 'inicio'
             }
+        )
         
-        conversacion = conversaciones[numero_telefono]
-        estado_actual = conversacion['estado']
+        if created:
+            logger.info(f"📝 Nueva conversación creada para {numero_telefono}")
+            # Actualizar stats
+            today = date.today()
+            stats, _ = WhatsAppStats.objects.get_or_create(date=today)
+            stats.new_conversations += 1
+            stats.active_conversations = WhatsAppConversation.objects.filter(
+                status='active'
+            ).count()
+            stats.save()
+        else:
+            # Reactivar conversación si estaba abandonada
+            if conversation.status in ['completed', 'abandoned']:
+                conversation.status = 'active'
+                conversation.state = 'inicio'
+                conversation.save()
+        
+        # Guardar mensaje entrante
+        if mensaje:
+            self._guardar_mensaje(conversation, 'incoming', mensaje)
+            self._actualizar_stats(conversation)
+        elif ubicacion:
+            self._guardar_mensaje(
+                conversation,
+                'incoming',
+                f"Ubicación GPS: {ubicacion['latitude']}, {ubicacion['longitude']}",
+                message_type='location',
+                metadata=ubicacion
+            )
+            self._actualizar_stats(conversation)
         
         # Si es una ubicación GPS
         if ubicacion:
-            return self._manejar_ubicacion_gps(numero_telefono, ubicacion, conversacion)
+            return self._manejar_ubicacion_gps(numero_telefono, ubicacion, conversation)
         
         # Si es un mensaje de texto
         if mensaje:
-            return self._manejar_mensaje_texto(numero_telefono, mensaje, conversacion)
+            return self._manejar_mensaje_texto(numero_telefono, mensaje, conversation)
     
     def _manejar_mensaje_texto(self, numero_telefono, mensaje, conversacion):
         """Maneja mensajes de texto usando Claude AI"""

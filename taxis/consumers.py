@@ -44,16 +44,18 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 audio_data_base64 = data.get('audio')
 
                 if sender_id and audio_data_base64:
+                    # 🚫 NO enviar el audio de vuelta al mismo conductor
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
                             'type': 'send_audio_to_clients',
                             'senderId': sender_id,
-                            'senderRole': 'Taxi',  # 👈 Añadido explícitamente
+                            'senderRole': 'Taxi',
                             'audio': audio_data_base64,
+                            'sender_channel': self.channel_name,  # 🔑 Canal del remitente
                         }
                     )
-                    print(f"🎤 Audio de {sender_id} retransmitido (Taxi).")
+                    print(f"🎤 Audio de {sender_id} retransmitido (Taxi). Canal remitente: {self.channel_name}")
 
             # --- Mensajes desde la central ---
             elif message_type == 'central_audio_message':
@@ -62,16 +64,18 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 sender_role = data.get('senderRole', 'Central')
 
                 if audio_data_base64:
+                    # 🚫 NO enviar el audio de vuelta a la central
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
                             'type': 'send_audio_to_clients',
-                            'senderId': sender_id,  # ID real para filtrar
+                            'senderId': sender_id,
                             'senderRole': sender_role,
                             'audio': audio_data_base64,
+                            'sender_channel': self.channel_name,  # 🔑 Canal del remitente
                         }
                     )
-                    print(f"🔊 Audio de la {sender_role} (ID: {sender_id}) retransmitido a los taxis.")
+                    print(f"🔊 Audio de la {sender_role} (ID: {sender_id}) retransmitido. Canal remitente: {self.channel_name}")
                 else:
                     print(f"⚠️ Mensaje de audio incompleto recibido desde la web: {data}")
 
@@ -84,12 +88,20 @@ class AudioConsumer(AsyncWebsocketConsumer):
         }))
 
     async def send_audio_to_clients(self, event):
+        # 🚫 NO enviar el audio de vuelta al remitente
+        sender_channel = event.get('sender_channel')
+        if sender_channel and sender_channel == self.channel_name:
+            print(f"🔇 Audio NO enviado al remitente (canal: {self.channel_name})")
+            return  # NO ENVIAR
+        
+        # Enviar a todos los demás
         await self.send(text_data=json.dumps({
             "type": "audio_broadcast",
             "senderId": event["senderId"],
-            "senderRole": event.get("senderRole", "Desconocido"),  # 👈 Incluido en el mensaje enviado
+            "senderRole": event.get("senderRole", "Desconocido"),
             "audio": event["audio"],
         }))
+        print(f"✅ Audio enviado a canal: {self.channel_name}")
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

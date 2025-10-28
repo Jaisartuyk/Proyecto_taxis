@@ -349,11 +349,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Botón para detener grabación
     stopBtn.addEventListener('click', function() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
+        console.log('🛑 Click en detener, estado:', mediaRecorder ? mediaRecorder.state : 'no existe');
+        
+        if (mediaRecorder) {
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                console.log('⏹️ Grabación detenida');
+            }
+            // Siempre ocultar el botón de detener y mostrar el de grabar
             stopBtn.style.display = 'none';
             recordBtn.style.display = 'inline-block';
-            console.log('⏹️ Grabación detenida');
+        } else {
+            // Si no hay mediaRecorder, resetear botones
+            stopBtn.style.display = 'none';
+            recordBtn.style.display = 'inline-block';
+            console.log('⚠️ No hay grabación activa');
         }
     });
 

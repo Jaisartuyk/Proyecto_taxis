@@ -91,17 +91,16 @@ function setupWebSocket() {
                 const senderRole = data.senderRole;
                 const audioBase64 = data.audio;
 
-                // Solo reproducir si el audio NO viene de la Central
-                if (audioBase64 && senderRole !== 'Central') {
-                    logAudio(`🎧 Audio de ${senderId} recibido.`);
+                // Reproducir audio de todos (Central y otros conductores)
+                if (audioBase64) {
+                    const displayName = senderRole === 'Central' ? '📡 Central' : `🚕 ${senderId}`;
+                    logAudio(`🎧 Audio de ${displayName} recibido.`);
                     playAudioFromBase64(audioBase64);
                     
                     // Mostrar notificación si la ventana no está enfocada
                     if (window.notificationManager && document.hidden) {
-                        window.notificationManager.notifyAudioMessage(senderId);
+                        window.notificationManager.notifyAudioMessage(displayName);
                     }
-                } else {
-                    console.log("🔇 Audio de la central recibido, ignorado para evitar eco.");
                 }
             } 
             // Manejo de nuevas carreras
@@ -250,7 +249,7 @@ function setupCentralAudioControls() {
                     const base64Audio = reader.result.split(',')[1];
                     if (socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({
-                            type: 'audio_broadcast',
+                            type: 'audio_message',
                             audio: base64Audio,
                             senderId: 'Central',
                             senderRole: 'Central'

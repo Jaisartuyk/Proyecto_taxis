@@ -282,9 +282,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==================== FUNCIONALIDAD DE AUDIO ====================
     let mediaRecorder;
     let audioChunks = [];
+    let audioSocket = null;
     const recordBtn = document.getElementById('record-audio-btn');
     const stopBtn = document.getElementById('stop-audio-btn');
     const audioPlayer = document.getElementById('audio-player');
+
+    // Configurar WebSocket de audio
+    function setupAudioWebSocket() {
+        const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const wsPath = wsProtocol + window.location.host + '/ws/audio/conductores/';
+        
+        audioSocket = new WebSocket(wsPath);
+
+        audioSocket.onopen = function(e) {
+            console.log('🔊 Audio WebSocket conectado');
+        };
+
+        audioSocket.onclose = function(e) {
+            console.error('🔊 Audio WebSocket desconectado. Reintentando en 5s...');
+            setTimeout(setupAudioWebSocket, 5000);
+        };
+
+        audioSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log('🔊 Mensaje de audio recibido:', data);
+            
+            // Manejar audio de conductores
+            if (data.type === 'audio_broadcast' && data.audio) {
+                const audioData = 'data:audio/webm;base64,' + data.audio;
+                audioPlayer.src = audioData;
+                audioPlayer.play();
+                
+                const senderName = data.senderId || 'Conductor';
+                appendAudioMessage(senderName, false);
+                console.log('🔊 Audio de conductor reproduciendo');
+            }
+        };
+    }
 
     // Botón para iniciar grabación
     recordBtn.addEventListener('click', async function() {
@@ -328,15 +362,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const reader = new FileReader();
         reader.onloadend = function() {
             const base64Audio = reader.result.split(',')[1];
-            if (chatSocket && chatSocket.readyState === WebSocket.OPEN && activeChatRecipientId) {
-                chatSocket.send(JSON.stringify({
+            if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
+                audioSocket.send(JSON.stringify({
+                    'type': 'central_audio_message',
                     'audio': base64Audio,
-                    'recipient_id': activeChatRecipientId
+                    'senderRole': 'Central'
                 }));
-                console.log('🔊 Audio enviado');
-                appendAudioMessage('Tú', true);
+                console.log('🔊 Audio enviado a conductores');
+                appendAudioMessage('Tú (Central)', true);
             } else {
-                console.error('WebSocket no está conectado o no hay destinatario seleccionado');
+                console.error('Audio WebSocket no está conectado');
+                alert('No se puede enviar audio. WebSocket desconectado.');
             }
         };
         reader.readAsDataURL(audioBlob);
@@ -344,6 +380,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Agregar mensaje de audio al chat
     function appendAudioMessage(senderName, isSent) {
+        if (noChatSelected) noChatSelected.style.display = 'none';
+        
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
         messageDiv.classList.add(isSent ? 'sent' : 'received');
@@ -358,37 +396,9 @@ document.addEventListener('DOMContentLoaded', function() {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    // Modificar onmessage para manejar audio
-    const originalOnMessage = chatSocket ? chatSocket.onmessage : null;
-    
-    function setupWebSocketWithAudio() {
-        setupWebSocket();
-        
-        // Esperar a que chatSocket esté definido
-        setTimeout(() => {
-            if (chatSocket) {
-                chatSocket.onmessage = function(e) {
-                    const data = JSON.parse(e.data);
-                    
-                    // Manejar mensajes de audio
-                    if (data.audio && (data.sender_id == activeChatRecipientId || data.sender_id == currentUser.id)) {
-                        const audioData = 'data:audio/webm;base64,' + data.audio;
-                        audioPlayer.src = audioData;
-                        audioPlayer.play();
-                        appendAudioMessage(data.sender_name || 'Conductor', data.sender_id != currentUser.id);
-                        console.log('🔊 Audio recibido y reproduciendo');
-                    }
-                    // Manejar mensajes de texto
-                    else if (data.message && (data.sender_id == activeChatRecipientId || data.sender_id == currentUser.id)) {
-                        appendMessage(data.message, data.sender_id, data.sender_name);
-                    }
-                };
-            }
-        }, 100);
-    }
-
-    // Iniciar la conexión con soporte de audio
-    setupWebSocketWithAudio();
+    // Iniciar conexiones
+    setupWebSocket();
+    setupAudioWebSocket();
 });
 </script>
 {% endblock %}

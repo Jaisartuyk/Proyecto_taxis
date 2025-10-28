@@ -159,7 +159,8 @@ Puedo ayudarte con:
         return {
             'respuesta': "",  # La respuesta la genera el agente después de geocodificar
             'accion': 'procesar_origen',
-            'datos_extraidos': {'posible_direccion': mensaje}
+            'datos_extraidos': {'direccion': mensaje},
+            'nuevo_estado': 'esperando_origen'  # Mantener estado hasta geocodificar
         }
     
     def _manejar_esperando_destino(self, mensaje, datos_usuario):
@@ -167,7 +168,8 @@ Puedo ayudarte con:
         return {
             'respuesta': "",  # La respuesta la genera el agente después de geocodificar
             'accion': 'procesar_destino',
-            'datos_extraidos': {'posible_direccion': mensaje}
+            'datos_extraidos': {'direccion': mensaje},
+            'nuevo_estado': 'esperando_destino'  # Mantener estado hasta geocodificar
         }
     
     def _manejar_confirmacion(self, mensaje_lower):

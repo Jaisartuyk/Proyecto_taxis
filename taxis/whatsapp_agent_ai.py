@@ -348,7 +348,8 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
         """Ejecuta la acción determinada por Claude"""
         
         if accion == 'solicitar_origen':
-            conversacion['estado'] = 'esperando_origen'
+            conversacion.state = 'esperando_origen'
+            conversacion.save()
         
         elif accion == 'procesar_origen':
             # Intentar geocodificar la dirección
@@ -363,10 +364,11 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
                 location = self.geolocator.geocode(direccion_completa, timeout=10)
                 
                 if location:
-                    conversacion['datos']['origen'] = mensaje
-                    conversacion['datos']['origen_lat'] = location.latitude
-                    conversacion['datos']['origen_lng'] = location.longitude
-                    conversacion['estado'] = 'esperando_destino'
+                    conversacion.data['origen'] = mensaje
+                    conversacion.data['origen_lat'] = location.latitude
+                    conversacion.data['origen_lng'] = location.longitude
+                    conversacion.state = 'esperando_destino'
+                    conversacion.save()
                     logger.info(f"✅ Origen geocodificado: {location.latitude}, {location.longitude}")
                     
                     # Confirmar y pedir destino
@@ -398,9 +400,10 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
                 location = self.geolocator.geocode(direccion_completa, timeout=10)
                 
                 if location:
-                    conversacion['datos']['destino'] = mensaje
-                    conversacion['datos']['destino_lat'] = location.latitude
-                    conversacion['datos']['destino_lng'] = location.longitude
+                    conversacion.data['destino'] = mensaje
+                    conversacion.data['destino_lat'] = location.latitude
+                    conversacion.data['destino_lng'] = location.longitude
+                    conversacion.save()
                     logger.info(f"✅ Destino geocodificado: {location.latitude}, {location.longitude}")
                     
                     # Mostrar resumen
@@ -422,8 +425,9 @@ Ahora, ¿a dónde te llevamos? Puedes escribir la dirección o enviar otra ubica
             self._crear_carrera_confirmada(numero_telefono, conversacion)
         
         elif accion == 'cancelar_solicitud':
-            conversacion['estado'] = 'inicio'
-            conversacion['datos'] = {}
+            conversacion.state = 'inicio'
+            conversacion.data = {}
+            conversacion.save()
         
         elif accion == 'consultar_estado':
             self._mostrar_estado_carrera(numero_telefono, conversacion)

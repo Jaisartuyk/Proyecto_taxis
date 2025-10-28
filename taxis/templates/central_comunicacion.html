@@ -75,10 +75,11 @@
     }
 
     .map-container {
-        height: 400px;
+        height: 300px;
         width: 100%;
         border-bottom: 3px solid #0f3460;
         position: relative;
+        flex-shrink: 0;
     }
 
     #map {
@@ -90,6 +91,7 @@
         display: flex;
         flex: 1;
         overflow: hidden;
+        min-height: 0;
     }
 
     .chat-container {

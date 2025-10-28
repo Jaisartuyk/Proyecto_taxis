@@ -86,13 +86,18 @@
                     const myUsername = '{{ request.user.username }}';
                     const senderUsername = String(data.senderId);
                     
+                    console.log('🔍 COMPARACIÓN:');
+                    console.log('  Mi username:', myUsername, '(tipo:', typeof myUsername, ')');
+                    console.log('  Sender:', senderUsername, '(tipo:', typeof senderUsername, ')');
+                    console.log('  ¿Son iguales?:', senderUsername === myUsername);
+                    
                     if (senderUsername === myUsername) {
                         log('🔇 Audio propio ignorado - Mi username: ' + myUsername);
-                        console.log('🔇 Audio propio ignorado');
+                        console.log('🔇 ✅ FILTRADO CORRECTAMENTE - No reproducir');
                         return;
                     }
                     
-                    console.log('✅ Audio de otra persona - reproduciendo');
+                    console.log('✅ Audio de otra persona - REPRODUCIENDO');
                     
                     if (data.senderRole === 'Central') {
                         log(`🔊 Audio recibido de la Central`);

@@ -162,8 +162,8 @@
             <div id="no-chat-selected">Selecciona una conversación para comenzar</div>
         </div>
         <div class="chat-input-area" id="chat-input-container" style="display: none;">
-            <button id="record-audio-btn" style="margin-right: 10px; background: #28a745; color: white; border: none; border-radius: 20px; padding: 10px 20px; cursor: pointer;">🎤 Grabar Audio</button>
-            <button id="stop-audio-btn" style="margin-right: 10px; background: #dc3545; color: white; border: none; border-radius: 20px; padding: 10px 20px; cursor: pointer; display: none;">⏹️ Detener</button>
+            <button id="record-audio-btn" style="margin-right: 10px; background: #28a745; color: white; border: none; border-radius: 20px; padding: 10px 20px; cursor: pointer; user-select: none;">🎤 PTT</button>
+            <small style="color: #666; margin-right: 10px;">Mantén presionado para hablar</small>
             <input id="chat-message-input" type="text" placeholder="Escribe un mensaje...">
             <button id="chat-message-submit">Enviar</button>
         </div>
@@ -284,7 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let audioChunks = [];
     let audioSocket = null;
     const recordBtn = document.getElementById('record-audio-btn');
-    const stopBtn = document.getElementById('stop-audio-btn');
     const audioPlayer = document.getElementById('audio-player');
 
     // Configurar WebSocket de audio
@@ -320,13 +319,15 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Botón para iniciar grabación
-    recordBtn.addEventListener('click', async function() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
+    // WALKIE-TALKIE: Mantener presionado para hablar
+    let audioStream = null;
 
+    // Inicializar micrófono al cargar
+    async function initMicrophone() {
+        try {
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(audioStream);
+            
             mediaRecorder.ondataavailable = (event) => {
                 audioChunks.push(event.data);
             };
@@ -334,38 +335,71 @@ document.addEventListener('DOMContentLoaded', function() {
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 sendAudioMessage(audioBlob);
-                stream.getTracks().forEach(track => track.stop());
+                audioChunks = [];
             };
-
-            mediaRecorder.start();
-            recordBtn.style.display = 'none';
-            stopBtn.style.display = 'inline-block';
-            console.log('🎤 Grabando audio...');
+            
+            console.log('🎤 Micrófono listo');
         } catch (error) {
             console.error('Error al acceder al micrófono:', error);
             alert('No se pudo acceder al micrófono. Verifica los permisos.');
         }
-    });
+    }
 
-    // Botón para detener grabación
-    stopBtn.addEventListener('click', function() {
-        console.log('🛑 Click en detener, estado:', mediaRecorder ? mediaRecorder.state : 'no existe');
-        
-        if (mediaRecorder) {
-            if (mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                console.log('⏹️ Grabación detenida');
-            }
-            // Siempre ocultar el botón de detener y mostrar el de grabar
-            stopBtn.style.display = 'none';
-            recordBtn.style.display = 'inline-block';
-        } else {
-            // Si no hay mediaRecorder, resetear botones
-            stopBtn.style.display = 'none';
-            recordBtn.style.display = 'inline-block';
-            console.log('⚠️ No hay grabación activa');
+    // Mousedown: Empezar a grabar
+    recordBtn.addEventListener('mousedown', function() {
+        if (mediaRecorder && mediaRecorder.state === 'inactive') {
+            audioChunks = [];
+            mediaRecorder.start();
+            recordBtn.style.backgroundColor = '#FF5722';
+            recordBtn.style.transform = 'scale(1.1)';
+            console.log('🎙️ Grabando... (suelta para enviar)');
         }
     });
+
+    // Mouseup: Detener y enviar
+    recordBtn.addEventListener('mouseup', function() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            recordBtn.style.backgroundColor = '#4CAF50';
+            recordBtn.style.transform = 'scale(1)';
+            console.log('📤 Enviando audio...');
+        }
+    });
+
+    // Mouseleave: Si sale del botón mientras graba, detener
+    recordBtn.addEventListener('mouseleave', function() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            recordBtn.style.backgroundColor = '#4CAF50';
+            recordBtn.style.transform = 'scale(1)';
+            console.log('📤 Enviando audio...');
+        }
+    });
+
+    // Touch para móviles
+    recordBtn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (mediaRecorder && mediaRecorder.state === 'inactive') {
+            audioChunks = [];
+            mediaRecorder.start();
+            recordBtn.style.backgroundColor = '#FF5722';
+            recordBtn.style.transform = 'scale(1.1)';
+            console.log('🎙️ Grabando... (suelta para enviar)');
+        }
+    });
+
+    recordBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            recordBtn.style.backgroundColor = '#4CAF50';
+            recordBtn.style.transform = 'scale(1)';
+            console.log('📤 Enviando audio...');
+        }
+    });
+
+    // Inicializar micrófono
+    initMicrophone();
 
     // Enviar audio por WebSocket
     function sendAudioMessage(audioBlob) {

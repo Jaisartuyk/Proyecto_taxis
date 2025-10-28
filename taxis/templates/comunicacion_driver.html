@@ -29,9 +29,11 @@
 
     <div class="audio-controls">
         <button id="startMic" class="btn-start">🎤</button>
-        <button id="stopMic" class="btn-stop" disabled>🔇</button>
     </div>
-    <p style="text-align: center; font-size: 14px; color: #666;">Mantén presionado para hablar</p>
+    <p style="text-align: center; font-size: 14px; color: #666;">
+        <strong>Mantén presionado el botón para hablar</strong><br>
+        <small>Suelta para enviar (como walkie-talkie)</small>
+    </p>
 
     <h2>Audio de la Central</h2>
     <audio id="audioPlayer" controls autoplay style="width: 100%;"></audio>
@@ -54,7 +56,6 @@
     let isPlayingAudio = false;
 
     const startMicBtn = document.getElementById('startMic');
-    const stopMicBtn = document.getElementById('stopMic');
     const statusDiv = document.getElementById('status');
     const logDiv = document.getElementById('log');
     const audioPlayer = document.getElementById('audioPlayer');
@@ -89,7 +90,6 @@
             statusDiv.className = 'status disconnected';
             log('Conexión perdida. Reintentando en 5 segundos...');
             startMicBtn.disabled = true;
-            stopMicBtn.disabled = true;
             setTimeout(setupWebSocket, 5000);
         };
 
@@ -105,38 +105,75 @@
                 audioStream = stream;
                 mediaRecorder = new MediaRecorder(stream);
 
+                let audioChunks = [];
+
                 mediaRecorder.ondataavailable = event => {
-                    if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            const base64Audio = reader.result.split(',')[1];
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioChunks = [];
+                    
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64Audio = reader.result.split(',')[1];
+                        if (socket && socket.readyState === WebSocket.OPEN) {
                             socket.send(JSON.stringify({
-                                type: 'driver_audio_message',
+                                type: 'audio_message',
                                 senderId: '{{ request.user.username }}',
                                 senderRole: 'driver',
                                 audio: base64Audio
                             }));
-                            log('Audio enviado a la central.');
-                        };
-                        reader.readAsDataURL(event.data);
-                    }
+                            log('🎤 Audio enviado a la central.');
+                        }
+                    };
+                    reader.readAsDataURL(audioBlob);
                 };
 
+                // WALKIE-TALKIE: Mantener presionado para hablar
                 startMicBtn.addEventListener('mousedown', () => {
-                    if (mediaRecorder.state === 'inactive') {
+                    if (socket && socket.readyState === WebSocket.OPEN) {
                         mediaRecorder.start();
-                        log('Grabando...');
-                        startMicBtn.disabled = true;
-                        stopMicBtn.disabled = false;
+                        log('🎙️ Grabando... (suelta para enviar)');
+                        startMicBtn.style.backgroundColor = '#FF5722';
+                        startMicBtn.style.transform = 'scale(1.1)';
                     }
                 });
 
-                stopMicBtn.addEventListener('mouseup', () => {
+                startMicBtn.addEventListener('mouseup', () => {
                     if (mediaRecorder.state === 'recording') {
                         mediaRecorder.stop();
-                        log('Grabación detenida.');
-                        startMicBtn.disabled = false;
-                        stopMicBtn.disabled = true;
+                        startMicBtn.style.backgroundColor = '#007bff';
+                        startMicBtn.style.transform = 'scale(1)';
+                    }
+                });
+
+                startMicBtn.addEventListener('mouseleave', () => {
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                        startMicBtn.style.backgroundColor = '#007bff';
+                        startMicBtn.style.transform = 'scale(1)';
+                    }
+                });
+
+                // TOUCH para móviles
+                startMicBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        mediaRecorder.start();
+                        log('🎙️ Grabando... (suelta para enviar)');
+                        startMicBtn.style.backgroundColor = '#FF5722';
+                        startMicBtn.style.transform = 'scale(1.1)';
+                    }
+                });
+
+                startMicBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                        startMicBtn.style.backgroundColor = '#007bff';
+                        startMicBtn.style.transform = 'scale(1)';
                     }
                 });
 

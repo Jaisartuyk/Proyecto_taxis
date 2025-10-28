@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import json
+import logging
 from django.views.decorators.csrf import csrf_exempt
 from .models import Taxi, TaxiRoute, Ride, RideDestination, AppUser, ConversacionTelegram, Rating
 from django.contrib.auth import login, logout
@@ -18,6 +19,9 @@ from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.core.cache import cache
 #from taxis.views import telegram_webhook  # cambia "tu_app" por el nombre real de tu app
+
+# Logger
+logger = logging.getLogger(__name__)
 
 #import requests
 
@@ -925,7 +929,7 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
         
         # Enviar mensaje al grupo de conductores (si está configurado)
         try:
-            from .telegram_bot import enviar_telegram, TELEGRAM_CHAT_ID_GRUPO_TAXISTAS
+            # Usar la función enviar_telegram definida en este mismo archivo
             enviar_telegram(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
         except Exception as e:
             logger.warning(f"⚠️ No se pudo enviar a Telegram: {e}")
@@ -948,7 +952,7 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
             # Enviar por Telegram si tiene chat_id
             if taxista_cercano.user.telegram_chat_id:
                 try:
-                    from .telegram_bot import enviar_telegram
+                    # Usar función local
                     enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
                     logger.info(f"✅ Notificación Telegram enviada a {taxista_cercano.user.get_full_name()}")
                 except Exception as e:

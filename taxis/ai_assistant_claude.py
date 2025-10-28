@@ -17,7 +17,7 @@ class ClaudeAIAssistant:
         # Inicializar Claude (buscar en CLAUDE_API_KEY o ANTHROPIC_API_KEY)
         api_key = os.getenv('CLAUDE_API_KEY') or os.getenv('ANTHROPIC_API_KEY', '')
         self.client = Anthropic(api_key=api_key) if api_key else None
-        self.model = "claude-3-5-sonnet-20240620"  # Modelo correcto disponible
+        self.model = "claude-sonnet-4-5"  # Claude Sonnet 4.5 - El más reciente
         
         # System prompt optimizado para taxi
         self.system_prompt = """Eres un asistente virtual inteligente para "De Aquí Pa'llá", un servicio de taxis en Ecuador.

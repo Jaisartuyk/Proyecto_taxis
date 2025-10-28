@@ -141,6 +141,14 @@ Analiza el mensaje y responde en JSON según las instrucciones."""
             respuesta_texto = response.content[0].text
             logger.info(f"✅ Claude respondió: {respuesta_texto[:100]}...")
             
+            # Limpiar markdown code blocks si existen
+            if respuesta_texto.strip().startswith('```'):
+                # Extraer JSON de dentro del bloque de código
+                lines = respuesta_texto.strip().split('\n')
+                # Remover primera línea (```json o ```) y última línea (```)
+                if len(lines) > 2:
+                    respuesta_texto = '\n'.join(lines[1:-1])
+            
             # Parsear JSON
             try:
                 resultado = json.loads(respuesta_texto)

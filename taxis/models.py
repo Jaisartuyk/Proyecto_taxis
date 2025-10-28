@@ -245,3 +245,159 @@ class WebPushSubscription(models.Model):
 
     def __str__(self):
         return f"Suscripción de {self.user.username}"
+
+
+# ============================================
+# MODELOS DE WHATSAPP
+# ============================================
+
+class WhatsAppConversation(models.Model):
+    """Conversaciones de WhatsApp con usuarios"""
+    
+    STATUS_CHOICES = [
+        ('active', 'Activa'),
+        ('waiting', 'Esperando respuesta'),
+        ('completed', 'Completada'),
+        ('abandoned', 'Abandonada'),
+    ]
+    
+    STATE_CHOICES = [
+        ('inicio', 'Inicio'),
+        ('esperando_origen', 'Esperando origen'),
+        ('esperando_destino', 'Esperando destino'),
+        ('confirmando_carrera', 'Confirmando carrera'),
+        ('carrera_activa', 'Carrera activa'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='whatsapp_conversations',
+        null=True,
+        blank=True,
+        help_text="Usuario registrado (si existe)"
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        help_text="Número de teléfono con código de país (+593...)"
+    )
+    name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Nombre del contacto"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active'
+    )
+    state = models.CharField(
+        max_length=30,
+        choices=STATE_CHOICES,
+        default='inicio',
+        help_text="Estado actual de la conversación"
+    )
+    data = models.JSONField(
+        default=dict,
+        help_text="Datos temporales de la conversación (origen, destino, etc.)"
+    )
+    ride = models.ForeignKey(
+        'Ride',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='whatsapp_conversations',
+        help_text="Carrera asociada (si existe)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_message_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-last_message_at']
+        verbose_name = 'Conversación de WhatsApp'
+        verbose_name_plural = 'Conversaciones de WhatsApp'
+    
+    def __str__(self):
+        return f"{self.phone_number} - {self.name or 'Sin nombre'} ({self.get_status_display()})"
+
+
+class WhatsAppMessage(models.Model):
+    """Mensajes individuales de WhatsApp"""
+    
+    DIRECTION_CHOICES = [
+        ('incoming', 'Entrante'),
+        ('outgoing', 'Saliente'),
+    ]
+    
+    TYPE_CHOICES = [
+        ('text', 'Texto'),
+        ('location', 'Ubicación'),
+        ('image', 'Imagen'),
+        ('audio', 'Audio'),
+        ('document', 'Documento'),
+    ]
+    
+    conversation = models.ForeignKey(
+        WhatsAppConversation,
+        on_delete=models.CASCADE,
+        related_name='messages'
+    )
+    direction = models.CharField(
+        max_length=10,
+        choices=DIRECTION_CHOICES
+    )
+    message_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default='text'
+    )
+    content = models.TextField(
+        help_text="Contenido del mensaje"
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Metadatos adicionales (coordenadas, URLs, etc.)"
+    )
+    message_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="ID del mensaje de WASender"
+    )
+    delivered = models.BooleanField(default=False)
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Mensaje de WhatsApp'
+        verbose_name_plural = 'Mensajes de WhatsApp'
+    
+    def __str__(self):
+        direction_icon = '📥' if self.direction == 'incoming' else '📤'
+        return f"{direction_icon} {self.conversation.phone_number} - {self.content[:50]}"
+
+
+class WhatsAppStats(models.Model):
+    """Estadísticas diarias de WhatsApp"""
+    
+    date = models.DateField(unique=True)
+    total_messages = models.IntegerField(default=0)
+    incoming_messages = models.IntegerField(default=0)
+    outgoing_messages = models.IntegerField(default=0)
+    new_conversations = models.IntegerField(default=0)
+    active_conversations = models.IntegerField(default=0)
+    completed_conversations = models.IntegerField(default=0)
+    rides_requested = models.IntegerField(default=0)
+    rides_completed = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-date']
+        verbose_name = 'Estadística de WhatsApp'
+        verbose_name_plural = 'Estadísticas de WhatsApp'
+    
+    def __str__(self):
+        return f"Stats {self.date}: {self.total_messages} mensajes"

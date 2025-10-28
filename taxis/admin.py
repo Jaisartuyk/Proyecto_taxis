@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import AppUser, Taxi, TaxiRoute, Ride, RideDestination
+from .models import (
+    AppUser, Taxi, TaxiRoute, Ride, RideDestination,
+    WhatsAppConversation, WhatsAppMessage, WhatsAppStats
+)
 
 
 
@@ -122,6 +125,122 @@ class RideDestinationAdmin(admin.ModelAdmin):
     search_fields = ('ride__customer__username', 'destination')
 
 admin.site.register(RideDestination, RideDestinationAdmin)
+
+
+# ============================================
+# ADMIN DE WHATSAPP
+# ============================================
+
+class WhatsAppMessageInline(admin.TabularInline):
+    """Mensajes inline en la conversación"""
+    model = WhatsAppMessage
+    extra = 0
+    readonly_fields = ('direction', 'message_type', 'content', 'created_at', 'delivered', 'read')
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(WhatsAppConversation)
+class WhatsAppConversationAdmin(admin.ModelAdmin):
+    list_display = (
+        'phone_number',
+        'name',
+        'user',
+        'status',
+        'state',
+        'ride',
+        'message_count',
+        'last_message_at',
+        'created_at'
+    )
+    list_filter = ('status', 'state', 'created_at', 'last_message_at')
+    search_fields = ('phone_number', 'name', 'user__username')
+    readonly_fields = ('created_at', 'updated_at', 'last_message_at')
+    inlines = [WhatsAppMessageInline]
+    
+    fieldsets = (
+        ('Información del Contacto', {
+            'fields': ('phone_number', 'name', 'user')
+        }),
+        ('Estado de la Conversación', {
+            'fields': ('status', 'state', 'data')
+        }),
+        ('Carrera Asociada', {
+            'fields': ('ride',)
+        }),
+        ('Fechas', {
+            'fields': ('created_at', 'updated_at', 'last_message_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def message_count(self, obj):
+        return obj.messages.count()
+    message_count.short_description = 'Mensajes'
+
+
+@admin.register(WhatsAppMessage)
+class WhatsAppMessageAdmin(admin.ModelAdmin):
+    list_display = (
+        'get_phone_number',
+        'direction_icon',
+        'message_type',
+        'content_preview',
+        'delivered',
+        'read',
+        'created_at'
+    )
+    list_filter = ('direction', 'message_type', 'delivered', 'read', 'created_at')
+    search_fields = ('conversation__phone_number', 'content')
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Conversación', {
+            'fields': ('conversation',)
+        }),
+        ('Mensaje', {
+            'fields': ('direction', 'message_type', 'content', 'metadata')
+        }),
+        ('Estado', {
+            'fields': ('message_id', 'delivered', 'read', 'created_at')
+        }),
+    )
+    
+    def get_phone_number(self, obj):
+        return obj.conversation.phone_number
+    get_phone_number.short_description = 'Teléfono'
+    
+    def direction_icon(self, obj):
+        return '📥 Entrante' if obj.direction == 'incoming' else '📤 Saliente'
+    direction_icon.short_description = 'Dirección'
+    
+    def content_preview(self, obj):
+        return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
+    content_preview.short_description = 'Contenido'
+
+
+@admin.register(WhatsAppStats)
+class WhatsAppStatsAdmin(admin.ModelAdmin):
+    list_display = (
+        'date',
+        'total_messages',
+        'incoming_messages',
+        'outgoing_messages',
+        'new_conversations',
+        'active_conversations',
+        'rides_requested',
+        'rides_completed'
+    )
+    list_filter = ('date',)
+    readonly_fields = ('date',)
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 

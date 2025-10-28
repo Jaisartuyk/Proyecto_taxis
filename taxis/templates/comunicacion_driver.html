@@ -78,9 +78,20 @@
         socket.onmessage = (event) => {
             if (typeof event.data === 'string') {
                 const data = JSON.parse(event.data);
-                if (data.type === 'audio_broadcast' && data.senderRole === 'Central') {
-                    log(`Audio recibido de la central.`);
-                    playAudioFromBase64(data.audio);
+                if (data.type === 'audio_broadcast') {
+                    // No reproducir mi propio audio
+                    if (data.senderId === '{{ request.user.username }}') {
+                        log('🔇 Audio propio ignorado');
+                        return;
+                    }
+                    
+                    if (data.senderRole === 'Central') {
+                        log(`🔊 Audio recibido de la Central`);
+                        playAudioFromBase64(data.audio);
+                    } else if (data.senderRole === 'Taxi') {
+                        log(`🔊 Audio recibido de conductor: ${data.senderId}`);
+                        playAudioFromBase64(data.audio);
+                    }
                 }
             }
         };

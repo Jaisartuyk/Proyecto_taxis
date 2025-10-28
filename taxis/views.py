@@ -949,9 +949,6 @@ def update_ride_status(request, ride_id):
         return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)
 
 
-
-
-
 @login_required
 def ride_detail(request, ride_id):
     try:
@@ -1088,6 +1085,12 @@ def complete_ride(request, ride_id):
     return redirect('available_rides')
 
 
+@login_required
+def get_google_maps_key(request):
+    """
+    Endpoint seguro para obtener la API key de Google Maps
+    """
+    return JsonResponse({'maps_api_key': settings.GOOGLE_MAPS_API_KEY})
 
 def chat_room(request, room_name):
     return render(request, 'chat/room.html', {
@@ -1103,7 +1106,6 @@ def customer_rides(request):
 def driver_in_progress_rides(request):
     rides = Ride.objects.filter(driver=request.user).order_by('-created_at')
     return render(request, 'driver_in_progress_rides.html', {'rides': rides})
-
 
 
 
@@ -1130,7 +1132,6 @@ def check_new_rides(request):
         })
 
     return JsonResponse({"new_ride": False})
-
 
 def admin_users(request):
     taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)  # Solo taxistas con ubicación registrada

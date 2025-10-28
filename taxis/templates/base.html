@@ -61,16 +61,22 @@
     {% block extra_head %}{% endblock %}
     {% block extra_css %}{% endblock %}
 
-    <!-- PWA Manifest -->
+    <!-- PWA Configuration -->
     <link rel="manifest" href="{% static 'manifest.json' %}">
-
-    <!-- PWA Theme Color -->
-    <meta name="theme-color" content="#007bff">
+    <meta name="theme-color" content="#4a90e2">
 
     <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="{% static 'imagenes/logo1.png' %}">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <!-- Notifications Script -->
+    <script src="{% static 'js/notifications.js' %}" defer></script>
+    
+    <!-- User Authentication Flag -->
+    {% if user.is_authenticated %}
+    <div data-user-authenticated="true" style="display:none;"></div>
+    {% endif %}
 
 </head>
 
@@ -201,20 +207,22 @@
     {% endblock %}
 
     <script>
+        // Register Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/serviceworker.js')
-            .then(registration => {
-                console.log('Service Worker registrado con éxito:', registration);
-            })
-            .catch(error => {
-                console.log('Error al registrar el Service Worker:', error);
-            });
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('{% static 'js/service-worker.js' %}')
+              .then(function(registration) {
+                console.log('ServiceWorker registration successful', registration.scope);
+              })
+              .catch(function(err) {
+                console.log('ServiceWorker registration failed: ', err);
+              });
+          });
         }
     </script>
 
     <footer class="text-center mt-5">
-        <p class="text-muted">© 2024 De Aquí Pa'llá</p>
+        <p class="text-muted"> 2024 De Aquí Pa'llá</p>
     </footer>
 </body>
 </html>
-

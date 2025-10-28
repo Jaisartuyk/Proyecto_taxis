@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
+from .views import get_google_maps_key
 
 
 
@@ -59,5 +60,6 @@ urlpatterns = [
 
     # Chat Central
     path('central-comunicacion/', views.chat_central, name='chat_central'),
+    path('api/maps-key/', get_google_maps_key, name='get_maps_key'),
 
 ]

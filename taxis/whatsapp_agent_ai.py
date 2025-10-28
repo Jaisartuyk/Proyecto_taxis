@@ -14,8 +14,12 @@ from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import logging
 from datetime import date
-# Temporalmente usando asistente simple hasta configurar CLAUDE_API_KEY en Railway
+# Importar asistente de IA (Claude si está disponible, sino simple)
+from .ai_assistant_claude import claude_ai_assistant
 from .ai_assistant_simple import simple_ai_assistant
+
+# Usar Claude si está disponible, sino fallback a simple
+ai_assistant = claude_ai_assistant if claude_ai_assistant.client else simple_ai_assistant
 
 logger = logging.getLogger(__name__)
 
@@ -247,8 +251,8 @@ class WhatsAppAgentAI:
                     "content": msg.content
                 })
             
-            # Generar respuesta con el asistente de IA
-            resultado = simple_ai_assistant.generar_respuesta_contextual(
+            # Generar respuesta con el asistente de IA (Claude o Simple)
+            resultado = ai_assistant.generar_respuesta_contextual(
                 mensaje_usuario=mensaje,
                 estado_conversacion=conversacion.state,
                 datos_usuario={

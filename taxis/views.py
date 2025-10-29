@@ -8,6 +8,7 @@ from channels.layers import get_channel_layer
 import json
 import logging
 from django.views.decorators.csrf import csrf_exempt
+from django.db import models
 from .models import Taxi, TaxiRoute, Ride, RideDestination, AppUser, ConversacionTelegram, Rating
 from django.contrib.auth import login, logout
 from .forms import CustomerRegistrationForm,CustomerProfileForm, DriverProfileForm, TaxiForm, TaxiRouteForm, RideFilterForm, DriverRegistrationForm, AdminProfileForm
@@ -557,19 +558,34 @@ def get_distance_duration(lat1, lng1, lat2, lng2):
 
 # 🚕 Buscar el taxista más cercano a una ubicación
 def obtener_taxista_mas_cercano(lat, lng):
+    """
+    Busca el taxista más cercano a una ubicación
+    Ahora acepta conductores con Telegram O WhatsApp
+    """
     origen = (lat, lng)
     taxistas = Taxi.objects.select_related('user').filter(
         user__role='driver',
-        user__telegram_chat_id__isnull=False,
         latitude__isnull=False,
         longitude__isnull=False
+    ).filter(
+        # Que tenga Telegram O WhatsApp
+        models.Q(user__telegram_chat_id__isnull=False) | 
+        models.Q(user__phone_number__isnull=False)
     )
+    
     if not taxistas.exists():
+        logger.warning(f"⚠️ No se encontraron taxistas disponibles cerca de ({lat}, {lng})")
         return None
-    return min(
+    
+    taxista_cercano = min(
         taxistas,
         key=lambda t: geodesic(origen, (t.latitude, t.longitude)).km
     )
+    
+    distancia = geodesic(origen, (taxista_cercano.latitude, taxista_cercano.longitude)).km
+    logger.info(f"✅ Taxista más cercano: {taxista_cercano.user.get_full_name()} a {distancia:.2f} km")
+    
+    return taxista_cercano
 
 
 @csrf_exempt
@@ -1015,6 +1031,24 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
                     logger.info(f"✅ Notificación WhatsApp enviada a {taxista_cercano.user.get_full_name()}")
                 except Exception as e:
                     logger.warning(f"⚠️ No se pudo enviar WhatsApp: {e}")
+            
+            # Enviar notificación PWA push
+            try:
+                enviar_notificacion_pwa_conductor(
+                    conductor=taxista_cercano.user,
+                    titulo='🚕 Nueva carrera cerca de ti!',
+                    mensaje=f'Origen: {direccion_legible}\nDestino: {destination}\nPrecio: ${price:.2f}',
+                    datos={
+                        'ride_id': ride.id,
+                        'origin': direccion_legible,
+                        'destination': destination,
+                        'price': float(price),
+                        'url': '/available-rides/'
+                    }
+                )
+                logger.info(f"✅ Notificación PWA enviada a {taxista_cercano.user.get_full_name()}")
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo enviar notificación PWA: {e}")
         
         logger.info(f"✅ Carrera creada desde WhatsApp: {ride.id}")
         return ride

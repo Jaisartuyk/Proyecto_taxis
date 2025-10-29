@@ -884,6 +884,23 @@ def request_ride(request):
                             logger.info(f"✅ Notificación WhatsApp enviada a {taxista_cercano.user.get_full_name()}")
                         except Exception as e:
                             logger.warning(f"⚠️ No se pudo enviar WhatsApp: {e}")
+                    
+                    # Enviar notificación PWA push
+                    try:
+                        enviar_notificacion_pwa_conductor(
+                            conductor=taxista_cercano.user,
+                            titulo='🚕 Nueva carrera cerca de ti!',
+                            mensaje=f'Origen: {direccion_legible}\nPrecio: ${price:.2f}',
+                            datos={
+                                'ride_id': ride.id,
+                                'origin': direccion_legible,
+                                'price': float(price),
+                                'url': '/available-rides/'
+                            }
+                        )
+                        logger.info(f"✅ Notificación PWA enviada a {taxista_cercano.user.get_full_name()}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ No se pudo enviar notificación PWA: {e}")
 
                 messages.success(request, '¡Carrera solicitada con éxito!')
                 return redirect(reverse('ride_detail', args=[ride.id]))
@@ -1622,5 +1639,47 @@ def whatsapp_stats_api(request):
         },
         'conversations_by_status': list(conversations_by_status),
     }
+
+
+# ============================================
+# NOTIFICACIONES PWA PUSH
+# ============================================
+
+def enviar_notificacion_pwa_conductor(conductor, titulo, mensaje, datos=None):
+    """
+    Envía una notificación PWA push a un conductor
     
-    return JsonResponse(data)
+    Args:
+        conductor: Usuario conductor (AppUser)
+        titulo: Título de la notificación
+        mensaje: Cuerpo del mensaje
+        datos: Datos adicionales (dict)
+    """
+    try:
+        # Por ahora, usamos WebSockets para notificar
+        # En el futuro, implementar Web Push API real con pywebpush
+        
+        channel_layer = get_channel_layer()
+        
+        notification_data = {
+            'type': 'nueva_carrera_notification',
+            'title': titulo,
+            'body': mensaje,
+            'data': datos or {}
+        }
+        
+        # Enviar a través del canal de audio/conductores
+        async_to_sync(channel_layer.group_send)(
+            'audio_conductores',
+            {
+                'type': 'nueva_carrera',
+                'notification': notification_data
+            }
+        )
+        
+        logger.info(f"✅ Notificación PWA enviada a conductores")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Error al enviar notificación PWA: {e}")
+        return False

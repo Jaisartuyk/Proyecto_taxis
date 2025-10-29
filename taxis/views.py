@@ -843,18 +843,47 @@ def request_ride(request):
                     {"text": "🗺 Ver en Google Maps", "url": f"https://maps.google.com/?q={origin_lat},{origin_lng}"}
                 ]]
 
-                # Enviar mensaje al grupo de conductores
+                # Enviar mensaje al grupo de conductores por Telegram
                 enviar_telegram(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
 
-                # Opcional: Notificar al taxista más cercano
+                # Notificar al taxista más cercano por WhatsApp
                 taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
-                if taxista_cercano and taxista_cercano.user.telegram_chat_id:
-                    mensaje_taxista = (
-                        f"📣 Hola {taxista_cercano.user.get_full_name()}, hay una carrera cerca de ti:\n"
-                        f"🛫 Desde: {direccion_legible}\n"
-                        f"👤 Cliente: {request.user.get_full_name()}"
+                if taxista_cercano:
+                    mensaje_taxista_whatsapp = (
+                        f"🚕 *Nueva carrera cerca de ti!*\n\n"
+                        f"📍 *Origen:* {direccion_legible}\n"
+                        f"{lista_destinos}\n"
+                        f"👤 *Cliente:* {request.user.get_full_name()}\n"
+                        f"📱 *Teléfono:* {request.user.phone_number}\n"
+                        f"💰 *Precio:* ${price:.2f}\n\n"
+                        f"🆔 *Carrera #*{ride.id}\n\n"
+                        f"Para aceptar, responde:\n"
+                        f"*ACEPTAR {ride.id}*"
                     )
-                    enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_taxista)
+                    
+                    # Enviar por Telegram si tiene chat_id
+                    if taxista_cercano.user.telegram_chat_id:
+                        try:
+                            mensaje_telegram = (
+                                f"📣 Hola {taxista_cercano.user.get_full_name()}, hay una carrera cerca de ti:\n"
+                                f"🛫 Desde: {direccion_legible}\n"
+                                f"👤 Cliente: {request.user.get_full_name()}"
+                            )
+                            enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_telegram)
+                        except Exception as e:
+                            logger.warning(f"⚠️ No se pudo enviar Telegram: {e}")
+                    
+                    # Enviar por WhatsApp si tiene número
+                    if taxista_cercano.user.phone_number:
+                        try:
+                            from .whatsapp_agent_ai import whatsapp_agent_ai
+                            whatsapp_agent_ai.enviar_mensaje(
+                                taxista_cercano.user.phone_number,
+                                mensaje_taxista_whatsapp
+                            )
+                            logger.info(f"✅ Notificación WhatsApp enviada a {taxista_cercano.user.get_full_name()}")
+                        except Exception as e:
+                            logger.warning(f"⚠️ No se pudo enviar WhatsApp: {e}")
 
                 messages.success(request, '¡Carrera solicitada con éxito!')
                 return redirect(reverse('ride_detail', args=[ride.id]))

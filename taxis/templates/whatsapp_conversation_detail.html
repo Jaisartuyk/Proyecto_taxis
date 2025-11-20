@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,26 +15,51 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #0f0f0f;
+            background-image: linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+            background-size: 600px;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             padding: 20px;
+            color: #ffffff;
         }
 
         .container {
             max-width: 900px;
             margin: 0 auto;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            background: rgba(31, 31, 31, 0.8);
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid #2d2d2d;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #25D366, #128C7E);
         }
 
         .header-info {
@@ -43,31 +69,33 @@
         }
 
         .avatar {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #1a1a1a;
             font-weight: 700;
-            font-size: 24px;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.2);
         }
 
         .user-info h1 {
-            font-size: 24px;
-            color: #333;
+            font-size: 20px;
+            color: #ffffff;
             margin-bottom: 5px;
+            font-weight: 600;
         }
 
         .user-info p {
-            color: #666;
+            color: #9ca3af;
             font-size: 14px;
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -79,38 +107,42 @@
         }
 
         .btn-secondary {
-            background: #667eea;
-            color: white;
+            background: transparent;
+            color: #FFD700;
+            border: 1px solid #FFD700;
         }
 
         .btn-secondary:hover {
-            background: #5568d3;
+            background: #FFD700;
+            color: #1a1a1a;
         }
 
         .chat-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            background: #1f1f1f;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             overflow: hidden;
+            border: 1px solid #2d2d2d;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            /* Importante para flexbox scroll */
         }
 
         .chat-header {
-            padding: 20px 25px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #eee;
-        }
-
-        .chat-header h2 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 10px;
+            padding: 15px 25px;
+            background: rgba(31, 31, 31, 0.5);
+            border-bottom: 1px solid #2d2d2d;
+            flex-shrink: 0;
         }
 
         .chat-meta {
             display: flex;
             gap: 20px;
-            font-size: 14px;
-            color: #666;
+            font-size: 13px;
+            color: #9ca3af;
+            align-items: center;
         }
 
         .chat-meta span {
@@ -121,53 +153,81 @@
 
         .chat-messages {
             padding: 25px;
-            max-height: 600px;
             overflow-y: auto;
-            background: #f0f2f5;
+            background: #0f0f0f;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbar personalizado */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #0f0f0f;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #2d2d2d;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #404040;
         }
 
         .message {
             margin-bottom: 15px;
             display: flex;
             gap: 10px;
+            max-width: 80%;
         }
 
         .message.incoming {
-            justify-content: flex-start;
+            align-self: flex-start;
         }
 
         .message.outgoing {
-            justify-content: flex-end;
+            align-self: flex-end;
+            flex-direction: row-reverse;
         }
 
         .message-bubble {
-            max-width: 70%;
             padding: 12px 16px;
-            border-radius: 12px;
+            border-radius: 16px;
             position: relative;
+            color: #ffffff;
+            font-size: 15px;
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .message.incoming .message-bubble {
-            background: white;
+            background: #2d2d2d;
             border-bottom-left-radius: 4px;
         }
 
         .message.outgoing .message-bubble {
-            background: #DCF8C6;
+            background: #005c4b;
+            /* WhatsApp Dark Green */
             border-bottom-right-radius: 4px;
         }
 
         .message-content {
             word-wrap: break-word;
-            color: #333;
-            line-height: 1.4;
         }
 
         .message-time {
             font-size: 11px;
-            color: #999;
+            color: rgba(255, 255, 255, 0.6);
             margin-top: 5px;
             text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 5px;
         }
 
         .message-icon {
@@ -182,56 +242,135 @@
         }
 
         .message.incoming .message-icon {
-            background: #E3F2FD;
-            color: #2196F3;
+            background: #2d2d2d;
+            color: #9ca3af;
+            border: 1px solid #404040;
         }
 
         .message.outgoing .message-icon {
-            background: #E8F5E9;
-            color: #4CAF50;
+            background: #005c4b;
+            color: #ffffff;
+            border: 1px solid #004d40;
         }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #999;
+            color: #6B7280;
+            margin: auto;
         }
 
         .empty-state i {
             font-size: 64px;
             margin-bottom: 20px;
-            opacity: 0.3;
+            opacity: 0.5;
+            color: #4B5563;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 4px 10px;
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
         }
 
         .status-active {
-            background: #E8F5E9;
+            background: rgba(76, 175, 80, 0.1);
             color: #4CAF50;
+            border: 1px solid #4CAF50;
         }
 
         .status-waiting {
-            background: #FFF3E0;
+            background: rgba(255, 152, 0, 0.1);
             color: #FF9800;
+            border: 1px solid #FF9800;
         }
 
         .status-completed {
-            background: #E3F2FD;
+            background: rgba(33, 150, 243, 0.1);
             color: #2196F3;
+            border: 1px solid #2196F3;
         }
 
         .status-abandoned {
-            background: #FFEBEE;
+            background: rgba(244, 67, 54, 0.1);
             color: #F44336;
+            border: 1px solid #F44336;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 20px;
+            background: #1f1f1f;
+            border-top: 1px solid #2d2d2d;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .chat-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            background: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 15px;
+            resize: none;
+            min-height: 48px;
+            max-height: 120px;
+            outline: none;
+            transition: border-color 0.3s;
+            display: block;
+        }
+
+        .chat-input:focus {
+            border-color: #25D366;
+            background: #363636;
+        }
+
+        .btn-send {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-send:disabled {
+            background: #404040;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-send i {
+            font-size: 18px;
+            margin-left: 2px;
+            /* Visual adjustment */
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -260,10 +399,9 @@
         <!-- Chat Container -->
         <div class="chat-container">
             <div class="chat-header">
-                <h2>Conversación</h2>
                 <div class="chat-meta">
                     <span>
-                        <i class="fas fa-circle"></i>
+                        <i class="fas fa-circle" style="font-size: 8px;"></i>
                         <span class="status-badge status-{{ conversation.status }}">
                             {{ conversation.get_status_display }}
                         </span>
@@ -274,12 +412,13 @@
                     </span>
                     <span>
                         <i class="fas fa-clock"></i>
-                        Última actividad: {{ conversation.last_message_at|timesince }} ago
+                        {{ conversation.last_message_at|timesince }} ago
                     </span>
                     {% if conversation.ride %}
                     <span>
                         <i class="fas fa-taxi"></i>
-                        <a href="{% url 'ride_detail' conversation.ride.id %}" style="color: #667eea;">
+                        <a href="{% url 'ride_detail' conversation.ride.id %}"
+                            style="color: #FFD700; text-decoration: none;">
                             Ver carrera
                         </a>
                     </span>
@@ -289,51 +428,62 @@
 
             <div class="chat-messages" id="chatMessages">
                 {% if messages %}
-                    {% for msg in messages %}
-                    <div class="message {{ msg.direction }}">
-                        {% if msg.direction == 'incoming' %}
-                        <div class="message-icon">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="message-bubble">
-                            <div class="message-content">
-                                {% if msg.message_type == 'location' %}
-                                    <i class="fas fa-map-marker-alt"></i> 
-                                    <strong>Ubicación GPS</strong><br>
-                                    {{ msg.content }}
-                                {% else %}
-                                    {{ msg.content }}
-                                {% endif %}
-                            </div>
-                            <div class="message-time">
-                                {{ msg.created_at|date:"d/m/Y H:i" }}
-                                {% if msg.direction == 'outgoing' %}
-                                    {% if msg.read %}
-                                        <i class="fas fa-check-double" style="color: #4FC3F7;"></i>
-                                    {% elif msg.delivered %}
-                                        <i class="fas fa-check-double"></i>
-                                    {% else %}
-                                        <i class="fas fa-check"></i>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        {% if msg.direction == 'outgoing' %}
-                        <div class="message-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        {% endif %}
+                {% for msg in messages %}
+                <div class="message {{ msg.direction }}">
+                    {% if msg.direction == 'incoming' %}
+                    <div class="message-icon">
+                        <i class="fas fa-user"></i>
                     </div>
-                    {% endfor %}
+                    {% endif %}
+
+                    <div class="message-bubble">
+                        <div class="message-content">
+                            {% if msg.message_type == 'location' %}
+                            <i class="fas fa-map-marker-alt" style="color: #FFD700;"></i>
+                            <strong>Ubicación GPS</strong><br>
+                            {{ msg.content }}
+                            {% else %}
+                            {{ msg.content }}
+                            {% endif %}
+                        </div>
+                        <div class="message-time">
+                            {{ msg.created_at|date:"H:i" }}
+                            {% if msg.direction == 'outgoing' %}
+                            {% if msg.read %}
+                            <i class="fas fa-check-double" style="color: #4FC3F7;"></i>
+                            {% elif msg.delivered %}
+                            <i class="fas fa-check-double"></i>
+                            {% else %}
+                            <i class="fas fa-check"></i>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if msg.direction == 'outgoing' %}
+                    <div class="message-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
                 {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-comments"></i>
-                        <p>No hay mensajes en esta conversación</p>
-                    </div>
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <p>No hay mensajes en esta conversación</p>
+                </div>
                 {% endif %}
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <textarea id="messageInput" class="chat-input" placeholder="Escribe un mensaje..." rows="1"
+                        oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                </div>
+                <button id="sendButton" class="btn-send" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -342,6 +492,68 @@
         // Scroll al último mensaje
         const chatMessages = document.getElementById('chatMessages');
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Auto-resize textarea
+        const messageInput = document.getElementById('messageInput');
+        messageInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            const sendButton = document.getElementById('sendButton');
+
+            if (!message) return;
+
+            // Deshabilitar UI
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            try {
+                const response = await fetch('{% url "whatsapp_send_message" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        phone_number: '{{ conversation.phone_number }}',
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Recargar para mostrar el nuevo mensaje
+                    // Idealmente añadiríamos el mensaje al DOM dinámicamente, 
+                    // pero recargar asegura consistencia con el backend por ahora
+                    location.reload();
+                } else {
+                    alert('Error al enviar mensaje: ' + (data.error || 'Desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión al enviar mensaje');
+            } finally {
+                // Habilitar UI (si no se recargó la página)
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Auto-refresh cada 30 segundos para nuevos mensajes
+        setInterval(() => {
+            // Solo recargar si el usuario no está escribiendo
+            if (document.activeElement !== messageInput && messageInput.value === '') {
+                location.reload();
+            }
+        }, 30000);
     </script>
 </body>
+
 </html>

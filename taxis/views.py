@@ -1201,6 +1201,29 @@ def ride_detail(request, ride_id):
             except Taxi.DoesNotExist:
                 pass
 
+        # Lógica de Chat
+        chat_history = []
+        other_user_id = None
+        other_user_name = None
+        
+        if ride.driver and ride.customer:
+            if request.user == ride.customer:
+                other_user = ride.driver
+            elif request.user == ride.driver:
+                other_user = ride.customer
+            else:
+                other_user = None
+            
+            if other_user:
+                other_user_id = other_user.id
+                other_user_name = other_user.get_full_name()
+                from .models import ChatMessage
+                from django.db.models import Q
+                chat_history = ChatMessage.objects.filter(
+                    Q(sender=request.user, recipient=other_user) | 
+                    Q(sender=other_user, recipient=request.user)
+                ).order_by('timestamp')
+
         context = {
             'ride': ride,
             'client_lat': client_lat,
@@ -1211,6 +1234,9 @@ def ride_detail(request, ride_id):
             'destinations': destinations,
             'destinations_json': json.dumps(destinations_data),
             'GOOGLE_MAPS_API_KEY': settings.GOOGLE_API_KEY,
+            'chat_history': chat_history,
+            'other_user_id': other_user_id,
+            'other_user_name': other_user_name,
         }
 
         return render(request, 'ride_detail_modern.html', context)

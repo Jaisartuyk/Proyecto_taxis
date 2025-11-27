@@ -6,15 +6,14 @@
 <style>
     body {
         background-color: #0f0f0f;
-        background-image: 
-            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
-            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-image: linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+        url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
         background-size: 400px;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
     }
-    
+
     .ride-header {
         background: rgba(31, 31, 31, 0.8);
         border-radius: 20px;
@@ -37,7 +36,7 @@
         height: 4px;
         background: linear-gradient(90deg, #FFD700, #FFC107);
     }
-    
+
     .ride-header h1 {
         margin: 0;
         font-weight: 700;
@@ -47,7 +46,7 @@
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
-    
+
     .status-badge {
         display: inline-block;
         padding: 0.5rem 1.5rem;
@@ -56,13 +55,37 @@
         margin-top: 0.5rem;
         border: 1px solid transparent;
     }
-    
-    .status-requested { background: rgba(255, 165, 0, 0.1); color: #FFA500; border-color: #FFA500; }
-    .status-accepted { background: rgba(16, 185, 129, 0.1); color: #10B981; border-color: #10B981; }
-    .status-in_progress { background: rgba(59, 130, 246, 0.1); color: #3B82F6; border-color: #3B82F6; }
-    .status-completed { background: rgba(34, 197, 94, 0.1); color: #22C55E; border-color: #22C55E; }
-    .status-canceled { background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: #EF4444; }
-    
+
+    .status-requested {
+        background: rgba(255, 165, 0, 0.1);
+        color: #FFA500;
+        border-color: #FFA500;
+    }
+
+    .status-accepted {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+        border-color: #10B981;
+    }
+
+    .status-in_progress {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3B82F6;
+        border-color: #3B82F6;
+    }
+
+    .status-completed {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22C55E;
+        border-color: #22C55E;
+    }
+
+    .status-canceled {
+        background: rgba(239, 68, 68, 0.1);
+        color: #EF4444;
+        border-color: #EF4444;
+    }
+
     .map-container {
         background: #1f1f1f;
         border-radius: 20px;
@@ -71,35 +94,35 @@
         border: 1px solid #2d2d2d;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
-    
+
     #map {
         height: 500px;
         border-radius: 15px;
         border: 1px solid #2d2d2d;
     }
-    
+
     .info-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
-    
+
     .info-card {
         background: #1f1f1f;
         border-radius: 15px;
         padding: 1.5rem;
         border: 1px solid #2d2d2d;
         transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
-    
+
     .info-card:hover {
         transform: translateY(-5px);
         border-color: #FFD700;
         box-shadow: 0 10px 25px rgba(255, 215, 0, 0.1);
     }
-    
+
     .info-card h3 {
         color: #FFD700;
         font-size: 1.25rem;
@@ -109,7 +132,7 @@
         gap: 0.5rem;
         font-weight: 600;
     }
-    
+
     .info-item {
         display: flex;
         align-items: start;
@@ -117,13 +140,13 @@
         margin-bottom: 0.75rem;
         color: #ffffff;
     }
-    
+
     .info-item strong {
         color: #9ca3af;
         min-width: 100px;
         font-weight: 500;
     }
-    
+
     .location-live {
         display: inline-flex;
         align-items: center;
@@ -136,19 +159,26 @@
         border: 1px solid #10B981;
         animation: pulse 2s infinite;
     }
-    
+
     @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
     }
-    
+
     .action-buttons {
         display: flex;
         gap: 1rem;
         flex-wrap: wrap;
         margin-top: 2rem;
     }
-    
+
     .btn-action {
         padding: 1rem 2rem;
         border-radius: 12px;
@@ -161,24 +191,24 @@
         align-items: center;
         gap: 0.5rem;
     }
-    
+
     .btn-primary {
         background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
         color: #1a1a1a;
     }
-    
+
     .btn-primary:hover {
         transform: translateY(-3px);
         box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
         color: #1a1a1a;
     }
-    
+
     .btn-secondary {
         background: transparent;
         color: #FFD700;
         border: 1px solid #FFD700;
     }
-    
+
     .btn-secondary:hover {
         background: #FFD700;
         color: #1a1a1a;
@@ -194,7 +224,7 @@
         box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
         color: white;
     }
-    
+
     .price-display {
         font-size: 2.5rem;
         font-weight: 900;
@@ -236,6 +266,178 @@
         font-size: 12px;
         font-weight: 700;
         flex-shrink: 0;
+    }
+
+    /* Chat Styles */
+    .chat-float-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        cursor: pointer;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+        border: none;
+    }
+
+    .chat-float-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .chat-float-btn i {
+        font-size: 24px;
+        color: #1a1a1a;
+    }
+
+    .chat-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #EF4444;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        border: 2px solid #1f1f1f;
+    }
+
+    .chat-panel {
+        position: fixed;
+        bottom: 100px;
+        right: 30px;
+        width: 350px;
+        height: 500px;
+        background: #1f1f1f;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        border: 1px solid #2d2d2d;
+        display: none;
+        flex-direction: column;
+        z-index: 1000;
+        overflow: hidden;
+    }
+
+    .chat-panel.active {
+        display: flex;
+    }
+
+    .chat-header {
+        padding: 15px;
+        background: #2d2d2d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #3d3d3d;
+    }
+
+    .chat-header h3 {
+        margin: 0;
+        color: #FFD700;
+        font-size: 16px;
+    }
+
+    .chat-close {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 20px;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .message {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+    }
+
+    .message.sent {
+        align-self: flex-end;
+        background: #FFD700;
+        color: #1a1a1a;
+        border-bottom-right-radius: 2px;
+    }
+
+    .message.received {
+        align-self: flex-start;
+        background: #2d2d2d;
+        color: #ffffff;
+        border-bottom-left-radius: 2px;
+    }
+
+    .message-time {
+        font-size: 10px;
+        margin-top: 4px;
+        text-align: right;
+        opacity: 0.7;
+    }
+
+    .chat-input-area {
+        padding: 15px;
+        background: #2d2d2d;
+        display: flex;
+        gap: 10px;
+        border-top: 1px solid #3d3d3d;
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 20px;
+        border: 1px solid #3d3d3d;
+        background: #1f1f1f;
+        color: white;
+        outline: none;
+    }
+
+    .chat-input:focus {
+        border-color: #FFD700;
+    }
+
+    .chat-send-btn {
+        background: #FFD700;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #1a1a1a;
+    }
+
+    @media (max-width: 480px) {
+        .chat-panel {
+            width: 100%;
+            height: 100%;
+            bottom: 0;
+            right: 0;
+            border-radius: 0;
+        }
     }
 </style>
 {% endblock %}
@@ -282,9 +484,9 @@
                 <strong>Precio:</strong>
                 <div class="price-display">
                     {% if ride.price %}
-                        ${{ ride.price|floatformat:2 }} USD
+                    ${{ ride.price|floatformat:2 }} USD
                     {% else %}
-                        Por definir
+                    Por definir
                     {% endif %}
                 </div>
             </div>
@@ -363,51 +565,183 @@
 
     <!-- Botones de Acción -->
     <div class="action-buttons">
-        <a href="{% if request.user.role == 'driver' %}{% url 'driver_dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="btn-action btn-secondary">
+        <a href="{% if request.user.role == 'driver' %}{% url 'driver_dashboard' %}{% else %}{% url 'home' %}{% endif %}"
+            class="btn-action btn-secondary">
             ← Volver
         </a>
-        
+
         {% if request.user.role == 'driver' %}
-            {% if ride.status == 'requested' and not ride.driver %}
-            <form method="POST" action="{% url 'accept_ride' ride.id %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn-action btn-success">
-                    ✅ Aceptar Carrera
-                </button>
-            </form>
-            {% elif ride.status == 'accepted' and request.user == ride.driver %}
-            <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
-                {% csrf_token %}
-                <input type="hidden" name="status" value="in_progress">
-                <button type="submit" class="btn-action btn-primary">
-                    ▶️ Iniciar Carrera
-                </button>
-            </form>
-            {% elif ride.status == 'in_progress' and request.user == ride.driver %}
-            <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
-                {% csrf_token %}
-                <input type="hidden" name="status" value="completed">
-                <button type="submit" class="btn-action btn-primary">
-                    ✓ Completar Carrera
-                </button>
-            </form>
-            {% endif %}
+        {% if ride.status == 'requested' and not ride.driver %}
+        <form method="POST" action="{% url 'accept_ride' ride.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-action btn-success">
+                ✅ Aceptar Carrera
+            </button>
+        </form>
+        {% elif ride.status == 'accepted' and request.user == ride.driver %}
+        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="in_progress">
+            <button type="submit" class="btn-action btn-primary">
+                ▶️ Iniciar Carrera
+            </button>
+        </form>
+        {% elif ride.status == 'in_progress' and request.user == ride.driver %}
+        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="completed">
+            <button type="submit" class="btn-action btn-primary">
+                ✓ Completar Carrera
+            </button>
+        </form>
+        {% endif %}
         {% endif %}
     </div>
+
+    <!-- Chat Widget -->
+    {% if other_user_id %}
+    <button class="chat-float-btn" onclick="toggleChat()">
+        <i class="fas fa-comment-alt"></i>
+        <span class="chat-badge" id="chat-badge" style="display: none;">0</span>
+    </button>
+
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-header">
+            <h3>Chat con {{ other_user_name }}</h3>
+            <button class="chat-close" onclick="toggleChat()">×</button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            {% for msg in chat_history %}
+            <div class="message {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
+                {{ msg.message }}
+                <div class="message-time">{{ msg.timestamp|date:"H:i" }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chat-input" placeholder="Escribe un mensaje...">
+            <button class="chat-send-btn" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
+{% if other_user_id %}
 <script>
-let map;
-let driverMarker;
-let originMarker;
-let destinationMarkers = [];
-let directionsService;
-let directionsRenderer;
+    const chatPanel = document.getElementById('chat-panel');
+    const chatBadge = document.getElementById('chat-badge');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    let unreadCount = 0;
+    let chatSocket = null;
+    const OTHER_USER_ID = "{{ other_user_id }}";
+    const MY_USER_ID = "{{ request.user.id }}";
 
-function initMap() {
-    // Centro del mapa en el origen
-    const origin = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
-    
+    function toggleChat() {
+        chatPanel.classList.toggle('active');
+        if (chatPanel.classList.contains('active')) {
+            unreadCount = 0;
+            updateBadge();
+            scrollToBottom();
+        }
+    }
+
+    function updateBadge() {
+        if (unreadCount > 0) {
+            chatBadge.style.display = 'flex';
+            chatBadge.textContent = unreadCount;
+        } else {
+            chatBadge.style.display = 'none';
+        }
+    }
+
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function appendMessage(text, isSent, time = null) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+        const timeStr = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        msgDiv.innerHTML = `
+            ${text}
+            <div class="message-time">${timeStr}</div>
+        `;
+        chatMessages.appendChild(msgDiv);
+        scrollToBottom();
+    }
+
+    function setupChatWebSocket() {
+        const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+        chatSocket = new WebSocket(`${wsProtocol}${window.location.host}/ws/chat/`);
+
+        chatSocket.onopen = function () {
+            console.log('💬 Chat conectado');
+        };
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+
+            // Verificar si el mensaje es para esta conversación
+            if (String(data.sender_id) === String(OTHER_USER_ID) || String(data.sender_id) === String(MY_USER_ID)) {
+                const isSent = String(data.sender_id) === String(MY_USER_ID);
+
+                // Si es recibido y el chat está cerrado, incrementar contador
+                if (!isSent && !chatPanel.classList.contains('active')) {
+                    unreadCount++;
+                    updateBadge();
+                    // Opcional: Sonido de notificación
+                }
+
+                appendMessage(data.message, isSent);
+            }
+        };
+
+        chatSocket.onclose = function () {
+            console.log('Chat desconectado, reconectando...');
+            setTimeout(setupChatWebSocket, 3000);
+        };
+    }
+
+    function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text || !chatSocket) return;
+
+        chatSocket.send(JSON.stringify({
+            message: text,
+            recipient_id: OTHER_USER_ID
+        }));
+
+        chatInput.value = '';
+    }
+
+    chatInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Iniciar chat al cargar
+    document.addEventListener('DOMContentLoaded', function () {
+        setupChatWebSocket();
+        scrollToBottom();
+    });
+</script>
+{% endif %}
+
+<script>
+    let map;
+    let driverMarker;
+    let originMarker;
+    let destinationMarkers = [];
+    let directionsService;
+    let directionsRenderer;
+
+    function initMap() {
+        // Centro del mapa en el origen
+        const origin = { lat: {{ ride.origin_latitude }
+    }, lng: { { ride.origin_longitude } } };
+
     map = new google.maps.Map(document.getElementById('map'), {
         center: origin,
         zoom: 14,
@@ -492,7 +826,7 @@ function initMap() {
             }
         ]
     });
-    
+
     directionsService = new google.maps.DirectionsService();
     directionsRenderer = new google.maps.DirectionsRenderer({
         map: map,
@@ -503,7 +837,7 @@ function initMap() {
             strokeOpacity: 0.8
         }
     });
-    
+
     // Marcador de origen
     originMarker = new google.maps.Marker({
         position: origin,
@@ -525,35 +859,35 @@ function initMap() {
         content: '<div style="color:black; font-weight:bold;">📍 Origen</div><div style="color:black;">{{ origin_address|default:ride.origin }}</div>'
     });
     originMarker.addListener('click', () => originInfo.open(map, originMarker));
-    
+
     // Procesar destinos
     const destinations = JSON.parse('{{ destinations_json|escapejs }}');
-    
+
     if (destinations.length > 0) {
         // Preparar waypoints (todos menos el último)
         const waypoints = [];
         const lastDestination = destinations[destinations.length - 1];
-        
+
         for (let i = 0; i < destinations.length - 1; i++) {
             waypoints.push({
                 location: { lat: destinations[i].lat, lng: destinations[i].lng },
                 stopover: true
             });
-            
+
             // Crear marcador para waypoint
             createDestinationMarker(destinations[i], i + 1);
         }
-        
+
         // Crear marcador para destino final
         createDestinationMarker(lastDestination, destinations.length, true);
-        
+
         // Calcular ruta
         calculateRoute(origin, { lat: lastDestination.lat, lng: lastDestination.lng }, waypoints);
     }
-    
+
     // Marcador del conductor (si existe)
     {% if driver_lat and driver_lng %}
-    const driverPos = { lat: {{ driver_lat }}, lng: {{ driver_lng }} };
+    const driverPos = { lat: {{ driver_lat }}, lng: { { driver_lng } } };
     driverMarker = new google.maps.Marker({
         position: driverPos,
         map: map,
@@ -569,72 +903,73 @@ function initMap() {
             anchor: new google.maps.Point(20, 20)
         }
     });
-    
+
     // Actualizar ubicación del conductor cada 5 segundos
     setInterval(updateDriverLocation, 5000);
     {% endif %}
 }
 
-function createDestinationMarker(dest, index, isFinal = false) {
-    const marker = new google.maps.Marker({
-        position: { lat: dest.lat, lng: dest.lng },
-        map: map,
-        title: `Destino ${index}: ${dest.address}`,
-        label: {
-            text: index.toString(),
-            color: 'white',
-            fontWeight: 'bold'
-        },
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 12,
-            fillColor: isFinal ? '#EF4444' : '#3B82F6',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2
-        }
-    });
-    
-    const infoWindow = new google.maps.InfoWindow({
-        content: `<div style="color:black; font-weight:bold;">${isFinal ? '🏁 Destino Final' : '🛑 Parada ' + index}</div><div style="color:black;">${dest.address}</div>`
-    });
-    
-    marker.addListener('click', () => infoWindow.open(map, marker));
-    // Abrir automáticamente al cargar
-    // infoWindow.open(map, marker); 
-    
-    destinationMarkers.push(marker);
-}
-
-function calculateRoute(origin, destination, waypoints) {
-    directionsService.route({
-        origin: origin,
-        destination: destination,
-        waypoints: waypoints,
-        optimizeWaypoints: false, // Mantener el orden original
-        travelMode: google.maps.TravelMode.DRIVING
-    }, (result, status) => {
-        if (status === 'OK') {
-            directionsRenderer.setDirections(result);
-        } else {
-            console.error('Directions request failed due to ' + status);
-        }
-    });
-}
-
-function updateDriverLocation() {
-    // Obtener ubicación actualizada del conductor via AJAX
-    fetch(`/api/driver-location/{{ ride.driver.id }}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.latitude && data.longitude && driverMarker) {
-                const newPos = { lat: data.latitude, lng: data.longitude };
-                driverMarker.setPosition(newPos);
+    function createDestinationMarker(dest, index, isFinal = false) {
+        const marker = new google.maps.Marker({
+            position: { lat: dest.lat, lng: dest.lng },
+            map: map,
+            title: `Destino ${index}: ${dest.address}`,
+            label: {
+                text: index.toString(),
+                color: 'white',
+                fontWeight: 'bold'
+            },
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 12,
+                fillColor: isFinal ? '#EF4444' : '#3B82F6',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2
             }
-        })
-        .catch(error => console.log('Error actualizando ubicación:', error));
-}
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+            content: `<div style="color:black; font-weight:bold;">${isFinal ? '🏁 Destino Final' : '🛑 Parada ' + index}</div><div style="color:black;">${dest.address}</div>`
+        });
+
+        marker.addListener('click', () => infoWindow.open(map, marker));
+        // Abrir automáticamente al cargar
+        // infoWindow.open(map, marker); 
+
+        destinationMarkers.push(marker);
+    }
+
+    function calculateRoute(origin, destination, waypoints) {
+        directionsService.route({
+            origin: origin,
+            destination: destination,
+            waypoints: waypoints,
+            optimizeWaypoints: false, // Mantener el orden original
+            travelMode: google.maps.TravelMode.DRIVING
+        }, (result, status) => {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(result);
+            } else {
+                console.error('Directions request failed due to ' + status);
+            }
+        });
+    }
+
+    function updateDriverLocation() {
+        // Obtener ubicación actualizada del conductor via AJAX
+        fetch(`/api/driver-location/{{ ride.driver.id }}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.latitude && data.longitude && driverMarker) {
+                    const newPos = { lat: data.latitude, lng: data.longitude };
+                    driverMarker.setPosition(newPos);
+                }
+            })
+            .catch(error => console.log('Error actualizando ubicación:', error));
+    }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap" async
+    defer></script>
 {% endblock %}

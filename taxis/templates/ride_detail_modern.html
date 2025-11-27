@@ -828,6 +828,10 @@
             ]
         });
 
+        // Agregar capa de tráfico
+        const trafficLayer = new google.maps.TrafficLayer();
+        trafficLayer.setMap(map);
+
         directionsService = new google.maps.DirectionsService();
         directionsRenderer = new google.maps.DirectionsRenderer({
             map: map,

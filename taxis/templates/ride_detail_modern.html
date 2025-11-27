@@ -739,154 +739,157 @@
 
     function initMap() {
         // Centro del mapa en el origen
-        const origin = { lat: {{ ride.origin_latitude|stringformat:"f" }}, lng: {{ ride.origin_longitude|stringformat:"f" }} };
+        const lat = parseFloat("{{ ride.origin_latitude|default:0|stringformat:'f' }}");
+        const lng = parseFloat("{{ ride.origin_longitude|default:0|stringformat:'f' }}");
+        const origin = { lat: lat, lng: lng };
 
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: origin,
-        zoom: 14,
-        styles: [
-            { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-            { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-            {
-                featureType: 'administrative.locality',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#d59563' }]
-            },
-            {
-                featureType: 'poi',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#d59563' }]
-            },
-            {
-                featureType: 'poi.park',
-                elementType: 'geometry',
-                stylers: [{ color: '#263c3f' }]
-            },
-            {
-                featureType: 'poi.park',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#6b9a76' }]
-            },
-            {
-                featureType: 'road',
-                elementType: 'geometry',
-                stylers: [{ color: '#38414e' }]
-            },
-            {
-                featureType: 'road',
-                elementType: 'geometry.stroke',
-                stylers: [{ color: '#212a37' }]
-            },
-            {
-                featureType: 'road',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#9ca5b3' }]
-            },
-            {
-                featureType: 'road.highway',
-                elementType: 'geometry',
-                stylers: [{ color: '#746855' }]
-            },
-            {
-                featureType: 'road.highway',
-                elementType: 'geometry.stroke',
-                stylers: [{ color: '#1f2835' }]
-            },
-            {
-                featureType: 'road.highway',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#f3d19c' }]
-            },
-            {
-                featureType: 'transit',
-                elementType: 'geometry',
-                stylers: [{ color: '#2f3948' }]
-            },
-            {
-                featureType: 'transit.station',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#d59563' }]
-            },
-            {
-                featureType: 'water',
-                elementType: 'geometry',
-                stylers: [{ color: '#17263c' }]
-            },
-            {
-                featureType: 'water',
-                elementType: 'labels.text.fill',
-                stylers: [{ color: '#515c6d' }]
-            },
-            {
-                featureType: 'water',
-                elementType: 'labels.text.stroke',
-                stylers: [{ color: '#17263c' }]
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: origin,
+            zoom: 14,
+            styles: [
+                { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+                { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+                { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+                {
+                    featureType: 'administrative.locality',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#d59563' }]
+                },
+                {
+                    featureType: 'poi',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#d59563' }]
+                },
+                {
+                    featureType: 'poi.park',
+                    elementType: 'geometry',
+                    stylers: [{ color: '#263c3f' }]
+                },
+                {
+                    featureType: 'poi.park',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#6b9a76' }]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'geometry',
+                    stylers: [{ color: '#38414e' }]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'geometry.stroke',
+                    stylers: [{ color: '#212a37' }]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#9ca5b3' }]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry',
+                    stylers: [{ color: '#746855' }]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry.stroke',
+                    stylers: [{ color: '#1f2835' }]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#f3d19c' }]
+                },
+                {
+                    featureType: 'transit',
+                    elementType: 'geometry',
+                    stylers: [{ color: '#2f3948' }]
+                },
+                {
+                    featureType: 'transit.station',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#d59563' }]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'geometry',
+                    stylers: [{ color: '#17263c' }]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.fill',
+                    stylers: [{ color: '#515c6d' }]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.stroke',
+                    stylers: [{ color: '#17263c' }]
+                }
+            ]
+        });
+
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            polylineOptions: {
+                strokeColor: '#FFD700',
+                strokeWeight: 6,
+                strokeOpacity: 0.8
             }
-        ]
-    });
+        });
 
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true,
-        polylineOptions: {
-            strokeColor: '#FFD700',
-            strokeWeight: 6,
-            strokeOpacity: 0.8
-        }
-    });
+        // Marcador de origen
+        originMarker = new google.maps.Marker({
+            position: origin,
+            map: map,
+            title: 'Origen: {{ origin_address|default:ride.origin }}',
+            animation: google.maps.Animation.DROP,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: '#10B981',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2
+            }
+        });
 
-    // Marcador de origen
-    originMarker = new google.maps.Marker({
-        position: origin,
-        map: map,
-        title: 'Origen: {{ origin_address|default:ride.origin }}',
-        animation: google.maps.Animation.DROP,
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: '#10B981',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2
-        }
-    });
+        // InfoWindow para origen
+        const originInfo = new google.maps.InfoWindow({
+            content: '<div style="color:black; font-weight:bold;">📍 Origen</div><div style="color:black;">{{ origin_address|default:ride.origin }}</div>'
+        });
+        originMarker.addListener('click', () => originInfo.open(map, originMarker));
 
-    // InfoWindow para origen
-    const originInfo = new google.maps.InfoWindow({
-        content: '<div style="color:black; font-weight:bold;">📍 Origen</div><div style="color:black;">{{ origin_address|default:ride.origin }}</div>'
-    });
-    originMarker.addListener('click', () => originInfo.open(map, originMarker));
+        // Procesar destinos
+        const destinations = JSON.parse('{{ destinations_json|escapejs }}');
 
-    // Procesar destinos
-    const destinations = JSON.parse('{{ destinations_json|escapejs }}');
+        if (destinations.length > 0) {
+            // Preparar waypoints (todos menos el último)
+            const waypoints = [];
+            const lastDestination = destinations[destinations.length - 1];
 
-    if (destinations.length > 0) {
-        // Preparar waypoints (todos menos el último)
-        const waypoints = [];
-        const lastDestination = destinations[destinations.length - 1];
+            for (let i = 0; i < destinations.length - 1; i++) {
+                waypoints.push({
+                    location: { lat: destinations[i].lat, lng: destinations[i].lng },
+                    stopover: true
+                });
 
-        for (let i = 0; i < destinations.length - 1; i++) {
-            waypoints.push({
-                location: { lat: destinations[i].lat, lng: destinations[i].lng },
-                stopover: true
-            });
+                // Crear marcador para waypoint
+                createDestinationMarker(destinations[i], i + 1);
+            }
 
-            // Crear marcador para waypoint
-            createDestinationMarker(destinations[i], i + 1);
+            // Crear marcador para destino final
+            createDestinationMarker(lastDestination, destinations.length, true);
+
+            // Calcular ruta
+            calculateRoute(origin, { lat: lastDestination.lat, lng: lastDestination.lng }, waypoints);
         }
 
-        // Crear marcador para destino final
-        createDestinationMarker(lastDestination, destinations.length, true);
-
-        // Calcular ruta
-        calculateRoute(origin, { lat: lastDestination.lat, lng: lastDestination.lng }, waypoints);
-    }
-
-    // Marcador del conductor (si existe)
-    {% if driver_lat and driver_lng %}
-    const driverPos = { lat: {{ driver_lat }}, lng: { { driver_lng } } };
+        // Marcador del conductor (si existe)
+        {% if driver_lat and driver_lng %}
+        const driverPos = { lat: {{ driver_lat }
+    }, lng: { { driver_lng } } };
     driverMarker = new google.maps.Marker({
         position: driverPos,
         map: map,

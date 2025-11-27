@@ -1418,7 +1418,12 @@ def comunicacion_conductores(request):
         }
         return render(request, 'comunicacion.html', context)
     else:
-        return render(request, 'comunicacion_driver.html')
+        # Obtener el ID del administrador (Central) para el chat
+        admin_user = AppUser.objects.filter(is_superuser=True).first()
+        context = {
+            'admin_user_id': admin_user.id if admin_user else None
+        }
+        return render(request, 'comunicacion_driver.html', context)
 
 
 def ubicaciones_taxis(request):

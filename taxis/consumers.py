@@ -1,5 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
 
 class AudioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -130,6 +131,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print("Error: Faltan datos en el mensaje de chat")
             return
 
+        # Guardar mensaje en la base de datos
+        await self.save_message(self.user.id, recipient_id, message)
+
         # Grupo del destinatario
         recipient_group_name = f'chat_{recipient_id}'
 
@@ -155,3 +159,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': event['sender_id'],
             'sender_name': event['sender_name'],
         }))
+
+    @database_sync_to_async
+    def save_message(self, sender_id, recipient_id, message):
+        from .models import ChatMessage, AppUser
+        try:
+            sender = AppUser.objects.get(id=sender_id)
+            recipient = AppUser.objects.get(id=recipient_id)
+            ChatMessage.objects.create(sender=sender, recipient=recipient, message=message)
+            print(f"Mensaje guardado en BD: {sender} -> {recipient}")
+        except Exception as e:
+            print(f"Error al guardar mensaje: {e}")

@@ -263,9 +263,18 @@
         <div id="chat-tab" class="tab-content">
             <div class="chat-section">
                 <div class="chat-messages" id="chat-log">
+                    {% if chat_history %}
+                    {% for msg in chat_history %}
+                    <div class="message {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
+                        {{ msg.message }}
+                        <div class="message-time">{{ msg.timestamp|date:"H:i" }}</div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
                     <div style="text-align: center; color: #999; font-size: 13px; margin-top: 20px;">
                         Inicia la conversación con la Central
                     </div>
+                    {% endif %}
                 </div>
                 <div class="chat-input-area">
                     <input type="text" id="chat-message-input" class="chat-input" placeholder="Escribe un mensaje...">

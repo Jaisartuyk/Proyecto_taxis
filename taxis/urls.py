@@ -45,6 +45,7 @@ urlpatterns = [
     path('eliminar_conductor/<int:user_id>/', views.delete_driver, name='delete_driver'),
     path('comunicacion/', views.comunicacion_conductores, name='comunicacion_conductores'),
     path("api/actualizar_ubicacion/", views.actualizar_ubicacion, name="actualizar_ubicacion"),
+    path('api/chat_history/<int:user_id>/', views.get_chat_history, name='get_chat_history'),
     path('ubicaciones_taxis/', views.ubicaciones_taxis, name='ubicaciones_taxis'),
     path('api/ubicaciones_taxis/', views.ubicaciones_taxis, name='api_ubicaciones_taxis'),
     path('actualizar_ubicacion_taxi/', views.actualizar_ubicacion_taxi, name='actualizar_ubicacion_taxi'),

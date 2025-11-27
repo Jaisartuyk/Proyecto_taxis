@@ -1420,8 +1420,20 @@ def comunicacion_conductores(request):
     else:
         # Obtener el ID del administrador (Central) para el chat
         admin_user = AppUser.objects.filter(is_superuser=True).first()
+        
+        # Obtener historial de chat
+        chat_history = []
+        if admin_user:
+            from .models import ChatMessage
+            from django.db.models import Q
+            chat_history = ChatMessage.objects.filter(
+                Q(sender=request.user, recipient=admin_user) | 
+                Q(sender=admin_user, recipient=request.user)
+            ).order_by('timestamp')
+
         context = {
-            'admin_user_id': admin_user.id if admin_user else None
+            'admin_user_id': admin_user.id if admin_user else None,
+            'chat_history': chat_history
         }
         return render(request, 'comunicacion_driver.html', context)
 
@@ -1564,6 +1576,32 @@ def chat_central(request):
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY  # Para el mapa
     }
     return render(request, 'central_comunicacion.html', context)
+
+@login_required
+def get_chat_history(request, user_id):
+    """API para obtener historial de chat con un usuario específico"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+    
+    from .models import ChatMessage, AppUser
+    from django.db.models import Q
+    
+    other_user = get_object_or_404(AppUser, id=user_id)
+    
+    messages = ChatMessage.objects.filter(
+        Q(sender=request.user, recipient=other_user) | 
+        Q(sender=other_user, recipient=request.user)
+    ).order_by('timestamp')
+    
+    data = [{
+        'sender_id': msg.sender.id,
+        'sender_name': msg.sender.get_full_name(),
+        'message': msg.message,
+        'timestamp': msg.timestamp.strftime('%H:%M'),
+        'is_sent': msg.sender.id == request.user.id
+    } for msg in messages]
+    
+    return JsonResponse({'messages': data})
 
 
 # ============================================

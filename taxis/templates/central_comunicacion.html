@@ -11,9 +11,10 @@
         margin: 0 !important;
         padding: 0 !important;
     }
-    
+
     /* Sobrescribir estilos del contenedor principal de base.html */
-    .container, .container-fluid {
+    .container,
+    .container-fluid {
         background: transparent !important;
         padding: 0 !important;
         max-width: 100% !important;
@@ -23,7 +24,7 @@
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         color: #fff;
         padding: 20px 30px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -48,7 +49,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        background: rgba(255,255,255,0.1);
+        background: rgba(255, 255, 255, 0.1);
         padding: 10px 20px;
         border-radius: 25px;
         backdrop-filter: blur(10px);
@@ -63,8 +64,17 @@
     }
 
     @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(1.2); }
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.5;
+            transform: scale(1.2);
+        }
     }
 
     .main-layout {
@@ -132,7 +142,7 @@
     }
 
     .audio-log-item {
-        background: rgba(255,255,255,0.05);
+        background: rgba(255, 255, 255, 0.05);
         border-left: 3px solid #4CAF50;
         padding: 12px;
         margin-bottom: 10px;
@@ -153,6 +163,7 @@
             opacity: 0;
             transform: translateX(20px);
         }
+
         to {
             opacity: 1;
             transform: translateX(0);
@@ -175,12 +186,12 @@
     }
 
     .audio-log-time {
-        color: rgba(255,255,255,0.5);
+        color: rgba(255, 255, 255, 0.5);
         font-size: 0.75rem;
     }
 
     .audio-log-empty {
-        color: rgba(255,255,255,0.3);
+        color: rgba(255, 255, 255, 0.3);
         text-align: center;
         padding: 40px 20px;
         font-size: 0.9rem;
@@ -222,7 +233,7 @@
         align-items: center;
         padding: 15px 20px;
         cursor: pointer;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
         color: #fff;
         position: relative;
@@ -260,8 +271,8 @@
         height: 45px;
         border-radius: 50%;
         margin-right: 15px;
-        border: 2px solid rgba(255,255,255,0.3);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     .chat-window {
@@ -288,7 +299,7 @@
         border-radius: 18px;
         max-width: 70%;
         word-wrap: break-word;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         animation: slideIn 0.3s ease;
     }
 
@@ -297,6 +308,7 @@
             opacity: 0;
             transform: translateY(10px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -337,11 +349,11 @@
     #chat-message-input {
         flex: 1;
         padding: 12px 15px;
-        border: 2px solid rgba(255,255,255,0.2);
+        border: 2px solid rgba(255, 255, 255, 0.2);
         border-radius: 25px;
         outline: none;
         font-size: 14px;
-        background: rgba(255,255,255,0.9);
+        background: rgba(255, 255, 255, 0.9);
         transition: all 0.3s ease;
     }
 
@@ -398,54 +410,56 @@
 </div>
 
 <div class="main-layout">
-<!-- MAPA DE UBICACIONES EN TIEMPO REAL -->
-<div class="map-container">
-    <div id="map"></div>
-</div>
-
-<div class="content-layout">
-<div class="chat-container">
-    {% if request.user.is_superuser %}
-    <div class="user-list">
-        <div class="user-list-header">Conductores</div>
-        {% for driver in drivers %}
-        <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
-            <img src="{{ driver.profile_picture.url|default:'/static/imagenes/logo1.png' }}" alt="{{ driver.get_full_name }}">
-            <span>{{ driver.get_full_name }}</span>
-        </div>
-        {% endfor %}
+    <!-- MAPA DE UBICACIONES EN TIEMPO REAL -->
+    <div class="map-container">
+        <div id="map"></div>
     </div>
-    {% endif %}
 
-    <div class="chat-window">
-        <div class="chat-header" id="chat-header">Selecciona un chat</div>
-        <div class="chat-messages" id="chat-log">
-            <div id="no-chat-selected">Selecciona una conversación para comenzar</div>
-        </div>
-        <div class="chat-input-area" id="chat-input-container" style="display: none;">
-            <button id="record-audio-btn" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; border-radius: 50%; width: 60px; height: 60px; cursor: pointer; user-select: none; font-size: 24px; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;">🎤</button>
-            <div style="display: flex; flex-direction: column; margin-right: 15px;">
-                <small style="color: #fff; font-weight: 600;">Push-To-Talk</small>
-                <small style="color: rgba(255,255,255,0.7); font-size: 11px;">Mantén presionado</small>
+    <div class="content-layout">
+        <div class="chat-container">
+            {% if request.user.is_superuser %}
+            <div class="user-list">
+                <div class="user-list-header">Conductores</div>
+                {% for driver in drivers %}
+                <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
+                    <img src="{{ driver.profile_picture.url|default:'/static/imagenes/logo1.png' }}"
+                        alt="{{ driver.get_full_name }}">
+                    <span>{{ driver.get_full_name }}</span>
+                </div>
+                {% endfor %}
             </div>
-            <input id="chat-message-input" type="text" placeholder="Escribe un mensaje...">
-            <button id="chat-message-submit">Enviar</button>
-        </div>
-    </div>
-</div>
+            {% endif %}
 
-<!-- PANEL DE REGISTRO DE AUDIO -->
-<div class="audio-log-panel">
-    <div class="audio-log-header">
-        📻 Registro de Audio
-    </div>
-    <div class="audio-log-content" id="audio-log">
-        <div class="audio-log-empty">
-            No hay comunicaciones de audio aún
+            <div class="chat-window">
+                <div class="chat-header" id="chat-header">Selecciona un chat</div>
+                <div class="chat-messages" id="chat-log">
+                    <div id="no-chat-selected">Selecciona una conversación para comenzar</div>
+                </div>
+                <div class="chat-input-area" id="chat-input-container" style="display: none;">
+                    <button id="record-audio-btn"
+                        style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; border-radius: 50%; width: 60px; height: 60px; cursor: pointer; user-select: none; font-size: 24px; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;">🎤</button>
+                    <div style="display: flex; flex-direction: column; margin-right: 15px;">
+                        <small style="color: #fff; font-weight: 600;">Push-To-Talk</small>
+                        <small style="color: rgba(255,255,255,0.7); font-size: 11px;">Mantén presionado</small>
+                    </div>
+                    <input id="chat-message-input" type="text" placeholder="Escribe un mensaje...">
+                    <button id="chat-message-submit">Enviar</button>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-</div> <!-- Cierre content-layout -->
+
+        <!-- PANEL DE REGISTRO DE AUDIO -->
+        <div class="audio-log-panel">
+            <div class="audio-log-header">
+                📻 Registro de Audio
+            </div>
+            <div class="audio-log-content" id="audio-log">
+                <div class="audio-log-empty">
+                    No hay comunicaciones de audio aún
+                </div>
+            </div>
+        </div>
+    </div> <!-- Cierre content-layout -->
 </div> <!-- Cierre main-layout -->
 
 <audio id="audio-player" style="display: none;"></audio>
@@ -454,10 +468,11 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const currentUser = {
-        id: "{{ request.user.id }}",
-        is_superuser: {{ request.user.is_superuser|yesno:'true,false' }}
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentUser = {
+            id: "{{ request.user.id }}",
+            is_superuser: {{ request.user.is_superuser| yesno: 'true,false'
+    }}
     };
     const adminUserId = "{{ admin_user_id }}";
 
@@ -479,17 +494,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const logItem = document.createElement('div');
         logItem.className = `audio-log-item ${type}`;
-        
+
         const now = new Date();
         const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
+
         logItem.innerHTML = `
             <div class="audio-log-sender">${senderName}</div>
             <div class="audio-log-time">${timeStr}</div>
         `;
-        
+
         audioLogPanel.insertBefore(logItem, audioLogPanel.firstChild);
-        
+
         // Mantener solo los últimos 20 registros
         const items = audioLogPanel.querySelectorAll('.audio-log-item');
         if (items.length > 20) {
@@ -500,19 +515,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupWebSocket() {
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
         const wsPath = wsProtocol + window.location.host + '/ws/chat/';
-        
+
         chatSocket = new WebSocket(wsPath);
 
-        chatSocket.onopen = function(e) {
+        chatSocket.onopen = function (e) {
             console.log('Chat WebSocket conectado.');
         };
 
-        chatSocket.onclose = function(e) {
+        chatSocket.onclose = function (e) {
             console.error('Chat WebSocket desconectado. Reintentando en 5s...');
             setTimeout(setupWebSocket, 5000);
         };
 
-        chatSocket.onmessage = function(e) {
+        chatSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
             const { message, sender_id, sender_name } = data;
 
@@ -553,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     messageSubmit.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keyup', function(e) {
+    messageInput.addEventListener('keyup', function (e) {
         if (e.key === 'Enter') {
             sendMessage();
         }
@@ -562,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Lógica para el admin: seleccionar un chat
     if (currentUser.is_superuser) {
         document.querySelectorAll('.user-item').forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function () {
                 document.querySelectorAll('.user-item').forEach(i => i.classList.remove('active'));
                 this.classList.add('active');
 
@@ -571,6 +586,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 inputContainer.style.display = 'flex';
                 chatLog.innerHTML = ''; // Limpiar chat anterior
                 if (noChatSelected) noChatSelected.style.display = 'none';
+
+                // Cargar historial de chat
+                fetch(`/api/chat_history/${activeChatRecipientId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.messages) {
+                            data.messages.forEach(msg => {
+                                appendMessage(msg.message, msg.sender_id, msg.sender_name);
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Error cargando historial:', error));
             });
         });
     }
@@ -594,49 +621,49 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupAudioWebSocket() {
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
         const wsPath = wsProtocol + window.location.host + '/ws/audio/conductores/';
-        
+
         audioSocket = new WebSocket(wsPath);
 
-        audioSocket.onopen = function(e) {
+        audioSocket.onopen = function (e) {
             console.log('🔊 Audio WebSocket conectado');
         };
 
-        audioSocket.onclose = function(e) {
+        audioSocket.onclose = function (e) {
             console.error('🔊 Audio WebSocket desconectado. Reintentando en 5s...');
             setTimeout(setupAudioWebSocket, 5000);
         };
 
-        audioSocket.onmessage = function(e) {
+        audioSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
-            
+
             // Solo procesar mensajes de audio (ignorar ubicaciones)
             if (data.type !== 'audio_broadcast') {
                 return;
             }
-            
+
             console.log('🔊 Mensaje de audio recibido completo:', data);
             console.log('🔍 Mi ID:', currentUser.id, 'Sender ID:', data.senderId, 'Tipo:', typeof data.senderId);
-            
+
             // Manejar audio de conductores
             if (data.audio) {
                 // No reproducir mi propio audio (comparar por ID de usuario - ambos como string)
                 const myId = String(currentUser.id);
                 const senderId = String(data.senderId);
-                
+
                 if (senderId === myId) {
                     console.log('🔇 Audio propio ignorado - Mi ID:', myId, 'Sender:', senderId);
                     return;
                 }
-                
+
                 console.log('✅ Audio de otra persona - reproduciendo');
-                
+
                 const audioData = 'data:audio/webm;base64,' + data.audio;
                 audioPlayer.src = audioData;
                 audioPlayer.play();
-                
+
                 const senderName = data.senderRole === 'Central' ? 'Otra Central' : (data.senderId || 'Conductor');
                 appendAudioMessage(senderName, false);
-                
+
                 // Agregar al registro de audio
                 addAudioLogEntry(`📥 ${senderName}`, 'received');
                 console.log('🔊 Audio reproduciendo de:', senderName);
@@ -652,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(audioStream);
-            
+
             mediaRecorder.ondataavailable = (event) => {
                 audioChunks.push(event.data);
             };
@@ -662,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 sendAudioMessage(audioBlob);
                 audioChunks = [];
             };
-            
+
             console.log('🎤 Micrófono listo');
         } catch (error) {
             console.error('Error al acceder al micrófono:', error);
@@ -671,7 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Mousedown: Empezar a grabar
-    recordBtn.addEventListener('mousedown', function() {
+    recordBtn.addEventListener('mousedown', function () {
         if (mediaRecorder && mediaRecorder.state === 'inactive') {
             audioChunks = [];
             mediaRecorder.start();
@@ -682,7 +709,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Mouseup: Detener y enviar
-    recordBtn.addEventListener('mouseup', function() {
+    recordBtn.addEventListener('mouseup', function () {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
             recordBtn.style.backgroundColor = '#4CAF50';
@@ -692,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Mouseleave: Si sale del botón mientras graba, detener
-    recordBtn.addEventListener('mouseleave', function() {
+    recordBtn.addEventListener('mouseleave', function () {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
             recordBtn.style.backgroundColor = '#4CAF50';
@@ -702,7 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Touch para móviles
-    recordBtn.addEventListener('touchstart', function(e) {
+    recordBtn.addEventListener('touchstart', function (e) {
         e.preventDefault();
         if (mediaRecorder && mediaRecorder.state === 'inactive') {
             audioChunks = [];
@@ -713,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    recordBtn.addEventListener('touchend', function(e) {
+    recordBtn.addEventListener('touchend', function (e) {
         e.preventDefault();
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
@@ -729,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Enviar audio por WebSocket
     function sendAudioMessage(audioBlob) {
         const reader = new FileReader();
-        reader.onloadend = function() {
+        reader.onloadend = function () {
             const base64Audio = reader.result.split(',')[1];
             if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
                 audioSocket.send(JSON.stringify({
@@ -740,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }));
                 console.log('📤 Audio enviado a conductores con ID:', currentUser.id);
                 appendAudioMessage('Tú (Central)', true);
-                
+
                 // Agregar al registro de audio
                 addAudioLogEntry('📤 Tú (Central)', 'sent');
             } else {
@@ -754,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Agregar mensaje de audio al chat
     function appendAudioMessage(senderName, isSent) {
         if (noChatSelected) noChatSelected.style.display = 'none';
-        
+
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
         messageDiv.classList.add(isSent ? 'sent' : 'received');
@@ -774,11 +801,11 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAudioWebSocket();
 });
 
-// ==================== MAPA DE GOOGLE MAPS ====================
-let map;
-let markers = {};
+    // ==================== MAPA DE GOOGLE MAPS ====================
+    let map;
+    let markers = {};
 
-function initMap() {
+    function initMap() {
         // Centro en Guayaquil, Ecuador
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: -2.1894, lng: -79.8890 },
@@ -787,46 +814,46 @@ function initMap() {
                 {
                     "featureType": "all",
                     "elementType": "geometry",
-                    "stylers": [{"color": "#242f3e"}]
+                    "stylers": [{ "color": "#242f3e" }]
                 },
                 {
                     "featureType": "all",
                     "elementType": "labels.text.stroke",
-                    "stylers": [{"lightness": -80}]
+                    "stylers": [{ "lightness": -80 }]
                 },
                 {
                     "featureType": "administrative",
                     "elementType": "labels.text.fill",
-                    "stylers": [{"color": "#746855"}]
+                    "stylers": [{ "color": "#746855" }]
                 },
                 {
                     "featureType": "poi",
                     "elementType": "labels.text.fill",
-                    "stylers": [{"color": "#d59563"}]
+                    "stylers": [{ "color": "#d59563" }]
                 },
                 {
                     "featureType": "road",
                     "elementType": "geometry.fill",
-                    "stylers": [{"color": "#2b3544"}]
+                    "stylers": [{ "color": "#2b3544" }]
                 },
                 {
                     "featureType": "road",
                     "elementType": "labels.text.fill",
-                    "stylers": [{"color": "#9ca5b3"}]
+                    "stylers": [{ "color": "#9ca5b3" }]
                 },
                 {
                     "featureType": "water",
                     "elementType": "geometry",
-                    "stylers": [{"color": "#17263c"}]
+                    "stylers": [{ "color": "#17263c" }]
                 }
             ]
         });
-        
+
         console.log('🗺️ Mapa de Google Maps inicializado');
-        
+
         // Obtener ubicaciones iniciales
         fetchDriverLocations();
-        
+
         // Actualizar cada 5 segundos
         setInterval(fetchDriverLocations, 5000);
     }
@@ -848,17 +875,17 @@ function initMap() {
 
     function updateMarkers(taxis) {
         console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
-        
+
         taxis.forEach(taxi => {
             // Verificar que tenga coordenadas válidas
             if (!taxi.lat || !taxi.lng) {
                 console.warn('⚠️ Taxi sin coordenadas:', taxi);
                 return;
             }
-            
+
             const position = { lat: parseFloat(taxi.lat), lng: parseFloat(taxi.lng) };
             const taxiId = taxi.id;
-            
+
             if (markers[taxiId]) {
                 // Actualizar posición del marcador existente
                 console.log('📍 Actualizando marcador:', taxi.nombre);
@@ -874,7 +901,7 @@ function initMap() {
                         url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
                     }
                 });
-                
+
                 // InfoWindow con información del conductor
                 const infoWindow = new google.maps.InfoWindow({
                     content: `
@@ -890,11 +917,11 @@ function initMap() {
                         </div>
                     `
                 });
-                
+
                 marker.addListener('click', () => {
                     infoWindow.open(map, marker);
                 });
-                
+
                 markers[taxiId] = marker;
             }
         });

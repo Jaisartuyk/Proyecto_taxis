@@ -401,3 +401,28 @@ class WhatsAppStats(models.Model):
     
     def __str__(self):
         return f"Stats {self.date}: {self.total_messages} mensajes"
+
+
+class ChatMessage(models.Model):
+    """Mensajes de chat interno entre usuarios (Conductores <-> Central)"""
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sent_chat_messages'
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='received_chat_messages'
+    )
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['timestamp']
+        verbose_name = 'Mensaje de Chat Interno'
+        verbose_name_plural = 'Mensajes de Chat Interno'
+
+    def __str__(self):
+        return f"De {self.sender} para {self.recipient}: {self.message[:20]}..."

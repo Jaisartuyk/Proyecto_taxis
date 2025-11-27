@@ -3,19 +3,18 @@
 
 {% block content %}
 <style>
-    :root {
-        --primary-color: #4F46E5;
-        --secondary-color: #10B981;
-        --danger-color: #EF4444;
-        --warning-color: #F59E0B;
-        --dark-color: #1F2937;
-        --light-bg: #F9FAFB;
-    }
-
     body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 400px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
         min-height: 100vh;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #ffffff;
     }
 
     .dashboard-container {
@@ -25,30 +24,26 @@
     }
 
     .welcome-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: rgba(31, 31, 31, 0.8);
         border-radius: 20px;
         padding: 2.5rem;
         color: white;
         margin-bottom: 2rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
     }
 
     .welcome-card::before {
         content: '';
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: pulse 15s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #FFD700, #FFC107);
     }
 
     .welcome-card h1 {
@@ -57,11 +52,15 @@
         margin-bottom: 0.5rem;
         position: relative;
         z-index: 1;
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
     .welcome-card p {
         font-size: 1.1rem;
-        opacity: 0.9;
+        color: #9ca3af;
         position: relative;
         z-index: 1;
     }
@@ -74,29 +73,27 @@
     }
 
     .stat-card {
-        background: white;
+        background: #1f1f1f;
         border-radius: 15px;
         padding: 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         transition: all 0.3s ease;
-        border-left: 4px solid var(--primary-color);
+        border: 1px solid #2d2d2d;
+        border-left: 4px solid #FFD700;
     }
 
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.1);
+        border-color: #FFD700;
     }
 
     .stat-card.success {
-        border-left-color: var(--secondary-color);
+        border-left-color: #10B981;
     }
 
     .stat-card.warning {
-        border-left-color: var(--warning-color);
-    }
-
-    .stat-card.danger {
-        border-left-color: var(--danger-color);
+        border-left-color: #F59E0B;
     }
 
     .stat-icon {
@@ -108,33 +105,28 @@
         justify-content: center;
         font-size: 1.5rem;
         margin-bottom: 1rem;
-    }
-
-    .stat-icon.primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: #2d2d2d;
+        color: #FFD700;
     }
 
     .stat-icon.success {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-        color: white;
+        color: #10B981;
     }
 
     .stat-icon.warning {
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        color: white;
+        color: #F59E0B;
     }
 
     .stat-value {
         font-size: 2rem;
         font-weight: 700;
-        color: var(--dark-color);
+        color: #ffffff;
         margin-bottom: 0.25rem;
     }
 
     .stat-label {
         font-size: 0.9rem;
-        color: #6B7280;
+        color: #9ca3af;
         font-weight: 500;
     }
 
@@ -146,14 +138,15 @@
     }
 
     .action-card {
-        background: white;
+        background: #1f1f1f;
         border-radius: 15px;
         padding: 2rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         transition: all 0.3s ease;
         text-align: center;
         position: relative;
         overflow: hidden;
+        border: 1px solid #2d2d2d;
     }
 
     .action-card::before {
@@ -163,12 +156,13 @@
         left: 0;
         width: 100%;
         height: 4px;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #FFD700, #FFC107);
     }
 
     .action-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 12px 30px rgba(255, 215, 0, 0.1);
+        border-color: #FFD700;
     }
 
     .action-icon {
@@ -180,59 +174,56 @@
         align-items: center;
         justify-content: center;
         font-size: 2.5rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        color: #1a1a1a;
+        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
     }
 
     .action-card h3 {
         font-size: 1.5rem;
         font-weight: 600;
-        color: var(--dark-color);
+        color: #FFD700;
         margin-bottom: 1rem;
     }
 
     .action-card p {
-        color: #6B7280;
+        color: #9ca3af;
         margin-bottom: 1.5rem;
         line-height: 1.6;
     }
 
     .btn-action {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        color: #1a1a1a;
         border: none;
         padding: 0.875rem 2rem;
         border-radius: 10px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 1rem;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
         text-decoration: none;
         display: inline-block;
     }
 
     .btn-action:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        color: white;
-    }
-
-    .btn-action:active {
-        transform: translateY(0);
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+        color: #1a1a1a;
     }
 
     .recent-rides {
-        background: white;
+        background: #1f1f1f;
         border-radius: 15px;
         padding: 2rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        border: 1px solid #2d2d2d;
     }
 
     .recent-rides h2 {
         font-size: 1.75rem;
         font-weight: 700;
-        color: var(--dark-color);
+        color: #FFD700;
         margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
@@ -240,7 +231,7 @@
     }
 
     .ride-item {
-        border-bottom: 1px solid #E5E7EB;
+        border-bottom: 1px solid #2d2d2d;
         padding: 1.25rem 0;
         display: flex;
         justify-content: space-between;
@@ -253,7 +244,7 @@
     }
 
     .ride-item:hover {
-        background: #F9FAFB;
+        background: #2d2d2d;
         margin: 0 -1rem;
         padding-left: 1rem;
         padding-right: 1rem;
@@ -266,13 +257,13 @@
 
     .ride-route {
         font-weight: 600;
-        color: var(--dark-color);
+        color: #ffffff;
         margin-bottom: 0.25rem;
     }
 
     .ride-date {
         font-size: 0.875rem;
-        color: #6B7280;
+        color: #9ca3af;
     }
 
     .ride-status {
@@ -280,35 +271,47 @@
         border-radius: 20px;
         font-size: 0.875rem;
         font-weight: 600;
+        border: 1px solid transparent;
     }
 
     .ride-status.completed {
-        background: #D1FAE5;
-        color: #065F46;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+        border-color: #10B981;
     }
 
     .ride-status.in-progress {
-        background: #FEF3C7;
-        color: #92400E;
+        background: rgba(59, 130, 246, 0.1);
+        color: #3B82F6;
+        border-color: #3B82F6;
+    }
+
+    .ride-status.accepted {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+        border-color: #10B981;
     }
 
     .ride-status.requested {
-        background: #DBEAFE;
-        color: #1E40AF;
+        background: rgba(255, 165, 0, 0.1);
+        color: #FFA500;
+        border-color: #FFA500;
     }
 
     .ride-status.canceled {
-        background: #FEE2E2;
-        color: #991B1B;
+        background: rgba(239, 68, 68, 0.1);
+        color: #EF4444;
+        border-color: #EF4444;
     }
 
     .whatsapp-info {
-        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        background: linear-gradient(135deg, #075E54 0%, #128C7E 100%);
         border-radius: 15px;
         padding: 2rem;
         color: white;
         margin-top: 2rem;
-        box-shadow: 0 8px 25px rgba(37, 211, 102, 0.3);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border: 1px solid #2d2d2d;
     }
 
     .whatsapp-info h3 {
@@ -318,22 +321,26 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        color: #25D366;
     }
 
     .whatsapp-info p {
         opacity: 0.95;
         line-height: 1.6;
         margin-bottom: 1rem;
+        color: #e5e7eb;
     }
 
     .whatsapp-number {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.3);
         padding: 1rem;
         border-radius: 10px;
         font-size: 1.25rem;
         font-weight: 600;
         text-align: center;
         margin-top: 1rem;
+        border: 1px solid #25D366;
+        color: #25D366;
     }
 
     @media (max-width: 768px) {
@@ -361,7 +368,7 @@
     <!-- Stats Grid -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon primary">
+            <div class="stat-icon">
                 🚕
             </div>
             <div class="stat-value">{{ total_rides|default:0 }}</div>
@@ -425,7 +432,7 @@
         </h3>
         <p>Ahora puedes solicitar taxis directamente desde WhatsApp. Solo envía un mensaje y nuestro asistente virtual te ayudará.</p>
         <p><strong>Comandos disponibles:</strong></p>
-        <ul style="list-style: none; padding-left: 0;">
+        <ul style="list-style: none; padding-left: 0; color: #e5e7eb;">
             <li>✓ MENU - Ver opciones</li>
             <li>✓ SOLICITAR - Pedir una carrera</li>
             <li>✓ MIS CARRERAS - Ver tus viajes</li>
@@ -474,7 +481,7 @@
             </div>
             {% endfor %}
         {% else %}
-            <div style="text-align: center; padding: 3rem 0; color: #6B7280;">
+            <div style="text-align: center; padding: 3rem 0; color: #9ca3af;">
                 <div style="font-size: 3rem; margin-bottom: 1rem;">🚕</div>
                 <p>No tienes viajes recientes</p>
                 <p style="font-size: 0.875rem;">¡Solicita tu primer taxi ahora!</p>

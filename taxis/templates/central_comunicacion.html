@@ -801,110 +801,110 @@
     setupAudioWebSocket();
 });
 
-// ==================== MAPA DE GOOGLE MAPS ====================
-let map;
-let markers = {};
+    // ==================== MAPA DE GOOGLE MAPS ====================
+    let map;
+    let markers = {};
 
-function initMap() {
-    // Centro en Guayaquil, Ecuador
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -2.1894, lng: -79.8890 },
-        zoom: 13,
-        styles: [
-            {
-                "featureType": "all",
-                "elementType": "geometry",
-                "stylers": [{ "color": "#242f3e" }]
-            },
-            {
-                "featureType": "all",
-                "elementType": "labels.text.stroke",
-                "stylers": [{ "lightness": -80 }]
-            },
-            {
-                "featureType": "administrative",
-                "elementType": "labels.text.fill",
-                "stylers": [{ "color": "#746855" }]
-            },
-            {
-                "featureType": "poi",
-                "elementType": "labels.text.fill",
-                "stylers": [{ "color": "#d59563" }]
-            },
-            {
-                "featureType": "road",
-                "elementType": "geometry.fill",
-                "stylers": [{ "color": "#2b3544" }]
-            },
-            {
-                "featureType": "road",
-                "elementType": "labels.text.fill",
-                "stylers": [{ "color": "#9ca5b3" }]
-            },
-            {
-                "featureType": "water",
-                "elementType": "geometry",
-                "stylers": [{ "color": "#17263c" }]
-            }
-        ]
-    });
-
-    console.log('🗺️ Mapa de Google Maps inicializado');
-
-    // Obtener ubicaciones iniciales
-    fetchDriverLocations();
-
-    // Actualizar cada 5 segundos
-    setInterval(fetchDriverLocations, 5000);
-}
-
-function fetchDriverLocations() {
-    fetch('/api/ubicaciones_taxis/')
-        .then(response => response.json())
-        .then(data => {
-            console.log('📍 Ubicaciones recibidas:', data);
-            // El backend devuelve {taxis: [...]}
-            if (data.taxis && data.taxis.length > 0) {
-                updateMarkers(data.taxis);
-            } else {
-                console.warn('⚠️ No hay taxis disponibles');
-            }
-        })
-        .catch(error => console.error('❌ Error al obtener ubicaciones:', error));
-}
-
-function updateMarkers(taxis) {
-    console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
-
-    taxis.forEach(taxi => {
-        // Verificar que tenga coordenadas válidas
-        if (!taxi.lat || !taxi.lng) {
-            console.warn('⚠️ Taxi sin coordenadas:', taxi);
-            return;
-        }
-
-        const position = { lat: parseFloat(taxi.lat), lng: parseFloat(taxi.lng) };
-        const taxiId = taxi.id;
-
-        if (markers[taxiId]) {
-            // Actualizar posición del marcador existente
-            console.log('📍 Actualizando marcador:', taxi.nombre);
-            markers[taxiId].setPosition(position);
-        } else {
-            // Crear nuevo marcador
-            console.log('📍 Creando nuevo marcador:', taxi.nombre);
-            const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                title: taxi.nombre,
-                icon: {
-                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+    function initMap() {
+        // Centro en Guayaquil, Ecuador
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: -2.1894, lng: -79.8890 },
+            zoom: 13,
+            styles: [
+                {
+                    "featureType": "all",
+                    "elementType": "geometry",
+                    "stylers": [{ "color": "#242f3e" }]
+                },
+                {
+                    "featureType": "all",
+                    "elementType": "labels.text.stroke",
+                    "stylers": [{ "lightness": -80 }]
+                },
+                {
+                    "featureType": "administrative",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#746855" }]
+                },
+                {
+                    "featureType": "poi",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#d59563" }]
+                },
+                {
+                    "featureType": "road",
+                    "elementType": "geometry.fill",
+                    "stylers": [{ "color": "#2b3544" }]
+                },
+                {
+                    "featureType": "road",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#9ca5b3" }]
+                },
+                {
+                    "featureType": "water",
+                    "elementType": "geometry",
+                    "stylers": [{ "color": "#17263c" }]
                 }
-            });
+            ]
+        });
 
-            // InfoWindow con información del conductor
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
+        console.log('🗺️ Mapa de Google Maps inicializado');
+
+        // Obtener ubicaciones iniciales
+        fetchDriverLocations();
+
+        // Actualizar cada 5 segundos
+        setInterval(fetchDriverLocations, 5000);
+    }
+
+    function fetchDriverLocations() {
+        fetch('/api/ubicaciones_taxis/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('📍 Ubicaciones recibidas:', data);
+                // El backend devuelve {taxis: [...]}
+                if (data.taxis && data.taxis.length > 0) {
+                    updateMarkers(data.taxis);
+                } else {
+                    console.warn('⚠️ No hay taxis disponibles');
+                }
+            })
+            .catch(error => console.error('❌ Error al obtener ubicaciones:', error));
+    }
+
+    function updateMarkers(taxis) {
+        console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
+
+        taxis.forEach(taxi => {
+            // Verificar que tenga coordenadas válidas
+            if (!taxi.lat || !taxi.lng) {
+                console.warn('⚠️ Taxi sin coordenadas:', taxi);
+                return;
+            }
+
+            const position = { lat: parseFloat(taxi.lat), lng: parseFloat(taxi.lng) };
+            const taxiId = taxi.id;
+
+            if (markers[taxiId]) {
+                // Actualizar posición del marcador existente
+                console.log('📍 Actualizando marcador:', taxi.nombre);
+                markers[taxiId].setPosition(position);
+            } else {
+                // Crear nuevo marcador
+                console.log('📍 Creando nuevo marcador:', taxi.nombre);
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: taxi.nombre,
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    }
+                });
+
+                // InfoWindow con información del conductor
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
                     <div style="padding: 10px;">
                         <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
                         <p style="margin: 0; color: #666;">🚕 ${taxi.placa || 'Sin placa'}</p>
@@ -916,16 +916,16 @@ function updateMarkers(taxis) {
                         </p>
                     </div>
                 `
-            });
+                });
 
-            marker.addListener('click', () => {
-                infoWindow.open(map, marker);
-            });
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
 
-            markers[taxiId] = marker;
-        }
-    });
-}
+                markers[taxiId] = marker;
+            }
+        });
+    }
 </script>
 
 <!-- Google Maps API -->

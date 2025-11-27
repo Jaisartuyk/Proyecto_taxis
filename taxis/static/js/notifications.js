@@ -1,106 +1,140 @@
-// Sistema de notificaciones para PWA
-class NotificationManager {
-    constructor() {
-        this.permission = Notification.permission;
-        this.isSupported = 'Notification' in window;
+// Push Notifications Management
+const VAPID_PUBLIC_KEY = document.querySelector('meta[name="vapid-public-key"]')?.content || '';
+
+// Convert VAPID key from base64 to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
     }
+    return outputArray;
+}
 
-    async requestPermission() {
-        if (!this.isSupported) {
-            console.log('Las notificaciones no están soportadas en este navegador');
-            return false;
-        }
-
-        if (this.permission === 'granted') {
-            return true;
-        }
-
-        if (this.permission !== 'denied') {
-            const permission = await Notification.requestPermission();
-            this.permission = permission;
-            return permission === 'granted';
-        }
-
+// Request notification permission
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.log('This browser does not support notifications');
         return false;
     }
 
-    async showNotification(title, options = {}) {
-        const hasPermission = await this.requestPermission();
-        
-        if (!hasPermission) {
-            console.log('Permiso de notificación denegado');
-            return;
-        }
-
-        const defaultOptions = {
-            icon: '/static/imagenes/logo1.png',
-            badge: '/static/imagenes/logo1.png',
-            vibrate: [200, 100, 200],
-            tag: 'taxi-notification',
-            requireInteraction: false,
-            ...options
-        };
-
-        // Si hay service worker registrado, usar su API
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            const registration = await navigator.serviceWorker.ready;
-            return registration.showNotification(title, defaultOptions);
-        }
-
-        // Fallback a notificación normal
-        return new Notification(title, defaultOptions);
+    if (Notification.permission === 'granted') {
+        return true;
     }
 
-    notifyNewRide(rideData) {
-        this.showNotification('Nueva carrera disponible', {
-            body: `Desde: ${rideData.pickup}\nHasta: ${rideData.destination}`,
-            icon: '/static/imagenes/logo1.png',
-            tag: `ride-${rideData.id}`,
-            data: { type: 'new_ride', rideId: rideData.id }
-        });
+    if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
     }
 
-    notifyRideAccepted(rideData) {
-        this.showNotification('Carrera aceptada', {
-            body: `El conductor ${rideData.driverName} ha aceptado tu carrera`,
-            icon: '/static/imagenes/logo1.png',
-            tag: `ride-accepted-${rideData.id}`,
-            data: { type: 'ride_accepted', rideId: rideData.id }
-        });
+    return false;
+}
+
+// Register Service Worker
+async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+        console.log('Service Worker not supported');
+        return null;
     }
 
-    notifyDriverArriving(rideData) {
-        this.showNotification('Conductor cerca', {
-            body: `Tu conductor está llegando en ${rideData.eta} minutos`,
-            icon: '/static/imagenes/logo1.png',
-            tag: `driver-arriving-${rideData.id}`,
-            requireInteraction: true,
-            data: { type: 'driver_arriving', rideId: rideData.id }
+    try {
+        const registration = await navigator.serviceWorker.register('/static/js/service-worker.js', {
+            scope: '/'
         });
-    }
-
-    notifyAudioMessage(senderName) {
-        this.showNotification('Nuevo mensaje de audio', {
-            body: `${senderName} te ha enviado un mensaje de voz`,
-            icon: '/static/imagenes/logo1.png',
-            tag: 'audio-message',
-            data: { type: 'audio_message', sender: senderName }
-        });
+        console.log('Service Worker registered successfully:', registration);
+        return registration;
+    } catch (error) {
+        console.error('Service Worker registration failed:', error);
+        return null;
     }
 }
 
-// Exportar instancia única
-const notificationManager = new NotificationManager();
+// Subscribe to push notifications
+async function subscribeToPush(registration) {
+    try {
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
 
-// Solicitar permisos al cargar la página (solo si el usuario está autenticado)
-document.addEventListener('DOMContentLoaded', () => {
-    // Esperar un poco antes de solicitar permisos para no ser intrusivo
-    setTimeout(() => {
-        if (document.querySelector('[data-user-authenticated="true"]')) {
-            notificationManager.requestPermission();
+        console.log('Push subscription successful:', subscription);
+
+        // Send subscription to server
+        await fetch('/api/webpush/subscribe/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(subscription.toJSON())
+        });
+
+        console.log('Subscription sent to server');
+        return subscription;
+    } catch (error) {
+        console.error('Failed to subscribe to push notifications:', error);
+        return null;
+    }
+}
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
-    }, 3000);
-});
+    }
+    return cookieValue;
+}
 
-// Hacer disponible globalmente
-window.notificationManager = notificationManager;
+// Initialize push notifications
+async function initializePushNotifications() {
+    // Request permission
+    const hasPermission = await requestNotificationPermission();
+    if (!hasPermission) {
+        console.log('Notification permission denied');
+        return;
+    }
+
+    // Register Service Worker
+    const registration = await registerServiceWorker();
+    if (!registration) {
+        console.log('Service Worker registration failed');
+        return;
+    }
+
+    // Wait for Service Worker to be ready
+    await navigator.serviceWorker.ready;
+
+    // Subscribe to push
+    await subscribeToPush(registration);
+}
+
+// Auto-initialize on page load for logged-in users
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Only initialize if user is logged in (check for user-specific element)
+        if (document.querySelector('[data-user-id]')) {
+            initializePushNotifications();
+        }
+    });
+} else {
+    if (document.querySelector('[data-user-id]')) {
+        initializePushNotifications();
+    }
+}
+
+// Export for manual initialization
+window.initializePushNotifications = initializePushNotifications;

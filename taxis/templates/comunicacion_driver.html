@@ -292,6 +292,46 @@
         const MY_ID = '{{ request.user.id }}';
         const ADMIN_ID = '{{ admin_user_id }}';
 
+        // Estado
+        let audioSocket = null;
+        let chatSocket = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let wakeLock = null;
+
+        // Wake Lock API - Mantener pantalla activa
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('🔒 Wake Lock activado - pantalla permanecerá activa');
+
+                    wakeLock.addEventListener('release', () => {
+                        console.log('🔓 Wake Lock liberado');
+                    });
+                } else {
+                    console.log('⚠️ Wake Lock API no soportada en este navegador');
+                }
+            } catch (err) {
+                console.error('Error al solicitar Wake Lock:', err);
+            }
+        }
+
+        // Liberar Wake Lock
+        async function releaseWakeLock() {
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // Reactivar Wake Lock cuando la página vuelve a estar visible
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await requestWakeLock();
+            }
+        });
+
         // Elementos UI
         const statusDiv = document.getElementById('status');
         const startMicBtn = document.getElementById('startMic');
@@ -378,6 +418,9 @@
                 statusDiv.className = 'status connected';
                 startMicBtn.disabled = false;
                 messageSubmit.disabled = false;
+
+                // Activar Wake Lock para mantener pantalla activa
+                requestWakeLock();
             } else {
                 statusDiv.textContent = 'Desconectado (Reconectando...)';
                 statusDiv.className = 'status disconnected';

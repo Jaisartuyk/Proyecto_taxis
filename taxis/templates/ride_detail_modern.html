@@ -739,8 +739,7 @@
 
     function initMap() {
         // Centro del mapa en el origen
-        const origin = { lat: {{ ride.origin_latitude }
-    }, lng: { { ride.origin_longitude } } };
+        const origin = { lat: {{ ride.origin_latitude|stringformat:"f" }}, lng: {{ ride.origin_longitude|stringformat:"f" }} };
 
     map = new google.maps.Map(document.getElementById('map'), {
         center: origin,

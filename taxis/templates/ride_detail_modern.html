@@ -16,19 +16,36 @@
     }
     
     .ride-header {
-        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        background: rgba(31, 31, 31, 0.8);
         border-radius: 20px;
         padding: 2rem;
-        color: #1a1a1a;
+        color: #ffffff;
         margin-bottom: 2rem;
-        box-shadow: 0 20px 60px rgba(255, 215, 0, 0.4);
-        border: 3px solid #1a1a1a;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ride-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #FFD700, #FFC107);
     }
     
     .ride-header h1 {
         margin: 0;
         font-weight: 700;
         font-size: 2rem;
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     
     .status-badge {
@@ -37,27 +54,28 @@
         border-radius: 50px;
         font-weight: 700;
         margin-top: 0.5rem;
+        border: 1px solid transparent;
     }
     
-    .status-requested { background: #FFA500; color: #1a1a1a; }
-    .status-accepted { background: #10B981; color: white; }
-    .status-in_progress { background: #3B82F6; color: white; }
-    .status-completed { background: #22C55E; color: white; }
-    .status-canceled { background: #EF4444; color: white; }
+    .status-requested { background: rgba(255, 165, 0, 0.1); color: #FFA500; border-color: #FFA500; }
+    .status-accepted { background: rgba(16, 185, 129, 0.1); color: #10B981; border-color: #10B981; }
+    .status-in_progress { background: rgba(59, 130, 246, 0.1); color: #3B82F6; border-color: #3B82F6; }
+    .status-completed { background: rgba(34, 197, 94, 0.1); color: #22C55E; border-color: #22C55E; }
+    .status-canceled { background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: #EF4444; }
     
     .map-container {
         background: #1f1f1f;
         border-radius: 20px;
         padding: 1.5rem;
         margin-bottom: 2rem;
-        border: 3px solid #FFD700;
-        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+        border: 1px solid #2d2d2d;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
     
     #map {
         height: 500px;
         border-radius: 15px;
-        border: 2px solid #2d2d2d;
+        border: 1px solid #2d2d2d;
     }
     
     .info-grid {
@@ -71,13 +89,15 @@
         background: #1f1f1f;
         border-radius: 15px;
         padding: 1.5rem;
-        border: 3px solid #FFD700;
+        border: 1px solid #2d2d2d;
         transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
     
     .info-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(255, 215, 0, 0.4);
+        border-color: #FFD700;
+        box-shadow: 0 10px 25px rgba(255, 215, 0, 0.1);
     }
     
     .info-card h3 {
@@ -87,6 +107,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        font-weight: 600;
     }
     
     .info-item {
@@ -98,19 +119,21 @@
     }
     
     .info-item strong {
-        color: #FFD700;
+        color: #9ca3af;
         min-width: 100px;
+        font-weight: 500;
     }
     
     .location-live {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: #10B981;
-        color: white;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
         padding: 0.25rem 0.75rem;
         border-radius: 20px;
         font-size: 0.875rem;
+        border: 1px solid #10B981;
         animation: pulse 2s infinite;
     }
     
@@ -146,18 +169,30 @@
     
     .btn-primary:hover {
         transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(255, 215, 0, 0.5);
+        box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
+        color: #1a1a1a;
     }
     
     .btn-secondary {
-        background: #2d2d2d;
+        background: transparent;
         color: #FFD700;
-        border: 2px solid #FFD700;
+        border: 1px solid #FFD700;
     }
     
     .btn-secondary:hover {
         background: #FFD700;
         color: #1a1a1a;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        color: white;
     }
     
     .price-display {
@@ -166,6 +201,41 @@
         color: #FFD700;
         text-align: center;
         margin: 1rem 0;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+    }
+
+    .destination-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .destination-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #2d2d2d;
+    }
+
+    .destination-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .destination-marker {
+        width: 24px;
+        height: 24px;
+        background: #2d2d2d;
+        color: #FFD700;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
     }
 </style>
 {% endblock %}
@@ -187,13 +257,15 @@
 
     <!-- Mapa en Tiempo Real -->
     <div class="map-container">
-        <h3 style="color: #FFD700; margin-bottom: 1rem;">📍 Mapa en Tiempo Real</h3>
-        {% if driver_lat and driver_lng %}
-        <div class="location-live">
-            <span style="width: 8px; height: 8px; background: white; border-radius: 50%;"></span>
-            Ubicación del conductor actualizada en tiempo real
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="color: #FFD700; margin: 0;">📍 Mapa de Ruta</h3>
+            {% if driver_lat and driver_lng %}
+            <div class="location-live">
+                <span style="width: 8px; height: 8px; background: currentColor; border-radius: 50%;"></span>
+                Conductor en tiempo real
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
         <div id="map"></div>
     </div>
 
@@ -225,14 +297,23 @@
                 <strong>📍 Origen:</strong>
                 <span>{{ origin_address|default:ride.origin }}</span>
             </div>
-            <div class="info-item">
-                <strong>🎯 Destino:</strong>
-                <span>{{ destination_address }}</span>
+            <div class="info-item" style="align-items: flex-start;">
+                <strong>🎯 Destinos:</strong>
+                <ul class="destination-list">
+                    {% for dest in destinations %}
+                    <li class="destination-item">
+                        <div class="destination-marker">{{ forloop.counter }}</div>
+                        <span>{{ dest.destination }}</span>
+                    </li>
+                    {% empty %}
+                    <li>Sin destino especificado</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
 
         <!-- Información del Cliente -->
-        {% if request.user == ride.driver or request.user.is_superuser %}
+        {% if request.user == ride.driver or request.user.is_superuser or request.user.role == 'driver' %}
         <div class="info-card">
             <h3>👤 Cliente</h3>
             <div class="info-item">
@@ -251,7 +332,7 @@
         {% endif %}
 
         <!-- Información del Conductor -->
-        {% if request.user == ride.customer or request.user.is_superuser %}
+        {% if request.user == ride.customer or request.user.is_superuser or request.user == ride.driver %}
         <div class="info-card">
             <h3>🚗 Conductor</h3>
             {% if ride.driver %}
@@ -282,25 +363,35 @@
 
     <!-- Botones de Acción -->
     <div class="action-buttons">
-        <a href="{% url 'driver_dashboard' %}" class="btn-action btn-secondary">
-            ← Volver al Dashboard
+        <a href="{% if request.user.role == 'driver' %}{% url 'driver_dashboard' %}{% else %}{% url 'home' %}{% endif %}" class="btn-action btn-secondary">
+            ← Volver
         </a>
-        {% if ride.status == 'accepted' and request.user == ride.driver %}
-        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="status" value="in_progress">
-            <button type="submit" class="btn-action btn-primary">
-                ▶️ Iniciar Carrera
-            </button>
-        </form>
-        {% elif ride.status == 'in_progress' and request.user == ride.driver %}
-        <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="status" value="completed">
-            <button type="submit" class="btn-action btn-primary">
-                ✓ Completar Carrera
-            </button>
-        </form>
+        
+        {% if request.user.role == 'driver' %}
+            {% if ride.status == 'requested' and not ride.driver %}
+            <form method="POST" action="{% url 'accept_ride' ride.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-action btn-success">
+                    ✅ Aceptar Carrera
+                </button>
+            </form>
+            {% elif ride.status == 'accepted' and request.user == ride.driver %}
+            <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="in_progress">
+                <button type="submit" class="btn-action btn-primary">
+                    ▶️ Iniciar Carrera
+                </button>
+            </form>
+            {% elif ride.status == 'in_progress' and request.user == ride.driver %}
+            <form method="POST" action="{% url 'update_ride_status' ride.id %}" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="completed">
+                <button type="submit" class="btn-action btn-primary">
+                    ✓ Completar Carrera
+                </button>
+            </form>
+            {% endif %}
         {% endif %}
     </div>
 </div>
@@ -309,7 +400,7 @@
 let map;
 let driverMarker;
 let originMarker;
-let destinationMarker;
+let destinationMarkers = [];
 let directionsService;
 let directionsRenderer;
 
@@ -321,18 +412,83 @@ function initMap() {
         center: origin,
         zoom: 14,
         styles: [
-            { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
-            { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a1a' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#FFD700' }] },
+            { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+            {
+                featureType: 'administrative.locality',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#d59563' }]
+            },
+            {
+                featureType: 'poi',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#d59563' }]
+            },
+            {
+                featureType: 'poi.park',
+                elementType: 'geometry',
+                stylers: [{ color: '#263c3f' }]
+            },
+            {
+                featureType: 'poi.park',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#6b9a76' }]
+            },
             {
                 featureType: 'road',
                 elementType: 'geometry',
-                stylers: [{ color: '#2d2d2d' }]
+                stylers: [{ color: '#38414e' }]
             },
             {
                 featureType: 'road',
                 elementType: 'geometry.stroke',
-                stylers: [{ color: '#1a1a1a' }]
+                stylers: [{ color: '#212a37' }]
+            },
+            {
+                featureType: 'road',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#9ca5b3' }]
+            },
+            {
+                featureType: 'road.highway',
+                elementType: 'geometry',
+                stylers: [{ color: '#746855' }]
+            },
+            {
+                featureType: 'road.highway',
+                elementType: 'geometry.stroke',
+                stylers: [{ color: '#1f2835' }]
+            },
+            {
+                featureType: 'road.highway',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#f3d19c' }]
+            },
+            {
+                featureType: 'transit',
+                elementType: 'geometry',
+                stylers: [{ color: '#2f3948' }]
+            },
+            {
+                featureType: 'transit.station',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#d59563' }]
+            },
+            {
+                featureType: 'water',
+                elementType: 'geometry',
+                stylers: [{ color: '#17263c' }]
+            },
+            {
+                featureType: 'water',
+                elementType: 'labels.text.fill',
+                stylers: [{ color: '#515c6d' }]
+            },
+            {
+                featureType: 'water',
+                elementType: 'labels.text.stroke',
+                stylers: [{ color: '#17263c' }]
             }
         ]
     });
@@ -343,7 +499,8 @@ function initMap() {
         suppressMarkers: true,
         polylineOptions: {
             strokeColor: '#FFD700',
-            strokeWeight: 5
+            strokeWeight: 6,
+            strokeOpacity: 0.8
         }
     });
     
@@ -351,7 +508,8 @@ function initMap() {
     originMarker = new google.maps.Marker({
         position: origin,
         map: map,
-        title: 'Origen',
+        title: 'Origen: {{ origin_address|default:ride.origin }}',
+        animation: google.maps.Animation.DROP,
         icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 10,
@@ -361,27 +519,37 @@ function initMap() {
             strokeWeight: 2
         }
     });
-    
-    // Marcador de destino
-    {% if destination_lat and destination_lng %}
-    const destination = { lat: {{ destination_lat }}, lng: {{ destination_lng }} };
-    destinationMarker = new google.maps.Marker({
-        position: destination,
-        map: map,
-        title: 'Destino',
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: '#EF4444',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2
-        }
+
+    // InfoWindow para origen
+    const originInfo = new google.maps.InfoWindow({
+        content: '<div style="color:black; font-weight:bold;">📍 Origen</div><div style="color:black;">{{ origin_address|default:ride.origin }}</div>'
     });
+    originMarker.addListener('click', () => originInfo.open(map, originMarker));
     
-    // Calcular y mostrar ruta
-    calculateRoute(origin, destination);
-    {% endif %}
+    // Procesar destinos
+    const destinations = JSON.parse('{{ destinations_json|escapejs }}');
+    
+    if (destinations.length > 0) {
+        // Preparar waypoints (todos menos el último)
+        const waypoints = [];
+        const lastDestination = destinations[destinations.length - 1];
+        
+        for (let i = 0; i < destinations.length - 1; i++) {
+            waypoints.push({
+                location: { lat: destinations[i].lat, lng: destinations[i].lng },
+                stopover: true
+            });
+            
+            // Crear marcador para waypoint
+            createDestinationMarker(destinations[i], i + 1);
+        }
+        
+        // Crear marcador para destino final
+        createDestinationMarker(lastDestination, destinations.length, true);
+        
+        // Calcular ruta
+        calculateRoute(origin, { lat: lastDestination.lat, lng: lastDestination.lng }, waypoints);
+    }
     
     // Marcador del conductor (si existe)
     {% if driver_lat and driver_lng %}
@@ -407,14 +575,49 @@ function initMap() {
     {% endif %}
 }
 
-function calculateRoute(origin, destination) {
+function createDestinationMarker(dest, index, isFinal = false) {
+    const marker = new google.maps.Marker({
+        position: { lat: dest.lat, lng: dest.lng },
+        map: map,
+        title: `Destino ${index}: ${dest.address}`,
+        label: {
+            text: index.toString(),
+            color: 'white',
+            fontWeight: 'bold'
+        },
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: isFinal ? '#EF4444' : '#3B82F6',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+        }
+    });
+    
+    const infoWindow = new google.maps.InfoWindow({
+        content: `<div style="color:black; font-weight:bold;">${isFinal ? '🏁 Destino Final' : '🛑 Parada ' + index}</div><div style="color:black;">${dest.address}</div>`
+    });
+    
+    marker.addListener('click', () => infoWindow.open(map, marker));
+    // Abrir automáticamente al cargar
+    // infoWindow.open(map, marker); 
+    
+    destinationMarkers.push(marker);
+}
+
+function calculateRoute(origin, destination, waypoints) {
     directionsService.route({
         origin: origin,
         destination: destination,
+        waypoints: waypoints,
+        optimizeWaypoints: false, // Mantener el orden original
         travelMode: google.maps.TravelMode.DRIVING
     }, (result, status) => {
         if (status === 'OK') {
             directionsRenderer.setDirections(result);
+        } else {
+            console.error('Directions request failed due to ' + status);
         }
     });
 }
@@ -427,9 +630,6 @@ function updateDriverLocation() {
             if (data.latitude && data.longitude && driverMarker) {
                 const newPos = { lat: data.latitude, lng: data.longitude };
                 driverMarker.setPosition(newPos);
-                
-                // Opcional: centrar mapa en el conductor
-                // map.panTo(newPos);
             }
         })
         .catch(error => console.log('Error actualizando ubicación:', error));

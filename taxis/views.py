@@ -1148,57 +1148,68 @@ def ride_detail(request, ride_id):
         # Obtener la carrera específica
         ride = get_object_or_404(Ride, id=ride_id)
 
-        # Verificar si el usuario es el administrador, conductor o cliente de la carrera
-        if not (request.user.is_superuser or request.user == ride.driver or request.user == ride.customer):
+        # Verificar permisos: admin, conductor asignado, cliente dueño, o conductor disponible (para aceptar)
+        is_involved = (
+            request.user.is_superuser or 
+            request.user == ride.driver or 
+            request.user == ride.customer
+        )
+        
+        # Permitir ver si es un conductor y la carrera está solicitada (para aceptarla)
+        if not is_involved and request.user.role == 'driver' and ride.status == 'requested':
+            pass
+        elif not is_involved:
             messages.error(request, 'No tiene permiso para ver esta carrera.')
             return redirect('available_rides')
 
-        # Obtener la dirección de origen usando el método get_origin_address()
+        # Obtener la dirección de origen
         origin_address = ride.get_origin_address()
 
-        # Obtener la dirección del primer destino (en caso de múltiples destinos)
-        destination_address = ""
-        if ride.destinations.exists():
-            destination_address = ride.destinations.first().destination  # Dirección del primer destino
+        # Obtener TODOS los destinos ordenados
+        destinations = ride.destinations.all().order_by('order')
+        
+        # Preparar datos de destinos para el mapa (JSON serializable)
+        destinations_data = []
+        for dest in destinations:
+            destinations_data.append({
+                'lat': dest.destination_latitude,
+                'lng': dest.destination_longitude,
+                'address': dest.destination,
+                'order': dest.order
+            })
 
-        # Coordenadas del cliente (si el cliente tiene un taxi asociado)
+        # Coordenadas del cliente
         client_lat = None
         client_lng = None
         if ride.customer:
             try:
-                taxi = ride.customer.taxi  # Cliente tiene un taxi asociado
+                taxi = ride.customer.taxi
                 client_lat = taxi.latitude
                 client_lng = taxi.longitude
-            except AttributeError:  # Si el cliente no tiene taxi
+            except AttributeError:
                 pass
 
-        # Coordenadas del destino (siempre debe existir)
-        destination_lat = ride.destinations.first().destination_latitude if ride.destinations.exists() else None
-        destination_lng = ride.destinations.first().destination_longitude if ride.destinations.exists() else None
-
-        # Coordenadas del conductor (si el conductor tiene un taxi asociado)
+        # Coordenadas del conductor
         driver_lat = None
         driver_lng = None
         if ride.driver:
             try:
-                taxi = ride.driver.taxi  # Recuperar el objeto taxi asociado al conductor
+                taxi = ride.driver.taxi
                 if taxi.latitude is not None and taxi.longitude is not None:
                     driver_lat = taxi.latitude
                     driver_lng = taxi.longitude
-            except Taxi.DoesNotExist:  # Si el conductor no tiene taxi
+            except Taxi.DoesNotExist:
                 pass
 
-        # Pasar las coordenadas, direcciones y la información de la carrera a la plantilla
         context = {
             'ride': ride,
             'client_lat': client_lat,
             'client_lng': client_lng,
-            'destination_lat': destination_lat,
-            'destination_lng': destination_lng,
             'driver_lat': driver_lat,
             'driver_lng': driver_lng,
             'origin_address': origin_address,
-            'destination_address': destination_address,
+            'destinations': destinations,
+            'destinations_json': json.dumps(destinations_data),
             'GOOGLE_MAPS_API_KEY': settings.GOOGLE_API_KEY,
         }
 

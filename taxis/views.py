@@ -799,6 +799,26 @@ def telegram_webhook(request):
     enviar_telegram(chat_id, "👋 Hola. Escribe /start para solicitar un taxi 🚕.")
     return JsonResponse({"ok": True})
 
+def service_worker(request):
+    """
+    Serves the service-worker.js file from the static directory
+    but with a root scope.
+    """
+    from django.conf import settings
+    import os
+    
+    # Try to find the file in staticfiles (production) or static (development)
+    sw_path = os.path.join(settings.BASE_DIR, 'staticfiles', 'js', 'service-worker.js')
+    if not os.path.exists(sw_path):
+        sw_path = os.path.join(settings.BASE_DIR, 'taxis', 'static', 'js', 'service-worker.js')
+        
+    if os.path.exists(sw_path):
+        with open(sw_path, 'rb') as f:
+            content = f.read()
+        return HttpResponse(content, content_type='application/javascript')
+    else:
+        return HttpResponse("Service Worker not found", status=404)
+
 
 
 @login_required

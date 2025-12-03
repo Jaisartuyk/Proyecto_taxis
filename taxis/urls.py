@@ -69,5 +69,8 @@ urlpatterns = [
     path('whatsapp/conversation/<int:conversation_id>/', views.whatsapp_conversation_detail, name='whatsapp_conversation_detail'),
     path('whatsapp/send-message/', views.whatsapp_send_message, name='whatsapp_send_message'),
     path('api/whatsapp/stats/', views.whatsapp_stats_api, name='whatsapp_stats_api'),
+    
+    # Service Worker (Root Scope)
+    path('service-worker.js', views.service_worker, name='service_worker'),
 
 ]

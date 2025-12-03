@@ -1,0 +1,200 @@
+/* 
+ * Tema "De Aquí Pa'llá" 
+ * Paleta de colores basada en el logo
+ */
+
+:root {
+    /* Colores principales del logo */
+    --primary-yellow: #FFD700;      /* Amarillo taxi */
+    --primary-black: #1a1a1a;       /* Negro principal */
+    --secondary-yellow: #FFC107;    /* Amarillo secundario */
+    --dark-gray: #2d2d2d;           /* Gris oscuro */
+    
+    /* Colores de estado */
+    --success-green: #10B981;
+    --danger-red: #EF4444;
+    --warning-orange: #F59E0B;
+    --info-blue: #3B82F6;
+    
+    /* Colores de fondo */
+    --bg-dark: #0f0f0f;
+    --bg-card: #1f1f1f;
+    --bg-hover: #2a2a2a;
+    
+    /* Colores de texto */
+    --text-light: #ffffff;
+    --text-gray: #9ca3af;
+    --text-dark: #1f2937;
+    
+    /* Sombras */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.3);
+    
+    /* Gradientes */
+    --gradient-primary: linear-gradient(135deg, var(--primary-yellow) 0%, var(--secondary-yellow) 100%);
+    --gradient-dark: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%);
+    --gradient-overlay: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 193, 7, 0.9) 100%);
+}
+
+/* Reset y estilos base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+/* Utilidades de texto */
+.text-primary { color: var(--primary-yellow); }
+.text-secondary { color: var(--secondary-yellow); }
+.text-success { color: var(--success-green); }
+.text-danger { color: var(--danger-red); }
+.text-warning { color: var(--warning-orange); }
+.text-info { color: var(--info-blue); }
+.text-gray { color: var(--text-gray); }
+
+/* Utilidades de fondo */
+.bg-primary { background-color: var(--primary-yellow); }
+.bg-dark { background-color: var(--bg-dark); }
+.bg-card { background-color: var(--bg-card); }
+.bg-gradient-primary { background: var(--gradient-primary); }
+.bg-gradient-dark { background: var(--gradient-dark); }
+
+/* Botones */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: var(--primary-black);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+    background-color: var(--dark-gray);
+    color: var(--text-light);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-hover);
+}
+
+.btn-success {
+    background-color: var(--success-green);
+    color: white;
+}
+
+.btn-danger {
+    background-color: var(--danger-red);
+    color: white;
+}
+
+/* Cards */
+.card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.card-header {
+    border-bottom: 2px solid var(--primary-yellow);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Badges */
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-success {
+    background-color: var(--success-green);
+    color: white;
+}
+
+.badge-warning {
+    background-color: var(--warning-orange);
+    color: white;
+}
+
+.badge-danger {
+    background-color: var(--danger-red);
+    color: white;
+}
+
+.badge-info {
+    background-color: var(--info-blue);
+    color: white;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .card {
+        padding: 1rem;
+    }
+}

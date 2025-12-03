@@ -423,6 +423,7 @@
                 {% for driver in drivers %}
                 <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
                     <img src="{{ driver.profile_picture.url|default:'/static/imagenes/logo1.png' }}"
+                        onerror="this.onerror=null;this.src='{% static 'imagenes/default.jpg' %}';"
                         alt="{{ driver.get_full_name }}">
                     <span>{{ driver.get_full_name }}</span>
                 </div>
@@ -471,7 +472,8 @@
     document.addEventListener('DOMContentLoaded', function () {
         const currentUser = {
             id: "{{ request.user.id }}",
-            is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
+            is_superuser: {{ request.user.is_superuser| yesno: "true,false"
+    }}
     };
     const adminUserId = "{{ admin_user_id }}";
 

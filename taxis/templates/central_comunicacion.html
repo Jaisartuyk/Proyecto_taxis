@@ -800,13 +800,18 @@
     // Iniciar conexiones
     setupWebSocket();
     setupAudioWebSocket();
+    // Iniciar conexiones
+    setupWebSocket();
+    setupAudioWebSocket();
 });
 
     // ==================== MAPA DE GOOGLE MAPS ====================
-    let map;
-    let markers = {};
+    // Variables globales para el mapa
+    var map;
+    var markers = {};
 
-    function initMap() {
+    // Función global para inicializar el mapa
+    window.initMap = function () {
         // Centro en Guayaquil, Ecuador
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: -2.1894, lng: -79.8890 },
@@ -861,8 +866,9 @@
 
         // Actualizar cada 5 segundos
         setInterval(fetchDriverLocations, 5000);
-    }
+    };
 
+    // Funciones auxiliares globales
     function fetchDriverLocations() {
         fetch('/api/ubicaciones_taxis/')
             .then(response => response.json())
@@ -910,17 +916,17 @@
                 // InfoWindow con información del conductor
                 const infoWindow = new google.maps.InfoWindow({
                     content: `
-                    <div style="padding: 10px;">
-                        <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
-                        <p style="margin: 0; color: #666;">🚕 ${taxi.placa || 'Sin placa'}</p>
-                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
-                            ${taxi.descripcion || 'Sin descripción'}
-                        </p>
-                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
-                            Última actualización: ${new Date().toLocaleTimeString()}
-                        </p>
-                    </div>
-                `
+                <div style="padding: 10px;">
+                    <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
+                    <p style="margin: 0; color: #666;">🚕 ${taxi.placa || 'Sin placa'}</p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                        ${taxi.descripcion || 'Sin descripción'}
+                    </p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                        Última actualización: ${new Date().toLocaleTimeString()}
+                    </p>
+                </div>
+            `
                 });
 
                 marker.addListener('click', () => {

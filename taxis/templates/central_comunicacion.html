@@ -474,7 +474,7 @@
             id: "{{ request.user.id }}",
             is_superuser: {{ request.user.is_superuser| yesno: "true,false"
     }}
-    };
+        };
     const adminUserId = "{{ admin_user_id }}";
 
     const chatLog = document.getElementById('chat-log');

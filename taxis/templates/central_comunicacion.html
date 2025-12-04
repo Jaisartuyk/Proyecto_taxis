@@ -476,24 +476,23 @@
     document.addEventListener('DOMContentLoaded', function () {
         const currentUser = {
             id: "{{ request.user.id }}",
-            is_superuser: {{ request.user.is_superuser| yesno: "true,false"
-    }}
+            is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
         };
-    const adminUserId = "{{ admin_user_id }}";
+        const adminUserId = "{{ admin_user_id }}";
 
-    const chatLog = document.getElementById('chat-log');
-    const chatHeader = document.getElementById('chat-header');
-    const messageInput = document.getElementById('chat-message-input');
-    const messageSubmit = document.getElementById('chat-message-submit');
-    const inputContainer = document.getElementById('chat-input-container');
-    const noChatSelected = document.getElementById('no-chat-selected');
-    const audioLogPanel = document.getElementById('audio-log');
+        const chatLog = document.getElementById('chat-log');
+        const chatHeader = document.getElementById('chat-header');
+        const messageInput = document.getElementById('chat-message-input');
+        const messageSubmit = document.getElementById('chat-message-submit');
+        const inputContainer = document.getElementById('chat-input-container');
+        const noChatSelected = document.getElementById('no-chat-selected');
+        const audioLogPanel = document.getElementById('audio-log');
 
-    let activeChatRecipientId = null;
-    let chatSocket = null;
+        let activeChatRecipientId = null;
+        let chatSocket = null;
 
-    // Función para agregar entrada al registro de audio
-    function addAudioLogEntry(senderName, type) {
+        // Función para agregar entrada al registro de audio
+        function addAudioLogEntry(senderName, type) {
         const emptyMsg = audioLogPanel.querySelector('.audio-log-empty');
         if (emptyMsg) emptyMsg.remove();
 

@@ -32,6 +32,10 @@ ENV/
 .env.local
 .env.*.local
 
+# VAPID Keys (sensitive)
+vapid_keys.json
+generate_vapid_keys.py
+
 # Testing
 .coverage
 htmlcov/

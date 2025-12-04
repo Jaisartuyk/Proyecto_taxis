@@ -144,14 +144,29 @@ async function initializePushNotifications() {
 // Auto-initialize on page load for logged-in users
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        // Only initialize if user is logged in (check for user-specific element)
-        if (document.querySelector('[data-user-id]')) {
+        const userIdElement = document.querySelector('[data-user-id]');
+        const userId = userIdElement?.getAttribute('data-user-id');
+        console.log('DOMContentLoaded - User ID:', userId);
+        
+        // Only initialize if user is logged in and has a valid ID
+        if (userId && userId !== '' && userId !== 'None') {
+            console.log('Initializing push notifications for user:', userId);
             initializePushNotifications();
+        } else {
+            console.log('User not authenticated, skipping push notifications');
         }
     });
 } else {
-    if (document.querySelector('[data-user-id]')) {
+    const userIdElement = document.querySelector('[data-user-id]');
+    const userId = userIdElement?.getAttribute('data-user-id');
+    console.log('Document ready - User ID:', userId);
+    
+    // Only initialize if user is logged in and has a valid ID
+    if (userId && userId !== '' && userId !== 'None') {
+        console.log('Initializing push notifications for user:', userId);
         initializePushNotifications();
+    } else {
+        console.log('User not authenticated, skipping push notifications');
     }
 }
 

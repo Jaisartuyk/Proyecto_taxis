@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
     AppUser, Taxi, TaxiRoute, Ride, RideDestination,
-    WhatsAppConversation, WhatsAppMessage, WhatsAppStats
+    WhatsAppConversation, WhatsAppMessage, WhatsAppStats, WebPushSubscription
 )
 
 
@@ -242,6 +242,31 @@ class WhatsAppStatsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+
+
+# ============================================
+# Web Push Subscriptions Admin
+# ============================================
+
+@admin.register(WebPushSubscription)
+class WebPushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'browser', 'created_at')
+    list_filter = ('created_at', 'browser')
+    search_fields = ('user__username', 'user__email', 'browser')
+    readonly_fields = ('created_at', 'subscription_info')
+    
+    fieldsets = (
+        ('Usuario', {
+            'fields': ('user',)
+        }),
+        ('Información de Suscripción', {
+            'fields': ('subscription_info', 'browser', 'created_at')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        # No permitir agregar manualmente
+        return False
 
 
 # Register your models here.

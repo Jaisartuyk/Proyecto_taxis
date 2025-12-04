@@ -67,6 +67,15 @@ async function registerServiceWorker() {
 // Subscribe to push notifications
 async function subscribeToPush(registration) {
     try {
+        // Primero, intentar eliminar cualquier suscripción existente
+        const existingSubscription = await registration.pushManager.getSubscription();
+        if (existingSubscription) {
+            console.log('Eliminando suscripción antigua...');
+            await existingSubscription.unsubscribe();
+            console.log('Suscripción antigua eliminada');
+        }
+
+        // Crear nueva suscripción con las claves VAPID actuales
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -87,7 +96,7 @@ async function subscribeToPush(registration) {
         console.log('Subscription sent to server');
         return subscription;
     } catch (error) {
-        console.error('Failed to subscribe to push notifications:', error);
+        console.error('Push subscription failed:', error);
         return null;
     }
 }

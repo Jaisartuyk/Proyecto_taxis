@@ -250,9 +250,9 @@ class WhatsAppStatsAdmin(admin.ModelAdmin):
 
 @admin.register(WebPushSubscription)
 class WebPushSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'browser', 'created_at')
-    list_filter = ('created_at', 'browser')
-    search_fields = ('user__username', 'user__email', 'browser')
+    list_display = ('user', 'created_at', 'subscription_preview')
+    list_filter = ('created_at',)
+    search_fields = ('user__username', 'user__email')
     readonly_fields = ('created_at', 'subscription_info')
     
     fieldsets = (
@@ -260,9 +260,18 @@ class WebPushSubscriptionAdmin(admin.ModelAdmin):
             'fields': ('user',)
         }),
         ('Información de Suscripción', {
-            'fields': ('subscription_info', 'browser', 'created_at')
+            'fields': ('subscription_info', 'created_at')
         }),
     )
+    
+    def subscription_preview(self, obj):
+        """Mostrar preview de la suscripción"""
+        if obj.subscription_info:
+            endpoint = obj.subscription_info.get('endpoint', '')
+            if endpoint:
+                return endpoint[:50] + '...' if len(endpoint) > 50 else endpoint
+        return '-'
+    subscription_preview.short_description = 'Endpoint'
     
     def has_add_permission(self, request):
         # No permitir agregar manualmente

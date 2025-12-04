@@ -36,7 +36,7 @@ async function requestNotificationPermission() {
     return false;
 }
 
-// Register Service Worker
+// Get existing Service Worker registration or register a new one
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         console.log('Service Worker not supported');
@@ -44,7 +44,16 @@ async function registerServiceWorker() {
     }
 
     try {
-        const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        // Primero intentar obtener el registro existente
+        let registration = await navigator.serviceWorker.getRegistration('/');
+        
+        if (registration) {
+            console.log('Using existing Service Worker registration:', registration);
+            return registration;
+        }
+        
+        // Si no existe, registrar uno nuevo
+        registration = await navigator.serviceWorker.register('/service-worker.js', {
             scope: '/'
         });
         console.log('Service Worker registered successfully:', registration);

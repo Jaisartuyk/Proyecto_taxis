@@ -352,10 +352,14 @@
 
         // --- WEBSOCKETS SETUP ---
         function setupWebSockets() {
+            console.log('🔌 Iniciando WebSockets...');
+            console.log('👤 MY_ID:', MY_ID, 'ADMIN_ID:', ADMIN_ID);
+            
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             const host = window.location.host;
 
             // 1. Audio WebSocket
+            console.log('🎤 Conectando Audio WebSocket...');
             audioSocket = new WebSocket(`${wsProtocol}${host}/ws/audio/conductores/`);
 
             audioSocket.onopen = () => {
@@ -385,20 +389,39 @@
             };
 
             // 2. Chat WebSocket
-            chatSocket = new WebSocket(`${wsProtocol}${host}/ws/chat/`);
+            console.log('💬 Conectando Chat WebSocket...');
+            const chatWsUrl = `${wsProtocol}${host}/ws/chat/`;
+            console.log('💬 URL del Chat WS:', chatWsUrl);
+            chatSocket = new WebSocket(chatWsUrl);
 
             chatSocket.onopen = () => {
-                console.log('💬 Chat WS Conectado');
+                console.log('✅ Chat WS Conectado exitosamente');
                 updateStatus();
             };
 
+            chatSocket.onclose = () => {
+                console.log('💬 Chat WS Desconectado');
+                updateStatus();
+                setTimeout(setupWebSockets, 5000);
+            };
+
+            chatSocket.onerror = (error) => {
+                console.error('💬 Chat WS Error:', error);
+            };
+
             chatSocket.onmessage = (e) => {
+                console.log('💬 Mensaje recibido:', e.data);
                 const data = JSON.parse(e.data);
                 const { message, sender_id, sender_name } = data;
 
+                console.log('💬 Procesando mensaje - Sender:', sender_id, 'Admin:', ADMIN_ID);
+
                 // Solo mostrar mensajes del admin (mis mensajes ya se agregaron al enviar)
                 if (String(sender_id) === String(ADMIN_ID)) {
+                    console.log('✅ Mostrando mensaje del admin:', message);
                     appendMessage(message, false);
+                } else {
+                    console.log('⏭️ Ignorando mensaje (no es del admin)');
                 }
             };
         }

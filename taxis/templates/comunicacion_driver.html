@@ -396,9 +396,9 @@
                 const data = JSON.parse(e.data);
                 const { message, sender_id, sender_name } = data;
 
-                // Mostrar mensaje si es mío o del admin
-                if (String(sender_id) === String(MY_ID) || String(sender_id) === String(ADMIN_ID)) {
-                    appendMessage(message, String(sender_id) === String(MY_ID));
+                // Solo mostrar mensajes del admin (mis mensajes ya se agregaron al enviar)
+                if (String(sender_id) === String(ADMIN_ID)) {
+                    appendMessage(message, false);
                 }
             };
         }
@@ -490,6 +490,10 @@
             if (!text || !ADMIN_ID) return;
 
             if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                // Agregar el mensaje inmediatamente a la vista
+                appendMessage(text, true);
+                
+                // Enviar por WebSocket
                 chatSocket.send(JSON.stringify({
                     message: text,
                     recipient_id: ADMIN_ID

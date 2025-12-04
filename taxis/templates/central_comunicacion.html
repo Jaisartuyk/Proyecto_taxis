@@ -535,8 +535,8 @@
             const data = JSON.parse(e.data);
             const { message, sender_id, sender_name } = data;
 
-            // Solo mostrar el mensaje si es parte de la conversación activa
-            if (sender_id == activeChatRecipientId || sender_id == currentUser.id) {
+            // Solo mostrar mensajes recibidos (mis mensajes ya se agregaron al enviar)
+            if (sender_id == activeChatRecipientId) {
                 appendMessage(message, sender_id, sender_name);
             }
         };
@@ -563,6 +563,10 @@
     function sendMessage() {
         const message = messageInput.value.trim();
         if (message && activeChatRecipientId && chatSocket.readyState === WebSocket.OPEN) {
+            // Agregar el mensaje inmediatamente a la vista
+            appendMessage(message, currentUser.id, 'Tú');
+            
+            // Enviar por WebSocket
             chatSocket.send(JSON.stringify({
                 'message': message,
                 'recipient_id': activeChatRecipientId

@@ -34,7 +34,10 @@ ENV/
 
 # VAPID Keys (sensitive)
 vapid_keys.json
+vapid_simple_keys.txt
 generate_vapid_keys.py
+fix_vapid_keys.py
+generate_simple_vapid.py
 
 # Testing
 .coverage

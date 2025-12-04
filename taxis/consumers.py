@@ -193,3 +193,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"Mensaje guardado en BD: {sender} -> {recipient}")
         except Exception as e:
             print(f"Error al guardar mensaje: {e}")
+    
+    @database_sync_to_async
+    def send_chat_push_notification(self, sender_id, recipient_id, message):
+        """Enviar notificación push cuando llega un mensaje de chat"""
+        from .models import AppUser
+        from .push_notifications import send_chat_message_notification
+        try:
+            sender = AppUser.objects.get(id=sender_id)
+            recipient = AppUser.objects.get(id=recipient_id)
+            
+            # Enviar notificación push
+            send_chat_message_notification(sender, recipient, message)
+            print(f"📱 Notificación push enviada: {sender.username} -> {recipient.username}")
+        except Exception as e:
+            print(f"❌ Error al enviar notificación push: {e}")

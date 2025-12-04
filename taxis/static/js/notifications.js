@@ -1,4 +1,5 @@
-// Push Notifications Management
+// Push Notifications Management v2.0
+// Actualizado: 2025-12-04 - Fix Service Worker scope
 const VAPID_PUBLIC_KEY = document.querySelector('meta[name="vapid-public-key"]')?.content || '';
 
 // Convert VAPID key from base64 to Uint8Array

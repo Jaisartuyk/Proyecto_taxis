@@ -1817,3 +1817,11 @@ def enviar_notificacion_pwa_conductor(conductor, titulo, mensaje, datos=None):
     except Exception as e:
         logger.error(f"❌ Error al enviar notificación PWA: {e}")
         return False
+
+
+@login_required
+def debug_notifications(request):
+    """
+    Página de debug para notificaciones push
+    """
+    return render(request, 'debug_notifications.html')

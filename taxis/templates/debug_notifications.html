@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Notificaciones</title>
+    {% load static %}
+    <meta name="vapid-public-key" content="{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}">
+    <div data-user-id="{{ user.id }}" style="display:none;"></div>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        .log {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+        }
+        .error {
+            color: #f00;
+            border-left-color: #f00;
+        }
+        .success {
+            color: #0f0;
+            border-left-color: #0f0;
+        }
+        .info {
+            color: #ff0;
+            border-left-color: #ff0;
+        }
+        #logs {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug de Notificaciones Push</h1>
+    <p>Usuario: <strong>{{ user.username }}</strong> (ID: {{ user.id }})</p>
+    <hr>
+    <div id="logs"></div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+        
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        // Override console methods
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+
+        // Start debugging
+        addLog('🚀 Iniciando debug de notificaciones...', 'info');
+        
+        // Check user authentication
+        const userIdElement = document.querySelector('[data-user-id]');
+        const userId = userIdElement?.getAttribute('data-user-id');
+        addLog(`👤 User ID detectado: ${userId}`, userId ? 'success' : 'error');
+        
+        // Check VAPID key
+        const vapidKey = document.querySelector('meta[name="vapid-public-key"]')?.content;
+        addLog(`🔑 VAPID Key: ${vapidKey ? vapidKey.substring(0, 50) + '...' : 'NO ENCONTRADA'}`, vapidKey ? 'success' : 'error');
+        
+        // Check Service Worker support
+        if ('serviceWorker' in navigator) {
+            addLog('✅ Service Worker soportado', 'success');
+        } else {
+            addLog('❌ Service Worker NO soportado', 'error');
+        }
+        
+        // Check Notification support
+        if ('Notification' in window) {
+            addLog(`✅ Notifications soportadas - Permiso: ${Notification.permission}`, 'success');
+        } else {
+            addLog('❌ Notifications NO soportadas', 'error');
+        }
+        
+        // Check PushManager support
+        if ('PushManager' in window) {
+            addLog('✅ PushManager soportado', 'success');
+        } else {
+            addLog('❌ PushManager NO soportado', 'error');
+        }
+    </script>
+    
+    <script src="{% static 'js/notifications.js' %}?v=2.1"></script>
+</body>
+</html>

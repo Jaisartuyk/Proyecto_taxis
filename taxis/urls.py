@@ -9,6 +9,7 @@ from .views import get_google_maps_key
 urlpatterns = [
     path('', views.home, name='home'),
     path('offline/', views.offline_view, name='offline'),
+    path('debug-notifications/', views.debug_notifications, name='debug_notifications'),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     #path('register/', views.register_view, name='register'),

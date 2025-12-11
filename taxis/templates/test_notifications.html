@@ -298,6 +298,38 @@
         if ('serviceWorker' in navigator) {
             updateStatus('swStatus', '✓ Soportado', 'success');
             addLog('✅ Service Worker soportado', 'success');
+            
+            // REGISTRAR Service Worker si no está registrado
+            try {
+                const existingReg = await navigator.serviceWorker.getRegistration();
+                if (!existingReg) {
+                    addLog('⚙️ Registrando Service Worker...', 'info');
+                    const registration = await navigator.serviceWorker.register('/service-worker.js', {
+                        scope: '/'
+                    });
+                    addLog('✅ Service Worker registrado exitosamente', 'success');
+                    console.log('SW registrado:', registration.scope);
+                    
+                    // Esperar a que se active
+                    if (registration.installing) {
+                        addLog('⏳ Service Worker instalándose...', 'info');
+                        await new Promise((resolve) => {
+                            registration.installing.addEventListener('statechange', (e) => {
+                                if (e.target.state === 'activated') {
+                                    addLog('✅ Service Worker activado', 'success');
+                                    resolve();
+                                }
+                            });
+                            setTimeout(resolve, 3000);
+                        });
+                    }
+                } else {
+                    addLog('✅ Service Worker ya registrado', 'success');
+                }
+            } catch (error) {
+                addLog(`❌ Error registrando Service Worker: ${error.message}`, 'error');
+                console.error('Error SW:', error);
+            }
         } else {
             updateStatus('swStatus', '✗ No soportado', 'error');
             addLog('❌ Service Worker NO soportado', 'error');
@@ -323,37 +355,45 @@
             updateStatus('permissionStatus', '⚠ Pendientes', 'warning');
             addLog('⚠️ Permisos de notificación pendientes', 'warning');
         }
-        
+    }
+    
+    // ============================================
+    // VERIFICAR ESTADO DE SUSCRIPCIÓN
+    // ============================================
+    
+    async function checkNotificationStatus() {
         // Verificar suscripción
         if ('serviceWorker' in navigator && 'PushManager' in window) {
             try {
-                addLog('🔍 Verificando Service Worker...', 'info');
+                addLog('🔍 Verificando suscripción push...', 'info');
                 
                 // Verificar estado del Service Worker primero
                 const registration = await navigator.serviceWorker.getRegistration();
                 
                 if (!registration) {
                     updateStatus('subscriptionStatus', '⚠ Sin SW', 'warning');
-                    addLog('⚠️ Service Worker no registrado - Recarga la página (Ctrl+Shift+R)', 'warning');
+                    addLog('⚠️ Service Worker no registrado', 'warning');
                     return;
                 }
                 
-                addLog(`✅ Service Worker encontrado (estado: ${registration.active ? 'active' : registration.installing ? 'installing' : registration.waiting ? 'waiting' : 'unknown'})`, 'success');
+                const swState = registration.active ? 'active' : registration.installing ? 'installing' : registration.waiting ? 'waiting' : 'unknown';
+                addLog(`✅ Service Worker ${swState}`, 'success');
                 
-                // Si está instalando, esperar
-                if (registration.installing) {
-                    addLog('⏳ Service Worker instalándose... por favor espera', 'info');
+                // Si está instalando o waiting, esperar
+                if (registration.installing || registration.waiting) {
+                    addLog('⏳ Service Worker no activo aún... esperando', 'info');
                     await new Promise((resolve) => {
-                        registration.installing.addEventListener('statechange', (e) => {
+                        const worker = registration.installing || registration.waiting;
+                        worker.addEventListener('statechange', (e) => {
                             if (e.target.state === 'activated') resolve();
                         });
-                        setTimeout(resolve, 5000); // Timeout de 5 segundos
+                        setTimeout(resolve, 3000);
                     });
                 }
                 
                 // Ahora verificar suscripción con timeout más corto
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Timeout obteniendo suscripción (5s)')), 5000);
+                    setTimeout(() => reject(new Error('Timeout obteniendo suscripción (3s)')), 3000);
                 });
                 
                 const checkPromise = registration.pushManager.getSubscription();
@@ -594,9 +634,17 @@
     // INICIALIZACIÓN
     // ============================================
     
-    window.addEventListener('load', () => {
-        checkSystemStatus();
+    window.addEventListener('load', async () => {
         addLog('Sistema de prueba de notificaciones iniciado', 'info');
+        
+        // Primero verificar y registrar el Service Worker
+        await checkSystemStatus();
+        
+        // Pequeña pausa para que el SW se active
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Luego verificar el estado de las notificaciones
+        await checkNotificationStatus();
     });
 </script>
 {% endblock %}

@@ -85,7 +85,7 @@ async function subscribeToPush(registration) {
         console.log('Push subscription successful:', subscription);
 
         // Send subscription to server
-        await fetch('/api/webpush/subscribe/', {
+        await fetch('/api/save-subscription/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

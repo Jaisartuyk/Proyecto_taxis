@@ -1,9 +1,10 @@
 /**
- * Service Worker v5 - FORZAR ACTUALIZACIÓN - Con soporte para Push Notifications
+ * Service Worker v5.1 - FORZAR ACTUALIZACIÓN - Con soporte para Push Notifications
  * De Aquí Pa'llá - Sistema de Taxis
+ * Actualizado: 2025-12-11 - Incluye Badge API
  */
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v5.1';
 const CACHE_NAME = `deaquipalla-${CACHE_VERSION}`;
 
 // Archivos para cachear

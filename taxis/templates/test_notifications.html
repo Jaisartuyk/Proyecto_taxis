@@ -3,6 +3,11 @@
 
 {% block title %}Prueba de Notificaciones{% endblock %}
 
+{% block extra_head %}
+<!-- VAPID Public Key -->
+<meta name="vapid-public-key" content="{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY|default:'' }}">
+{% endblock %}
+
 {% block content %}
 <style>
     body {
@@ -387,7 +392,11 @@
             addLog('✅ Service Worker listo', 'success');
             
             // Crear suscripción
-            const vapidPublicKey = "{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}";
+            const vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]')?.content || '';
+            
+            if (!vapidPublicKey) {
+                throw new Error('VAPID public key no configurada');
+            }
             
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,

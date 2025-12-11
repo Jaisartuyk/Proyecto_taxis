@@ -811,12 +811,19 @@ def service_worker(request):
     # Try to find the file in staticfiles (production) or static (development)
     sw_path = os.path.join(settings.BASE_DIR, 'staticfiles', 'js', 'service-worker.js')
     if not os.path.exists(sw_path):
+        sw_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'service-worker.js')
+    
+    if not os.path.exists(sw_path):
         sw_path = os.path.join(settings.BASE_DIR, 'taxis', 'static', 'js', 'service-worker.js')
         
     if os.path.exists(sw_path):
         with open(sw_path, 'rb') as f:
             content = f.read()
-        return HttpResponse(content, content_type='application/javascript')
+        response = HttpResponse(content, content_type='application/javascript')
+        # Allow the service worker to control the entire domain
+        response['Service-Worker-Allowed'] = '/'
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
     else:
         return HttpResponse("Service Worker not found", status=404)
 

@@ -75,8 +75,8 @@
     <meta name="vapid-public-key" content="{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}">
     <div data-user-id="{{ user.id }}" style="display:none;"></div>
 
-    <!-- Notifications Script -->
-    <script src="{% static 'js/notifications.js' %}?v=3.0"></script>
+    <!-- Notifications Script - v4.0 con fix de cache -->
+    <script src="{% static 'js/notifications-v4.js' %}"></script>
 
     <!-- Install Prompt Script -->
     <script src="{% static 'js/install-prompt.js' %}"></script>

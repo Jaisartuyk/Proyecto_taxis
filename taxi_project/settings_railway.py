@@ -61,7 +61,7 @@ if RAILWAY_ENVIRONMENT:
         os.path.join(BASE_DIR, 'static'),
         os.path.join(BASE_DIR, 'taxis', 'static'),
     ]
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
     
     # Configuración de logging para Railway
     LOGGING = {

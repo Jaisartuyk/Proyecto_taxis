@@ -98,8 +98,8 @@ self.addEventListener('push', (event) => {
     let notificationData = {
         title: '🚕 Nueva carrera disponible',
         body: 'Hay una nueva carrera cerca de ti',
-        icon: '/static/imagenes/icon-192x192.png',
-        badge: '/static/imagenes/icon-72x72.png',
+        icon: '/static/imagenes/DE_AQU_PALL_Logo.png',
+        badge: '/static/imagenes/logo1.png',
         vibrate: [200, 100, 200, 100, 200],
         tag: 'nueva-carrera',
         requireInteraction: true,
@@ -111,7 +111,7 @@ self.addEventListener('push', (event) => {
             {
                 action: 'ver',
                 title: '👀 Ver carrera',
-                icon: '/static/imagenes/icon-72x72.png'
+                icon: '/static/imagenes/logo1.png'
             },
             {
                 action: 'cerrar',
@@ -123,18 +123,25 @@ self.addEventListener('push', (event) => {
     // Si el push trae datos, usarlos
     if (event.data) {
         try {
-            const data = event.data.json();
-            notificationData = {
-                ...notificationData,
-                ...data
-            };
+            const pushData = event.data.json();
+            console.log('📦 Datos del push:', pushData);
+            
+            // Actualizar con datos del servidor
+            if (pushData.title) notificationData.title = pushData.title;
+            if (pushData.body) notificationData.body = pushData.body;
+            if (pushData.icon) notificationData.icon = pushData.icon;
+            if (pushData.badge) notificationData.badge = pushData.badge;
+            if (pushData.data) notificationData.data = { ...notificationData.data, ...pushData.data };
+            
         } catch (e) {
-            console.error('Error al parsear datos del push:', e);
+            console.error('❌ Error al parsear datos del push:', e);
         }
     }
 
     event.waitUntil(
         self.registration.showNotification(notificationData.title, notificationData)
+            .then(() => console.log('✅ Notificación mostrada'))
+            .catch(err => console.error('❌ Error al mostrar notificación:', err))
     );
 });
 

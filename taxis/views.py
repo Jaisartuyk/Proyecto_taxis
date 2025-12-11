@@ -820,6 +820,14 @@ def service_worker(request):
         return HttpResponse("Service Worker not found", status=404)
 
 
+@login_required
+def test_notifications(request):
+    """
+    Vista de prueba para verificar el funcionamiento de las notificaciones push
+    """
+    return render(request, 'test_notifications.html')
+
+
 
 @login_required
 def request_ride(request):

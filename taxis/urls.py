@@ -73,5 +73,8 @@ urlpatterns = [
     
     # Service Worker (Root Scope)
     path('service-worker.js', views.service_worker, name='service_worker'),
+    
+    # Prueba de Notificaciones
+    path('test-notifications/', views.test_notifications, name='test_notifications'),
 
 ]

@@ -109,6 +109,86 @@
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
+    /* Notificaciones Panel */
+    .notification-panel {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .notification-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .notification-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .notification-status {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .notification-status h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .notification-status p {
+        margin: 0;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .notification-toggle {
+        background: white;
+        color: #667eea;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .notification-toggle:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+    }
+
+    .notification-toggle.disabled {
+        background: #ef4444;
+        color: white;
+    }
+
+    @media (max-width: 768px) {
+        .notification-panel {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+
     .stat-icon {
         width: 60px;
         height: 60px;
@@ -376,6 +456,21 @@
         </div>
     </div>
 
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-info">
+            <div class="notification-icon" id="notificationIcon">🔔</div>
+            <div class="notification-status">
+                <h3 id="notificationTitle">Notificaciones Activas</h3>
+                <p id="notificationDescription">Recibirás alertas de nuevas carreras</p>
+            </div>
+        </div>
+        <button class="notification-toggle" id="notificationToggle" onclick="toggleNotifications()">
+            <span id="toggleIcon">✓</span>
+            <span id="toggleText">Activadas</span>
+        </button>
+    </div>
+
     <!-- Stats Grid -->
     <div class="stats-grid">
         <div class="stat-card">
@@ -606,6 +701,190 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error al enviar ubicación:', error));
     }
+
+    // ============================================
+    // SISTEMA DE NOTIFICACIONES PUSH
+    // ============================================
+    
+    let notificationsEnabled = false;
+    
+    async function toggleNotifications() {
+        const panel = document.getElementById('notificationPanel');
+        const icon = document.getElementById('notificationIcon');
+        const title = document.getElementById('notificationTitle');
+        const description = document.getElementById('notificationDescription');
+        const toggleBtn = document.getElementById('notificationToggle');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const toggleText = document.getElementById('toggleText');
+        
+        if (!notificationsEnabled) {
+            // Activar notificaciones
+            try {
+                await enableNotifications();
+                notificationsEnabled = true;
+                
+                // Actualizar UI
+                panel.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                icon.textContent = '🔔';
+                title.textContent = '¡Notificaciones Activas!';
+                description.textContent = 'Recibirás alertas de nuevas carreras en tiempo real';
+                toggleBtn.classList.remove('disabled');
+                toggleIcon.textContent = '✓';
+                toggleText.textContent = 'Activadas';
+                
+                // Mostrar notificación de prueba
+                await testNotification();
+                
+            } catch (error) {
+                console.error('Error al activar notificaciones:', error);
+                alert('No se pudieron activar las notificaciones. Por favor, verifica los permisos de tu navegador.');
+            }
+        } else {
+            // Desactivar notificaciones
+            notificationsEnabled = false;
+            
+            // Actualizar UI
+            panel.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            icon.textContent = '🔕';
+            title.textContent = 'Notificaciones Desactivadas';
+            description.textContent = 'No recibirás alertas hasta que las reactives';
+            toggleBtn.classList.add('disabled');
+            toggleIcon.textContent = '✗';
+            toggleText.textContent = 'Desactivadas';
+        }
+    }
+    
+    async function enableNotifications() {
+        // 1. Verificar soporte
+        if (!('serviceWorker' in navigator && 'PushManager' in window)) {
+            throw new Error('Las notificaciones push no están soportadas en este navegador');
+        }
+        
+        // 2. Solicitar permiso
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            throw new Error('Permiso de notificaciones denegado');
+        }
+        
+        console.log('✅ Permiso de notificaciones concedido');
+        
+        // 3. Registrar service worker
+        const registration = await navigator.serviceWorker.ready;
+        console.log('✅ Service Worker listo');
+        
+        // 4. Suscribirse a push
+        let subscription = await registration.pushManager.getSubscription();
+        
+        if (!subscription) {
+            const vapidPublicKey = "{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}";
+            
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            });
+            
+            console.log('✅ Nueva suscripción creada');
+        } else {
+            console.log('✅ Usando suscripción existente');
+        }
+        
+        // 5. Enviar suscripción al servidor
+        await saveSubscriptionToServer(subscription);
+        
+        return subscription;
+    }
+    
+    async function saveSubscriptionToServer(subscription) {
+        const csrftoken = getCookie('csrftoken');
+        
+        const response = await fetch('{% url "api_save_subscription" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                subscription_info: subscription.toJSON()
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al guardar la suscripción en el servidor');
+        }
+        
+        console.log('✅ Suscripción guardada en el servidor');
+    }
+    
+    async function testNotification() {
+        const registration = await navigator.serviceWorker.ready;
+        
+        await registration.showNotification('🚕 Notificaciones Activadas', {
+            body: '¡Listo! Ahora recibirás alertas de nuevas carreras',
+            icon: '/static/imagenes/DE_AQU_PALL_Logo.png',
+            badge: '/static/imagenes/logo1.png',
+            vibrate: [200, 100, 200],
+            tag: 'test-notification',
+            requireInteraction: false
+        });
+        
+        console.log('✅ Notificación de prueba mostrada');
+    }
+    
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+        
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Verificar estado inicial de notificaciones al cargar la página
+    window.addEventListener('load', async () => {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                
+                if (subscription && Notification.permission === 'granted') {
+                    // Las notificaciones ya están activas
+                    notificationsEnabled = true;
+                    const panel = document.getElementById('notificationPanel');
+                    const icon = document.getElementById('notificationIcon');
+                    const title = document.getElementById('notificationTitle');
+                    const description = document.getElementById('notificationDescription');
+                    
+                    panel.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    icon.textContent = '🔔';
+                    title.textContent = '¡Notificaciones Activas!';
+                    description.textContent = 'Recibirás alertas de nuevas carreras en tiempo real';
+                }
+            } catch (error) {
+                console.log('No hay suscripción activa');
+            }
+        }
+    });
 
     // Iniciar el seguimiento de la ubicación
     if ('geolocation' in navigator) {

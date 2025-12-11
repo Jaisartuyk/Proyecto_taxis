@@ -1,0 +1,541 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Prueba de Notificaciones{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .test-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .test-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        margin-bottom: 2rem;
+    }
+
+    .test-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .test-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+
+    .test-header p {
+        color: #6b7280;
+        font-size: 1.1rem;
+    }
+
+    .status-section {
+        background: #f3f4f6;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .status-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .status-label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .status-value {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .status-badge.success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.error {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-badge.warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .test-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .test-btn {
+        padding: 1rem;
+        border-radius: 12px;
+        border: none;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .test-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .test-btn.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .test-btn.secondary {
+        background: #10b981;
+        color: white;
+    }
+
+    .test-btn.warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .log-section {
+        background: #1f2937;
+        border-radius: 15px;
+        padding: 1.5rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .log-title {
+        color: #f3f4f6;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .log-entry {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+    }
+
+    .log-entry.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border-left: 3px solid #10b981;
+    }
+
+    .log-entry.error {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border-left: 3px solid #ef4444;
+    }
+
+    .log-entry.info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border-left: 3px solid #3b82f6;
+    }
+
+    .log-entry.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border-left: 3px solid #f59e0b;
+    }
+
+    @media (max-width: 768px) {
+        .test-container {
+            padding: 1rem;
+        }
+        
+        .test-card {
+            padding: 1.5rem;
+        }
+        
+        .test-header h1 {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<div class="test-container">
+    <div class="test-card">
+        <div class="test-header">
+            <h1>🔔 Prueba de Notificaciones Push</h1>
+            <p>Verifica que las notificaciones funcionen correctamente en tu dispositivo</p>
+        </div>
+
+        <!-- Estado del Sistema -->
+        <div class="status-section">
+            <div class="status-item">
+                <span class="status-label">Service Worker</span>
+                <div class="status-value">
+                    <span class="status-badge" id="swStatus">Verificando...</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Soporte Push</span>
+                <div class="status-value">
+                    <span class="status-badge" id="pushStatus">Verificando...</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Permisos</span>
+                <div class="status-value">
+                    <span class="status-badge" id="permissionStatus">Verificando...</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Suscripción</span>
+                <div class="status-value">
+                    <span class="status-badge" id="subscriptionStatus">Verificando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones de Prueba -->
+        <div class="test-actions">
+            <button class="test-btn primary" onclick="requestPermission()">
+                🔔 Solicitar Permisos
+            </button>
+            <button class="test-btn secondary" onclick="subscribeToNotifications()">
+                ✓ Suscribirse
+            </button>
+            <button class="test-btn warning" onclick="sendTestNotification()">
+                🚀 Enviar Prueba
+            </button>
+            <button class="test-btn secondary" onclick="sendRideNotification()">
+                🚕 Simular Carrera
+            </button>
+        </div>
+
+        <!-- Log de Eventos -->
+        <div class="log-section">
+            <div class="log-title">📋 Registro de Eventos</div>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================
+    // SISTEMA DE LOG
+    // ============================================
+    
+    function addLog(message, type = 'info') {
+        const logContainer = document.getElementById('logContainer');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        
+        const timestamp = new Date().toLocaleTimeString();
+        entry.textContent = `[${timestamp}] ${message}`;
+        
+        logContainer.insertBefore(entry, logContainer.firstChild);
+        
+        // Limitar a 50 entradas
+        while (logContainer.children.length > 50) {
+            logContainer.removeChild(logContainer.lastChild);
+        }
+    }
+
+    function updateStatus(elementId, text, type) {
+        const element = document.getElementById(elementId);
+        element.textContent = text;
+        element.className = `status-badge ${type}`;
+    }
+
+    // ============================================
+    // VERIFICACIÓN INICIAL
+    // ============================================
+    
+    async function checkSystemStatus() {
+        addLog('Iniciando verificación del sistema...', 'info');
+        
+        // Verificar Service Worker
+        if ('serviceWorker' in navigator) {
+            updateStatus('swStatus', '✓ Soportado', 'success');
+            addLog('✅ Service Worker soportado', 'success');
+        } else {
+            updateStatus('swStatus', '✗ No soportado', 'error');
+            addLog('❌ Service Worker NO soportado', 'error');
+        }
+        
+        // Verificar Push Manager
+        if ('PushManager' in window) {
+            updateStatus('pushStatus', '✓ Soportado', 'success');
+            addLog('✅ Push Manager soportado', 'success');
+        } else {
+            updateStatus('pushStatus', '✗ No soportado', 'error');
+            addLog('❌ Push Manager NO soportado', 'error');
+        }
+        
+        // Verificar permisos
+        if (Notification.permission === 'granted') {
+            updateStatus('permissionStatus', '✓ Concedidos', 'success');
+            addLog('✅ Permisos de notificación concedidos', 'success');
+        } else if (Notification.permission === 'denied') {
+            updateStatus('permissionStatus', '✗ Denegados', 'error');
+            addLog('❌ Permisos de notificación denegados', 'error');
+        } else {
+            updateStatus('permissionStatus', '⚠ Pendientes', 'warning');
+            addLog('⚠️ Permisos de notificación pendientes', 'warning');
+        }
+        
+        // Verificar suscripción
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                
+                if (subscription) {
+                    updateStatus('subscriptionStatus', '✓ Activa', 'success');
+                    addLog('✅ Suscripción activa encontrada', 'success');
+                } else {
+                    updateStatus('subscriptionStatus', '⚠ Inactiva', 'warning');
+                    addLog('⚠️ No hay suscripción activa', 'warning');
+                }
+            } catch (error) {
+                updateStatus('subscriptionStatus', '✗ Error', 'error');
+                addLog(`❌ Error al verificar suscripción: ${error.message}`, 'error');
+            }
+        }
+    }
+
+    // ============================================
+    // SOLICITAR PERMISOS
+    // ============================================
+    
+    async function requestPermission() {
+        addLog('Solicitando permisos de notificación...', 'info');
+        
+        try {
+            const permission = await Notification.requestPermission();
+            
+            if (permission === 'granted') {
+                updateStatus('permissionStatus', '✓ Concedidos', 'success');
+                addLog('✅ Permisos concedidos exitosamente', 'success');
+            } else if (permission === 'denied') {
+                updateStatus('permissionStatus', '✗ Denegados', 'error');
+                addLog('❌ Permisos denegados por el usuario', 'error');
+            } else {
+                updateStatus('permissionStatus', '⚠ Pendientes', 'warning');
+                addLog('⚠️ Permisos ignorados por el usuario', 'warning');
+            }
+        } catch (error) {
+            addLog(`❌ Error al solicitar permisos: ${error.message}`, 'error');
+        }
+    }
+
+    // ============================================
+    // SUSCRIBIRSE A NOTIFICACIONES
+    // ============================================
+    
+    async function subscribeToNotifications() {
+        addLog('Iniciando proceso de suscripción...', 'info');
+        
+        try {
+            // Verificar permisos
+            if (Notification.permission !== 'granted') {
+                addLog('⚠️ Permisos no concedidos. Solicitando...', 'warning');
+                await requestPermission();
+                
+                if (Notification.permission !== 'granted') {
+                    throw new Error('Permisos de notificación no concedidos');
+                }
+            }
+            
+            // Registrar Service Worker
+            const registration = await navigator.serviceWorker.ready;
+            addLog('✅ Service Worker listo', 'success');
+            
+            // Crear suscripción
+            const vapidPublicKey = "{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}";
+            
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            });
+            
+            addLog('✅ Suscripción creada localmente', 'success');
+            
+            // Enviar al servidor
+            const csrftoken = getCookie('csrftoken');
+            
+            const response = await fetch('{% url "api_save_subscription" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    subscription_info: subscription.toJSON()
+                })
+            });
+            
+            if (response.ok) {
+                updateStatus('subscriptionStatus', '✓ Activa', 'success');
+                addLog('✅ Suscripción guardada en el servidor', 'success');
+            } else {
+                throw new Error('Error al guardar la suscripción en el servidor');
+            }
+            
+        } catch (error) {
+            updateStatus('subscriptionStatus', '✗ Error', 'error');
+            addLog(`❌ Error en suscripción: ${error.message}`, 'error');
+        }
+    }
+
+    // ============================================
+    // ENVIAR NOTIFICACIONES DE PRUEBA
+    // ============================================
+    
+    async function sendTestNotification() {
+        addLog('Enviando notificación de prueba...', 'info');
+        
+        try {
+            if (Notification.permission !== 'granted') {
+                throw new Error('Permisos no concedidos');
+            }
+            
+            const registration = await navigator.serviceWorker.ready;
+            
+            await registration.showNotification('🧪 Notificación de Prueba', {
+                body: '¡Las notificaciones funcionan correctamente!',
+                icon: '/static/imagenes/DE_AQU_PALL_Logo.png',
+                badge: '/static/imagenes/logo1.png',
+                vibrate: [200, 100, 200],
+                tag: 'test',
+                requireInteraction: false,
+                data: {
+                    url: '/test-notifications/'
+                }
+            });
+            
+            addLog('✅ Notificación de prueba enviada', 'success');
+            
+        } catch (error) {
+            addLog(`❌ Error al enviar notificación: ${error.message}`, 'error');
+        }
+    }
+
+    async function sendRideNotification() {
+        addLog('Simulando notificación de nueva carrera...', 'info');
+        
+        try {
+            if (Notification.permission !== 'granted') {
+                throw new Error('Permisos no concedidos');
+            }
+            
+            const registration = await navigator.serviceWorker.ready;
+            
+            await registration.showNotification('🚕 Nueva Carrera Disponible', {
+                body: 'Origen: Av. Principal 123\nDestino: Centro Comercial',
+                icon: '/static/imagenes/DE_AQU_PALL_Logo.png',
+                badge: '/static/imagenes/logo1.png',
+                vibrate: [200, 100, 200, 100, 200],
+                tag: 'nueva-carrera',
+                requireInteraction: true,
+                data: {
+                    url: '/available-rides/'
+                },
+                actions: [
+                    {
+                        action: 'ver',
+                        title: '👀 Ver carrera'
+                    },
+                    {
+                        action: 'cerrar',
+                        title: '✖️ Cerrar'
+                    }
+                ]
+            });
+            
+            addLog('✅ Notificación de carrera simulada', 'success');
+            
+        } catch (error) {
+            addLog(`❌ Error al simular notificación: ${error.message}`, 'error');
+        }
+    }
+
+    // ============================================
+    // UTILIDADES
+    // ============================================
+    
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+        
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
+    
+    window.addEventListener('load', () => {
+        checkSystemStatus();
+        addLog('Sistema de prueba de notificaciones iniciado', 'info');
+    });
+</script>
+{% endblock %}

@@ -76,5 +76,8 @@ urlpatterns = [
     
     # Prueba de Notificaciones
     path('test-notifications/', views.test_notifications, name='test_notifications'),
+    
+    # Limpiar Caché
+    path('clear-cache/', views.clear_cache, name='clear_cache'),
 
 ]

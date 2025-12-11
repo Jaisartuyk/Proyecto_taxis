@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpiar Caché - De Aquí Pa'llá Taxis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .step {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        #log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        #log.show {
+            display: block;
+        }
+        
+        .log-line {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Limpiar Caché</h1>
+        <p class="subtitle">Limpia la caché del navegador y Service Worker</p>
+        
+        <div id="status" class="status info">
+            ℹ️ Haz clic en el botón para limpiar toda la caché y Service Workers
+        </div>
+        
+        <button class="btn btn-primary" onclick="clearEverything()">
+            🗑️ Limpiar Todo
+        </button>
+        
+        <button class="btn btn-secondary" onclick="reloadPage()">
+            🔄 Recargar Página
+        </button>
+        
+        <button class="btn btn-secondary" onclick="window.location.href='/'">
+            🏠 Volver al Inicio
+        </button>
+        
+        <div id="log"></div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee;">
+            <h3 style="color: #667eea; margin-bottom: 15px;">📋 Pasos Manuales:</h3>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Limpia el caché del navegador</strong><br>
+                <small>En Chrome móvil: Menú → Configuración → Privacidad → Borrar datos de navegación</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Cierra todas las pestañas de la app</strong><br>
+                <small>Asegúrate de cerrar completamente el navegador</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Vuelve a abrir la app</strong><br>
+                <small>Accede nuevamente a la URL de la aplicación</small>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(line);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            logDiv.classList.add('show');
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+        
+        async function clearEverything() {
+            log('Iniciando limpieza completa...', 'info');
+            updateStatus('🔄 Limpiando...', 'info');
+            
+            let successCount = 0;
+            let totalTasks = 0;
+            
+            // 1. Desregistrar todos los Service Workers
+            if ('serviceWorker' in navigator) {
+                try {
+                    totalTasks++;
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    log(`Encontrados ${registrations.length} Service Workers`, 'info');
+                    
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        log(`✓ Service Worker desregistrado: ${registration.scope}`, 'success');
+                    }
+                    successCount++;
+                } catch (e) {
+                    log(`✗ Error al desregistrar Service Workers: ${e.message}`, 'error');
+                }
+            }
+            
+            // 2. Limpiar Cache API
+            if ('caches' in window) {
+                try {
+                    totalTasks++;
+                    const cacheNames = await caches.keys();
+                    log(`Encontradas ${cacheNames.length} cachés`, 'info');
+                    
+                    for (let cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        log(`✓ Caché eliminada: ${cacheName}`, 'success');
+                    }
+                    successCount++;
+                } catch (e) {
+                    log(`✗ Error al limpiar cachés: ${e.message}`, 'error');
+                }
+            }
+            
+            // 3. Limpiar localStorage
+            try {
+                totalTasks++;
+                localStorage.clear();
+                log('✓ localStorage limpiado', 'success');
+                successCount++;
+            } catch (e) {
+                log(`✗ Error al limpiar localStorage: ${e.message}`, 'error');
+            }
+            
+            // 4. Limpiar sessionStorage
+            try {
+                totalTasks++;
+                sessionStorage.clear();
+                log('✓ sessionStorage limpiado', 'success');
+                successCount++;
+            } catch (e) {
+                log(`✗ Error al limpiar sessionStorage: ${e.message}`, 'error');
+            }
+            
+            // 5. Limpiar cookies
+            try {
+                totalTasks++;
+                const cookies = document.cookie.split(";");
+                for (let cookie of cookies) {
+                    const name = cookie.split("=")[0].trim();
+                    // No eliminar CSRF token
+                    if (!name.includes('csrf')) {
+                        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                    }
+                }
+                log('✓ Cookies limpiadas (excepto CSRF)', 'success');
+                successCount++;
+            } catch (e) {
+                log(`✗ Error al limpiar cookies: ${e.message}`, 'error');
+            }
+            
+            log(`\n✓ Completado: ${successCount}/${totalTasks} tareas exitosas`, 'success');
+            
+            if (successCount === totalTasks) {
+                updateStatus(
+                    '✅ ¡Limpieza completada exitosamente!<br>' +
+                    '<small>Recarga la página o cierra y vuelve a abrir el navegador</small>',
+                    'success'
+                );
+            } else {
+                updateStatus(
+                    `⚠️ Limpieza parcial: ${successCount}/${totalTasks}<br>` +
+                    '<small>Revisa el log para más detalles</small>',
+                    'error'
+                );
+            }
+        }
+        
+        function reloadPage() {
+            location.reload(true);
+        }
+        
+        // Auto-limpiar si hay parámetro en URL
+        if (window.location.search.includes('auto=true')) {
+            setTimeout(() => {
+                clearEverything();
+            }, 500);
+        }
+    </script>
+</body>
+</html>

@@ -836,6 +836,12 @@ def test_notifications(request):
     return render(request, 'test_notifications.html')
 
 
+def clear_cache(request):
+    """
+    Vista para limpiar la caché del navegador y Service Workers
+    """
+    return render(request, 'clear_cache.html')
+
 
 @login_required
 def request_ride(request):

@@ -327,20 +327,35 @@
         // Verificar suscripción
         if ('serviceWorker' in navigator && 'PushManager' in window) {
             try {
-                const registration = await navigator.serviceWorker.ready;
-                const subscription = await registration.pushManager.getSubscription();
+                // Timeout de 10 segundos
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Timeout verificando suscripción')), 10000);
+                });
+                
+                const checkPromise = (async () => {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    return subscription;
+                })();
+                
+                const subscription = await Promise.race([checkPromise, timeoutPromise]);
                 
                 if (subscription) {
                     updateStatus('subscriptionStatus', '✓ Activa', 'success');
                     addLog('✅ Suscripción activa encontrada', 'success');
+                    console.log('Endpoint:', subscription.endpoint.substring(0, 60) + '...');
                 } else {
                     updateStatus('subscriptionStatus', '⚠ Inactiva', 'warning');
-                    addLog('⚠️ No hay suscripción activa', 'warning');
+                    addLog('⚠️ No hay suscripción activa - Intenta hacer click en "Suscribirse"', 'warning');
                 }
             } catch (error) {
                 updateStatus('subscriptionStatus', '✗ Error', 'error');
                 addLog(`❌ Error al verificar suscripción: ${error.message}`, 'error');
+                console.error('Error completo:', error);
             }
+        } else {
+            updateStatus('subscriptionStatus', '✗ No soportado', 'error');
+            addLog('❌ Push notifications no soportadas', 'error');
         }
     }
 

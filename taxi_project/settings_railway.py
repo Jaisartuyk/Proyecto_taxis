@@ -35,11 +35,19 @@ if RAILWAY_ENVIRONMENT:
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     
     # Channels configuration con Redis de Railway
+    # Parseamos la URL de Redis para forzar IPv4
+    from urllib.parse import urlparse
+    parsed_redis = urlparse(REDIS_URL)
+    
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [REDIS_URL],
+                "hosts": [{
+                    "address": (parsed_redis.hostname, parsed_redis.port or 6379),
+                    "password": parsed_redis.password,
+                    "db": 0,
+                }],
                 "capacity": 1500,
                 "expiry": 60,
             },
@@ -67,6 +75,21 @@ if RAILWAY_ENVIRONMENT:
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
+        'filters': {
+            'ignore_static_404': {
+                '()': 'django.utils.log.CallbackFilter',
+                'callback': lambda record: not (
+                    record.levelname == 'WARNING' and 
+                    'Not Found:' in record.getMessage() and
+                    any(path in record.getMessage() for path in [
+                        '/static/js/main.js',
+                        '/static/css/styles.css',
+                        '/offline.html',
+                        '/static/imagenes/default.jpg'
+                    ])
+                )
+            },
+        },
         'formatters': {
             'verbose': {
                 'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
@@ -81,6 +104,7 @@ if RAILWAY_ENVIRONMENT:
             'console': {
                 'class': 'logging.StreamHandler',
                 'formatter': 'verbose',
+                'filters': ['ignore_static_404'],
             },
         },
         'root': {

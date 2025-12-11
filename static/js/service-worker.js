@@ -1,10 +1,10 @@
 /**
- * Service Worker v5.3 - AUTO-SUSCRIPCIÓN - Con soporte para Push Notifications
+ * Service Worker v5.4 - LIMPIEZA DE CACHE - Con soporte para Push Notifications
  * De Aquí Pa'llá - Sistema de Taxis
- * Actualizado: 2025-12-11 - Auto-suscripción automática
+ * Actualizado: 2025-12-11 - Forzar actualización de cache
  */
 
-const CACHE_VERSION = 'v5.3';
+const CACHE_VERSION = 'v5.4';
 const CACHE_NAME = `deaquipalla-${CACHE_VERSION}`;
 
 // Archivos para cachear (solo archivos que existen)

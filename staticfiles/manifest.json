@@ -1,81 +1,48 @@
 {
-  "name": "De Aquí Pa'llá - Sistema de Taxis",
-  "short_name": "TaxiApp",
-  "description": "Sistema completo de gestión de taxis con comunicación en tiempo real",
+  "name": "De Aquí P-Allá - Sistema de Taxis",
+  "short_name": "De Aquí P-Allá",
+  "description": "Aplicación de gestión de taxis y carreras con notificaciones en tiempo real",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#FFD700",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#4a90e2",
-  "lang": "es-EC",
-  "dir": "ltr",
+  "categories": ["transportation", "navigation"],
   "icons": [
     {
       "src": "/static/imagenes/logo1.png",
-      "sizes": "any",
       "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/static/imagenes/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/imagenes/icon-512x512.png",
+      "src": "/static/imagenes/logo1.png",
+      "type": "image/png",
       "sizes": "512x512",
-      "type": "image/png",
       "purpose": "any"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/static/imagenes/screenshot1.png",
-      "sizes": "540x720",
-      "type": "image/png"
-    }
-  ],
-  "categories": ["transportation", "business", "utilities"],
-  "shortcuts": [
-    {
-      "name": "Solicitar Taxi",
-      "short_name": "Solicitar",
-      "description": "Solicitar un taxi rápidamente",
-      "url": "/request_ride/",
-      "icons": [
-        {
-          "src": "/static/imagenes/logo1.png",
-          "sizes": "96x96"
-        }
-      ]
     },
     {
-      "name": "Mis Carreras",
-      "short_name": "Carreras",
-      "description": "Ver mis carreras activas",
-      "url": "/customer_rides/",
-      "icons": [
-        {
-          "src": "/static/imagenes/logo1.png",
-          "sizes": "96x96"
-        }
-      ]
+      "src": "/static/imagenes/logo1.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
-      "name": "Comunicación",
-      "short_name": "Chat",
-      "description": "Comunicarse con la central",
-      "url": "/central-comunicacion/",
-      "icons": [
-        {
-          "src": "/static/imagenes/logo1.png",
-          "sizes": "96x96"
-        }
-      ]
+      "src": "/static/imagenes/logo1.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
+  ],
+  "screenshots": [],
+  "permissions": [
+    "geolocation",
+    "notifications"
   ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "lang": "es-ES",
+  "dir": "ltr"
 }
+

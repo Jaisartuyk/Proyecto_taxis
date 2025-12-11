@@ -9,6 +9,7 @@ import json
 import logging
 from django.views.decorators.csrf import csrf_exempt
 from django.db import models
+from django.db.models import Count, Q
 from .models import Taxi, TaxiRoute, Ride, RideDestination, AppUser, ConversacionTelegram, Rating
 from django.contrib.auth import login, logout
 from .forms import CustomerRegistrationForm,CustomerProfileForm, DriverProfileForm, TaxiForm, TaxiRouteForm, RideFilterForm, DriverRegistrationForm, AdminProfileForm

@@ -1,9 +1,9 @@
 /**
- * Service Worker v4 - Con soporte para Push Notifications
+ * Service Worker v5 - FORZAR ACTUALIZACIÓN - Con soporte para Push Notifications
  * De Aquí Pa'llá - Sistema de Taxis
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `deaquipalla-${CACHE_VERSION}`;
 
 // Archivos para cachear

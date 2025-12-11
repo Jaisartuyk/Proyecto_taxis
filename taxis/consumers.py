@@ -176,11 +176,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(self.room_group_name, chat_payload)
 
     async def chat_message(self, event):
-        # Enviar el mensaje al cliente WebSocket
+        # Obtener el conteo de badge actualizado
+        badge_count = await self.get_badge_count(self.user.id)
+        
+        # Enviar el mensaje al cliente WebSocket con el conteo de badge
         await self.send(text_data=json.dumps({
             'message': event['message'],
             'sender_id': event['sender_id'],
             'sender_name': event['sender_name'],
+            'badge_count': badge_count,  # Agregar conteo de badge
+            'update_badge': True
         }))
 
     @database_sync_to_async
@@ -193,6 +198,47 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"Mensaje guardado en BD: {sender} -> {recipient}")
         except Exception as e:
             print(f"Error al guardar mensaje: {e}")
+    
+    @database_sync_to_async
+    def get_badge_count(self, user_id):
+        """Obtener el conteo de badge para un usuario"""
+        from .models import AppUser, Ride, ChatMessage
+        from django.db.models import Q
+        
+        try:
+            user = AppUser.objects.get(id=user_id)
+            rides_count = 0
+            messages_count = 0
+            
+            if user.role == 'driver':
+                rides_count = Ride.objects.filter(
+                    Q(driver=user, status='pending') | 
+                    Q(driver=user, status='accepted') |
+                    Q(driver=user, status='in_progress')
+                ).count()
+                messages_count = ChatMessage.objects.filter(
+                    recipient=user, is_read=False
+                ).count()
+            elif user.role == 'customer':
+                rides_count = Ride.objects.filter(
+                    customer=user,
+                    status__in=['pending', 'accepted', 'in_progress']
+                ).count()
+                messages_count = ChatMessage.objects.filter(
+                    recipient=user, is_read=False
+                ).count()
+            elif user.role == 'admin':
+                rides_count = Ride.objects.filter(
+                    status='pending', driver__isnull=True
+                ).count()
+                messages_count = ChatMessage.objects.filter(
+                    recipient=user, is_read=False
+                ).count()
+            
+            return rides_count + messages_count
+        except Exception as e:
+            print(f"Error al obtener badge count: {e}")
+            return 0
     
     @database_sync_to_async
     def send_chat_push_notification(self, sender_id, recipient_id, message):

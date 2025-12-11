@@ -1812,9 +1812,23 @@ def enviar_notificacion_pwa_conductor(conductor, titulo, mensaje, datos=None):
         datos: Datos adicionales (dict)
     """
     try:
-        # Por ahora, usamos WebSockets para notificar
-        # En el futuro, implementar Web Push API real con pywebpush
+        # 1. Enviar notificación push real con Web Push API
+        from .push_notifications import send_push_notification
         
+        try:
+            send_push_notification(
+                user=conductor,
+                title=titulo,
+                body=mensaje,
+                data=datos,
+                icon='/static/imagenes/icon-192x192.png',
+                badge='/static/imagenes/icon-96x96.png'
+            )
+            logger.info(f"✅ Push notification enviada a {conductor.username}")
+        except Exception as e:
+            logger.warning(f"⚠️ Error al enviar push notification: {e}")
+        
+        # 2. También enviar vía WebSocket (para usuarios conectados en tiempo real)
         channel_layer = get_channel_layer()
         
         notification_data = {
@@ -1833,7 +1847,7 @@ def enviar_notificacion_pwa_conductor(conductor, titulo, mensaje, datos=None):
             }
         )
         
-        logger.info(f"✅ Notificación PWA enviada a conductores")
+        logger.info(f"✅ Notificación PWA enviada a conductores (Push + WebSocket)")
         return True
         
     except Exception as e:

@@ -1,1 +1,1 @@
-web: echo "🔧 Ejecutando collectstatic..." && python manage.py collectstatic --noinput --clear --verbosity 2 && echo "✅ Collectstatic completado" && python manage.py migrate && daphne -b 0.0.0.0 -p $PORT taxi_project.asgi:application
+web: python railway_start.py

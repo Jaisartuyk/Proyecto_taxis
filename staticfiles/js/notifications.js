@@ -1,4 +1,5 @@
-// Push Notifications Management
+// Push Notifications Management v2.0
+// Actualizado: 2025-12-04 - Fix Service Worker scope
 const VAPID_PUBLIC_KEY = document.querySelector('meta[name="vapid-public-key"]')?.content || '';
 
 // Convert VAPID key from base64 to Uint8Array
@@ -36,7 +37,7 @@ async function requestNotificationPermission() {
     return false;
 }
 
-// Register Service Worker
+// Get existing Service Worker registration or register a new one
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         console.log('Service Worker not supported');
@@ -44,7 +45,16 @@ async function registerServiceWorker() {
     }
 
     try {
-        const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        // Primero intentar obtener el registro existente
+        let registration = await navigator.serviceWorker.getRegistration('/');
+        
+        if (registration) {
+            console.log('Using existing Service Worker registration:', registration);
+            return registration;
+        }
+        
+        // Si no existe, registrar uno nuevo
+        registration = await navigator.serviceWorker.register('/service-worker.js', {
             scope: '/'
         });
         console.log('Service Worker registered successfully:', registration);
@@ -58,6 +68,15 @@ async function registerServiceWorker() {
 // Subscribe to push notifications
 async function subscribeToPush(registration) {
     try {
+        // Primero, intentar eliminar cualquier suscripción existente
+        const existingSubscription = await registration.pushManager.getSubscription();
+        if (existingSubscription) {
+            console.log('Eliminando suscripción antigua...');
+            await existingSubscription.unsubscribe();
+            console.log('Suscripción antigua eliminada');
+        }
+
+        // Crear nueva suscripción con las claves VAPID actuales
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -78,7 +97,7 @@ async function subscribeToPush(registration) {
         console.log('Subscription sent to server');
         return subscription;
     } catch (error) {
-        console.error('Failed to subscribe to push notifications:', error);
+        console.error('Push subscription failed:', error);
         return null;
     }
 }
@@ -125,14 +144,29 @@ async function initializePushNotifications() {
 // Auto-initialize on page load for logged-in users
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        // Only initialize if user is logged in (check for user-specific element)
-        if (document.querySelector('[data-user-id]')) {
+        const userIdElement = document.querySelector('[data-user-id]');
+        const userId = userIdElement?.getAttribute('data-user-id');
+        console.log('DOMContentLoaded - User ID:', userId);
+        
+        // Only initialize if user is logged in and has a valid ID
+        if (userId && userId !== '' && userId !== 'None') {
+            console.log('Initializing push notifications for user:', userId);
             initializePushNotifications();
+        } else {
+            console.log('User not authenticated, skipping push notifications');
         }
     });
 } else {
-    if (document.querySelector('[data-user-id]')) {
+    const userIdElement = document.querySelector('[data-user-id]');
+    const userId = userIdElement?.getAttribute('data-user-id');
+    console.log('Document ready - User ID:', userId);
+    
+    // Only initialize if user is logged in and has a valid ID
+    if (userId && userId !== '' && userId !== 'None') {
+        console.log('Initializing push notifications for user:', userId);
         initializePushNotifications();
+    } else {
+        console.log('User not authenticated, skipping push notifications');
     }
 }
 

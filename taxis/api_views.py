@@ -61,10 +61,24 @@ def save_webpush_subscription(request):
     """
     Guarda la información de suscripción de Web Push para el usuario autenticado.
     """
-    subscription_info = request.data.get('subscription_info')
+    import json
+    
+    # El frontend envía el objeto de suscripción directamente
+    subscription_data = request.data
+    
+    # Si viene en subscription_info, usarlo (compatibilidad hacia atrás)
+    if 'subscription_info' in subscription_data:
+        subscription_info = subscription_data['subscription_info']
+    else:
+        # Si no, usar todo el objeto como subscription_info
+        subscription_info = subscription_data
 
     if not subscription_info:
-        return Response({"error": "No se proporcionó subscription_info"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "No se proporcionó información de suscripción"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Convertir a string JSON si no lo es
+    if not isinstance(subscription_info, str):
+        subscription_info = json.dumps(subscription_info)
 
     # Evitar duplicados
     from .models import WebPushSubscription

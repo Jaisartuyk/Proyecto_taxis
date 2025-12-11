@@ -1,9 +1,10 @@
 /**
- * Service Worker v4 - Con soporte para Push Notifications
+ * Service Worker v5.1 - FORZAR ACTUALIZACIÓN - Con soporte para Push Notifications
  * De Aquí Pa'llá - Sistema de Taxis
+ * Actualizado: 2025-12-11 - Incluye Badge API
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5.1';
 const CACHE_NAME = `deaquipalla-${CACHE_VERSION}`;
 
 // Archivos para cachear
@@ -138,10 +139,30 @@ self.addEventListener('push', (event) => {
         }
     }
 
+    // Actualizar el badge del ícono de la app
+    const updateBadge = async () => {
+        if ('setAppBadge' in navigator) {
+            try {
+                // Obtener el conteo actual
+                const response = await fetch('/api/badge-count/');
+                if (response.ok) {
+                    const data = await response.json();
+                    await navigator.setAppBadge(data.count);
+                    console.log(`📛 Badge actualizado: ${data.count}`);
+                }
+            } catch (error) {
+                console.error('Error al actualizar badge:', error);
+            }
+        }
+    };
+
     event.waitUntil(
-        self.registration.showNotification(notificationData.title, notificationData)
-            .then(() => console.log('✅ Notificación mostrada'))
-            .catch(err => console.error('❌ Error al mostrar notificación:', err))
+        Promise.all([
+            self.registration.showNotification(notificationData.title, notificationData)
+                .then(() => console.log('✅ Notificación mostrada'))
+                .catch(err => console.error('❌ Error al mostrar notificación:', err)),
+            updateBadge()
+        ])
     );
 });
 
@@ -154,7 +175,24 @@ self.addEventListener('notificationclick', (event) => {
     
     event.notification.close();
 
+    // Actualizar badge al hacer clic
+    const updateBadge = async () => {
+        if ('setAppBadge' in navigator) {
+            try {
+                const response = await fetch('/api/badge-count/');
+                if (response.ok) {
+                    const data = await response.json();
+                    await navigator.setAppBadge(data.count);
+                    console.log(`📛 Badge actualizado después de clic: ${data.count}`);
+                }
+            } catch (error) {
+                console.error('Error al actualizar badge:', error);
+            }
+        }
+    };
+
     if (event.action === 'cerrar') {
+        updateBadge();
         return;
     }
 
@@ -162,22 +200,25 @@ self.addEventListener('notificationclick', (event) => {
     const urlToOpen = event.notification.data?.url || '/available-rides/';
 
     event.waitUntil(
-        clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
-        }).then((clientList) => {
-            // Buscar si ya hay una ventana abierta
-            for (const client of clientList) {
-                if (client.url.includes(urlToOpen) && 'focus' in client) {
-                    return client.focus();
+        Promise.all([
+            clients.matchAll({
+                type: 'window',
+                includeUncontrolled: true
+            }).then((clientList) => {
+                // Buscar si ya hay una ventana abierta
+                for (const client of clientList) {
+                    if (client.url.includes(urlToOpen) && 'focus' in client) {
+                        return client.focus();
+                    }
                 }
-            }
-            
-            // Si no hay ventana abierta, abrir una nueva
-            if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
-            }
-        })
+                
+                // Si no hay ventana abierta, abrir una nueva
+                if (clients.openWindow) {
+                    return clients.openWindow(urlToOpen);
+                }
+            }),
+            updateBadge()
+        ])
     );
 });
 

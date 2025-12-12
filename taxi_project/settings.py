@@ -217,17 +217,12 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
     # Railway proporciona REDIS_URL automáticamente
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
-# Channels configuration - COMENTADO para usar settings_railway.py
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [REDIS_URL],
-#             "capacity": 1500,
-#             "expiry": 60,
-#         },
-#     },
-# }
+# Channels configuration - Configuración por defecto (será overrideada por settings_railway.py)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True

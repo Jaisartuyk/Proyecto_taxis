@@ -44,15 +44,23 @@ if RAILWAY_ENVIRONMENT:
         },
     }
     
-    # Debug comentado temporalmente para evitar problemas en deploy
-    # print(f"🔧 Channel Layer configurado: {CHANNEL_LAYERS['default']['BACKEND']}")
-    # print(f"🔗 Redis URL: {REDIS_URL}")
+    # Debug: Confirmar configuración en producción
+    print(f"🔧 [RAILWAY] Channel Layer: {CHANNEL_LAYERS['default']['BACKEND']}")
+    print(f"🔗 [RAILWAY] Redis: {REDIS_URL}")
     
-    # try:
-    #     import channels_redis
-    #     print("✅ Módulo channels_redis importado correctamente")
-    # except ImportError as e:
-    #     print(f"❌ Error importando channels_redis: {e}")
+    # Verificar disponibilidad de channels_redis
+    try:
+        import channels_redis.core
+        print("✅ [RAILWAY] channels_redis disponible")
+    except ImportError as e:
+        print(f"❌ [RAILWAY] Error: {e}")
+        # Fallback a InMemory si Redis no está disponible
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels.layers.InMemoryChannelLayer",
+            },
+        }
+        print("🔄 [RAILWAY] Fallback a InMemoryChannelLayer")
     
     # COMENTADO: Redis configuration que está causando problemas
     # from urllib.parse import urlparse

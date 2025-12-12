@@ -34,20 +34,27 @@ if RAILWAY_ENVIRONMENT:
     # Configuración de Redis en Railway
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     
-    # Channels configuration con Redis de Railway
-    # Parseamos la URL de Redis para forzar IPv4
-    from urllib.parse import urlparse
-    parsed_redis = urlparse(REDIS_URL)
-    
+    # Channels configuration - TEMPORAL: InMemory para restaurar comunicación
+    # El Redis de Railway está teniendo problemas de conectividad
     CHANNEL_LAYERS = {
         "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [{
-                    "address": (parsed_redis.hostname, parsed_redis.port or 6379),
-                    "password": parsed_redis.password,
-                    "db": 0,
-                }],
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+    
+    # COMENTADO: Redis configuration que está causando problemas
+    # from urllib.parse import urlparse
+    # parsed_redis = urlparse(REDIS_URL)
+    # 
+    # CHANNEL_LAYERS = {
+    #     "default": {
+    #         "BACKEND": "channels_redis.core.RedisChannelLayer",
+    #         "CONFIG": {
+    #             "hosts": [{
+    #                 "address": (parsed_redis.hostname, parsed_redis.port or 6379),
+    #                 "password": parsed_redis.password,
+    #                 "db": 0,
+    #             }],
                 "capacity": 1500,
                 "expiry": 60,
             },

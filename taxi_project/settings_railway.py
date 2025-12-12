@@ -44,16 +44,15 @@ if RAILWAY_ENVIRONMENT:
         },
     }
     
-    # Debug: Verificar configuración de Channel Layer
-    print(f"🔧 Channel Layer configurado: {CHANNEL_LAYERS['default']['BACKEND']}")
-    print(f"🔗 Redis URL: {REDIS_URL}")
+    # Debug comentado temporalmente para evitar problemas en deploy
+    # print(f"🔧 Channel Layer configurado: {CHANNEL_LAYERS['default']['BACKEND']}")
+    # print(f"🔗 Redis URL: {REDIS_URL}")
     
-    # Forzar importación para verificar que esté disponible
-    try:
-        import channels_redis
-        print("✅ Módulo channels_redis importado correctamente")
-    except ImportError as e:
-        print(f"❌ Error importando channels_redis: {e}")
+    # try:
+    #     import channels_redis
+    #     print("✅ Módulo channels_redis importado correctamente")
+    # except ImportError as e:
+    #     print(f"❌ Error importando channels_redis: {e}")
     
     # COMENTADO: Redis configuration que está causando problemas
     # from urllib.parse import urlparse

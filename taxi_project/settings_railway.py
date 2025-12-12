@@ -34,19 +34,57 @@ if RAILWAY_ENVIRONMENT:
     # Configuración de Redis en Railway
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     
-    # Channels configuration - Volver a Redis ya que está funcionando
+    # Channels configuration - Redis optimizado para mejor rendimiento
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
                 "hosts": [REDIS_URL],
+                # Configuración optimizada para Railway
+                "capacity": 2000,        # Más capacidad para mensajes
+                "expiry": 300,           # TTL de 5 minutos (más tiempo)
+                "group_expiry": 3600,    # Grupos activos por 1 hora
+                "channel_capacity": 500, # Capacidad por canal
+                "asymmetric_expiry": 60, # Mensajes asimétricos por 1 minuto
             },
         },
     }
     
-    # Debug: Confirmar configuración en producción
-    print(f"🔧 [RAILWAY] Channel Layer: {CHANNEL_LAYERS['default']['BACKEND']}")
+    # Debug: Confirmar configuración optimizada
+    print(f"🔧 [RAILWAY] Channel Layer optimizado: {CHANNEL_LAYERS['default']['BACKEND']}")
     print(f"🔗 [RAILWAY] Redis: {REDIS_URL}")
+    print(f"⚡ [RAILWAY] Capacidad: {CHANNEL_LAYERS['default']['CONFIG']['capacity']}")
+    
+    # Configuración de Push Notifications (NO afecta comunicación WebSocket)
+    try:
+        # Solo configurar si las variables VAPID están disponibles
+        VAPID_PUBLIC = os.environ.get('VAPID_PUBLIC_KEY', '')
+        VAPID_PRIVATE = os.environ.get('VAPID_PRIVATE_KEY', '')
+        
+        if VAPID_PUBLIC and VAPID_PRIVATE:
+            # Solo actualizar si las claves están configuradas
+            WEBPUSH_SETTINGS = {
+                "VAPID_PUBLIC_KEY": VAPID_PUBLIC,
+                "VAPID_PRIVATE_KEY": VAPID_PRIVATE,
+                "VAPID_ADMIN_EMAIL": os.environ.get('VAPID_ADMIN_EMAIL', 'admin@deaquipalla.com')
+            }
+            print(f"🔔 [RAILWAY] Push notifications configuradas con VAPID")
+        else:
+            # Configuración por defecto (no afecta funcionamiento)
+            WEBPUSH_SETTINGS = {
+                "VAPID_PUBLIC_KEY": '',
+                "VAPID_PRIVATE_KEY": '',
+                "VAPID_ADMIN_EMAIL": 'admin@deaquipalla.com'
+            }
+            print(f"⚠️  [RAILWAY] Push notifications sin VAPID (opcional)")
+    except Exception as e:
+        print(f"⚠️  [RAILWAY] Error configurando push notifications: {e}")
+        # Fallback seguro
+        WEBPUSH_SETTINGS = {
+            "VAPID_PUBLIC_KEY": '',
+            "VAPID_PRIVATE_KEY": '',
+            "VAPID_ADMIN_EMAIL": 'admin@deaquipalla.com'
+        }
     
     # Verificar disponibilidad de channels_redis
     try:

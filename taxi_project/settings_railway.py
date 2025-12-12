@@ -34,13 +34,26 @@ if RAILWAY_ENVIRONMENT:
     # Configuración de Redis en Railway
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     
-    # Channels configuration - TEMPORAL: InMemory para restaurar comunicación
-    # El Redis de Railway está teniendo problemas de conectividad
+    # Channels configuration - Volver a Redis ya que está funcionando
     CHANNEL_LAYERS = {
         "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
         },
     }
+    
+    # Debug: Verificar configuración de Channel Layer
+    print(f"🔧 Channel Layer configurado: {CHANNEL_LAYERS['default']['BACKEND']}")
+    print(f"🔗 Redis URL: {REDIS_URL}")
+    
+    # Forzar importación para verificar que esté disponible
+    try:
+        import channels_redis
+        print("✅ Módulo channels_redis importado correctamente")
+    except ImportError as e:
+        print(f"❌ Error importando channels_redis: {e}")
     
     # COMENTADO: Redis configuration que está causando problemas
     # from urllib.parse import urlparse
@@ -55,11 +68,11 @@ if RAILWAY_ENVIRONMENT:
     #                 "password": parsed_redis.password,
     #                 "db": 0,
     #             }],
-                "capacity": 1500,
-                "expiry": 60,
-            },
-        },
-    }
+    #             "capacity": 1500,
+    #             "expiry": 60,
+    #         },
+    #     },
+    # }
     
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

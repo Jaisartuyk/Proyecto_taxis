@@ -1,6 +1,11 @@
-// Push Notifications Management v5.0 - FORZAR ACTUALIZACIÓN
-// Actualizado: 2025-12-11 - Fix endpoint correcto /api/save-subscription/
+// Push Notifications Management v5.3 - AUTO-SUSCRIPCIÓN AUTOMÁTICA
+// Actualizado: 2025-12-11 - Suscripción automática sin intervención del usuario
 const VAPID_PUBLIC_KEY = document.querySelector('meta[name="vapid-public-key"]')?.content || '';
+
+// Estado de suscripción
+let subscriptionCheckInterval = null;
+let retryCount = 0;
+const MAX_RETRIES = 3;
 
 // Convert VAPID key from base64 to Uint8Array
 function urlBase64ToUint8Array(base64String) {
@@ -18,23 +23,35 @@ function urlBase64ToUint8Array(base64String) {
     return outputArray;
 }
 
-// Request notification permission
+// Request notification permission silently
 async function requestNotificationPermission() {
     if (!('Notification' in window)) {
-        console.log('This browser does not support notifications');
+        console.log('❌ Este navegador no soporta notificaciones');
         return false;
     }
 
+    // Si ya está granted, retornar true inmediatamente
     if (Notification.permission === 'granted') {
+        console.log('✅ Permisos de notificación ya concedidos');
         return true;
     }
 
-    if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        return permission === 'granted';
+    // Si está denegado, no podemos hacer nada
+    if (Notification.permission === 'denied') {
+        console.log('❌ Permisos de notificación denegados por el usuario');
+        return false;
     }
 
-    return false;
+    // Si es "default", pedir permiso
+    try {
+        console.log('📱 Solicitando permisos de notificación...');
+        const permission = await Notification.requestPermission();
+        console.log('📱 Resultado del permiso:', permission);
+        return permission === 'granted';
+    } catch (error) {
+        console.error('❌ Error al solicitar permisos:', error);
+        return false;
+    }
 }
 
 // Get existing Service Worker registration or register a new one
@@ -118,57 +135,119 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Initialize push notifications
+// Initialize push notifications with retry logic
 async function initializePushNotifications() {
-    // Request permission
-    const hasPermission = await requestNotificationPermission();
-    if (!hasPermission) {
-        console.log('Notification permission denied');
-        return;
+    try {
+        console.log('🚀 Iniciando proceso de suscripción...');
+        
+        // Request permission
+        const hasPermission = await requestNotificationPermission();
+        if (!hasPermission) {
+            console.log('⚠️ Sin permisos de notificación, reintentando en 30 segundos...');
+            
+            // Reintentar después de 30 segundos
+            if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                setTimeout(() => {
+                    console.log(`🔄 Reintento ${retryCount}/${MAX_RETRIES}...`);
+                    initializePushNotifications();
+                }, 30000);
+            }
+            return;
+        }
+        
+        console.log('✅ Permisos concedidos, registrando Service Worker...');
+
+        // Register Service Worker
+        const registration = await registerServiceWorker();
+        if (!registration) {
+            console.log('❌ Fallo al registrar Service Worker');
+            throw new Error('Service Worker registration failed');
+        }
+
+        // Wait for Service Worker to be ready
+        await navigator.serviceWorker.ready;
+        console.log('✅ Service Worker listo');
+
+        // Subscribe to push
+        await subscribeToPush(registration);
+        
+        // Resetear contador de reintentos en caso de éxito
+        retryCount = 0;
+        console.log('✅ Suscripción a push notifications completada exitosamente');
+        
+    } catch (error) {
+        console.error('❌ Error al inicializar notificaciones push:', error);
+        
+        // Reintentar en caso de error
+        if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔄 Reintentando en 30 segundos (${retryCount}/${MAX_RETRIES})...`);
+            setTimeout(() => {
+                initializePushNotifications();
+            }, 30000);
+        } else {
+            console.error('❌ Máximo de reintentos alcanzado');
+        }
     }
-
-    // Register Service Worker
-    const registration = await registerServiceWorker();
-    if (!registration) {
-        console.log('Service Worker registration failed');
-        return;
-    }
-
-    // Wait for Service Worker to be ready
-    await navigator.serviceWorker.ready;
-
-    // Subscribe to push
-    await subscribeToPush(registration);
 }
 
 // Auto-initialize on page load for logged-in users
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        const userIdElement = document.querySelector('[data-user-id]');
-        const userId = userIdElement?.getAttribute('data-user-id');
-        console.log('DOMContentLoaded - User ID:', userId);
-        
-        // Only initialize if user is logged in and has a valid ID
-        if (userId && userId !== '' && userId !== 'None') {
-            console.log('Initializing push notifications for user:', userId);
-            initializePushNotifications();
-        } else {
-            console.log('User not authenticated, skipping push notifications');
-        }
-    });
+    document.addEventListener('DOMContentLoaded', initializeForUser);
 } else {
+    initializeForUser();
+}
+
+function initializeForUser() {
     const userIdElement = document.querySelector('[data-user-id]');
     const userId = userIdElement?.getAttribute('data-user-id');
-    console.log('Document ready - User ID:', userId);
     
     // Only initialize if user is logged in and has a valid ID
     if (userId && userId !== '' && userId !== 'None') {
-        console.log('Initializing push notifications for user:', userId);
+        console.log('🔔 Inicializando notificaciones push para usuario:', userId);
+        
+        // Inicializar inmediatamente
         initializePushNotifications();
+        
+        // Verificar y re-suscribir cada 5 minutos
+        subscriptionCheckInterval = setInterval(() => {
+            console.log('🔄 Verificando estado de suscripción...');
+            checkAndResubscribe();
+        }, 5 * 60 * 1000); // 5 minutos
+        
+        // También verificar al hacer focus en la ventana
+        window.addEventListener('focus', () => {
+            console.log('👁️ Ventana enfocada, verificando suscripción...');
+            setTimeout(checkAndResubscribe, 1000);
+        });
+        
     } else {
-        console.log('User not authenticated, skipping push notifications');
+        console.log('⚠️ Usuario no autenticado, notificaciones deshabilitadas');
+    }
+}
+
+// Verificar y re-suscribir si es necesario
+async function checkAndResubscribe() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return;
+    }
+    
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        
+        if (!subscription) {
+            console.log('⚠️ Suscripción perdida, re-suscribiendo automáticamente...');
+            await initializePushNotifications();
+        } else {
+            console.log('✅ Suscripción activa:', subscription.endpoint.substring(0, 50) + '...');
+        }
+    } catch (error) {
+        console.error('❌ Error al verificar suscripción:', error);
     }
 }
 
 // Export for manual initialization
 window.initializePushNotifications = initializePushNotifications;
+window.checkAndResubscribe = checkAndResubscribe;

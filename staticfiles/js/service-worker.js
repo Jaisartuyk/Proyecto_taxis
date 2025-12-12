@@ -1,19 +1,25 @@
 /**
- * Service Worker v5.1 - FORZAR ACTUALIZACIÓN - Con soporte para Push Notifications
+ * Service Worker v5.4 - LIMPIEZA DE CACHE - Con soporte para Push Notifications
  * De Aquí Pa'llá - Sistema de Taxis
- * Actualizado: 2025-12-11 - Incluye Badge API
+ * Actualizado: 2025-12-11 - Forzar actualización de cache
  */
 
-const CACHE_VERSION = 'v5.1';
+const CACHE_VERSION = 'v5.4';
 const CACHE_NAME = `deaquipalla-${CACHE_VERSION}`;
 
-// Archivos para cachear
+// Archivos para cachear (solo archivos que existen)
 const urlsToCache = [
     '/',
-    '/static/css/styles.css',
-    '/static/js/main.js',
+    '/static/css/theme.css',
+    '/static/js/app.js',
+    '/static/js/badge-manager.js',
+    '/static/js/chat-badge.js',
+    '/static/js/notifications-v5.js',
+    '/static/manifest.json',
     '/static/imagenes/DE_AQU_PALL_Logo.png',
-    '/offline.html'
+    '/static/imagenes/logo1.png',
+    '/static/imagenes/icon-192x192.png',
+    '/static/imagenes/icon-512x512.png'
 ];
 
 // Instalación del Service Worker
@@ -76,9 +82,12 @@ self.addEventListener('fetch', (event) => {
                         return response;
                     }
                     
-                    // Si no está en cache, mostrar página offline
+                    // Si no está en cache y es navegación, retornar respuesta genérica
                     if (event.request.mode === 'navigate') {
-                        return caches.match('/offline.html');
+                        return new Response(
+                            '<html><head><title>Sin conexión</title></head><body><h1>Sin conexión a Internet</h1><p>Por favor, verifica tu conexión e intenta nuevamente.</p></body></html>',
+                            { headers: { 'Content-Type': 'text/html' } }
+                        );
                     }
                 });
             })
@@ -267,4 +276,71 @@ async function checkNewRides() {
     }
 }
 
-console.log('✅ Service Worker v4 cargado con soporte Push Notifications');
+/**
+ * Evento: Recibir notificación push
+ */
+self.addEventListener('push', (event) => {
+    console.log('📨 Push recibido:', event);
+    
+    if (event.data) {
+        const data = event.data.json();
+        console.log('📄 Datos del push:', data);
+        
+        const notificationTitle = data.title || '🚕 De Aquí Pa\'llá';
+        const notificationOptions = {
+            body: data.body || 'Tienes una nueva notificación',
+            icon: '/static/imagenes/icon-192x192.png',
+            badge: '/static/imagenes/icon-72x72.png',
+            vibrate: [200, 100, 200],
+            tag: data.tag || 'general',
+            data: {
+                url: data.url || '/',
+                timestamp: Date.now()
+            },
+            actions: [
+                {
+                    action: 'ver',
+                    title: 'Ver',
+                    icon: '/static/imagenes/icon-72x72.png'
+                },
+                {
+                    action: 'cerrar',
+                    title: 'Cerrar'
+                }
+            ],
+            requireInteraction: true,
+            silent: false
+        };
+
+        // Notificar a todas las ventanas/tabs abiertas
+        event.waitUntil(
+            Promise.all([
+                // Mostrar la notificación del navegador
+                self.registration.showNotification(notificationTitle, notificationOptions),
+                
+                // Enviar mensaje a las páginas abiertas para mostrar indicador visual
+                self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(clients => {
+                    clients.forEach(client => {
+                        client.postMessage({
+                            type: 'PUSH_RECEIVED',
+                            title: notificationTitle,
+                            body: notificationOptions.body,
+                            data: data
+                        });
+                    });
+                })
+            ])
+        );
+    } else {
+        console.log('📭 Push sin datos recibido');
+        event.waitUntil(
+            self.registration.showNotification('🚕 De Aquí Pa\'llá', {
+                body: 'Nueva notificación disponible',
+                icon: '/static/imagenes/icon-192x192.png',
+                tag: 'default'
+            })
+        );
+    }
+});
+
+console.log('✅ Service Worker v5.4 cargado con soporte Push Notifications completo');

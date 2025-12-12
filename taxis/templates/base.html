@@ -79,6 +79,9 @@
     <!-- Notifications Script - v5.0 FORZAR ACTUALIZACIÓN -->
     <script src="{% static 'js/notifications-v5.js' %}"></script>
 
+    <!-- Sistema de Notificaciones Visuales -->
+    <script src="{% static 'js/notifications-visual.js' %}"></script>
+
     <!-- Badge Manager - Contador en ícono de app -->
     <script src="{% static 'js/badge-manager.js' %}"></script>
 
@@ -107,6 +110,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
+                    <!-- Indicador de Notificaciones -->
+                    <li class="nav-item position-relative">
+                        <a class="nav-link" href="#" id="notification-bell" title="Notificaciones">
+                            📱
+                            <span id="notification-indicator" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;">
+                                <span id="notification-count">0</span>
+                                <span class="visually-hidden">notificaciones nuevas</span>
+                            </span>
+                        </a>
+                    </li>
                     {% if user.role == 'driver' %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'driver_dashboard' %}">Tablero del Taxista</a>
                     </li>
@@ -241,6 +254,7 @@
                 console.log('ServiceWorker registration failed: ', err);
               });
           });
+        }
         }
     </script>
 

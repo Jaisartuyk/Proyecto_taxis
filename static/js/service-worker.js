@@ -276,4 +276,71 @@ async function checkNewRides() {
     }
 }
 
-console.log('✅ Service Worker v4 cargado con soporte Push Notifications');
+/**
+ * Evento: Recibir notificación push
+ */
+self.addEventListener('push', (event) => {
+    console.log('📨 Push recibido:', event);
+    
+    if (event.data) {
+        const data = event.data.json();
+        console.log('📄 Datos del push:', data);
+        
+        const notificationTitle = data.title || '🚕 De Aquí Pa\'llá';
+        const notificationOptions = {
+            body: data.body || 'Tienes una nueva notificación',
+            icon: '/static/imagenes/icon-192x192.png',
+            badge: '/static/imagenes/icon-72x72.png',
+            vibrate: [200, 100, 200],
+            tag: data.tag || 'general',
+            data: {
+                url: data.url || '/',
+                timestamp: Date.now()
+            },
+            actions: [
+                {
+                    action: 'ver',
+                    title: 'Ver',
+                    icon: '/static/imagenes/icon-72x72.png'
+                },
+                {
+                    action: 'cerrar',
+                    title: 'Cerrar'
+                }
+            ],
+            requireInteraction: true,
+            silent: false
+        };
+
+        // Notificar a todas las ventanas/tabs abiertas
+        event.waitUntil(
+            Promise.all([
+                // Mostrar la notificación del navegador
+                self.registration.showNotification(notificationTitle, notificationOptions),
+                
+                // Enviar mensaje a las páginas abiertas para mostrar indicador visual
+                self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(clients => {
+                    clients.forEach(client => {
+                        client.postMessage({
+                            type: 'PUSH_RECEIVED',
+                            title: notificationTitle,
+                            body: notificationOptions.body,
+                            data: data
+                        });
+                    });
+                })
+            ])
+        );
+    } else {
+        console.log('📭 Push sin datos recibido');
+        event.waitUntil(
+            self.registration.showNotification('🚕 De Aquí Pa\'llá', {
+                body: 'Nueva notificación disponible',
+                icon: '/static/imagenes/icon-192x192.png',
+                tag: 'default'
+            })
+        );
+    }
+});
+
+console.log('✅ Service Worker v5.4 cargado con soporte Push Notifications completo');

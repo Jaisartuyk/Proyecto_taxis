@@ -278,3 +278,30 @@ if not WEBPUSH_SETTINGS['VAPID_PRIVATE_KEY'] and not os.environ.get('RAILWAY_ENV
         print("✅ [LOCAL] Claves VAPID válidas cargadas (formato base64)")
     except Exception as e:
         print(f"⚠️ [LOCAL] Error configurando claves VAPID locales: {e}")
+
+# === EMERGENCY CHANNEL_LAYERS CONFIGURATION ===
+# Si Railway está usando este settings.py en lugar de settings_railway.py
+# necesitamos que CHANNEL_LAYERS esté disponible aquí también
+if not locals().get('CHANNEL_LAYERS'):
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    
+    # Configuración de emergencia para Railway si usa settings.py
+    if os.environ.get('RAILWAY_ENVIRONMENT'):
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels_redis.core.RedisChannelLayer",
+                "CONFIG": {
+                    "hosts": [REDIS_URL],
+                },
+            },
+        }
+        print(f"🚨 [EMERGENCY] CHANNEL_LAYERS configurado en settings.py para Railway")
+        print(f"🔗 [EMERGENCY] Redis URL: {REDIS_URL}")
+    else:
+        # Para desarrollo local
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels.layers.InMemoryChannelLayer",
+            },
+        }
+        print(f"🔧 [LOCAL] CHANNEL_LAYERS: InMemory para desarrollo")

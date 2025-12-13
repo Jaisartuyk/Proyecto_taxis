@@ -139,16 +139,9 @@ if RAILWAY_ENVIRONMENT:
             "VAPID_ADMIN_EMAIL": 'admin@deaquipalla.com'
         }
     
-    # Configuración de emergencia - SOLO InMemory hasta resolver Redis
-    # Esto GARANTIZA que channel_layer no sea None
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-        },
-    }
-
-    print(f"🔧 [RAILWAY] Channel Layer: InMemory (configuración de emergencia)")
-    print(f"🔗 [RAILWAY] Redis disponible pero usando InMemory por estabilidad")
+    # Configuración original de Redis restaurada
+    print(f"🔧 [RAILWAY] Channel Layer: Redis")
+    print(f"🔗 [RAILWAY] Redis URL: {REDIS_URL}")
     
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

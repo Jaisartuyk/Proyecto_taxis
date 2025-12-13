@@ -13,20 +13,42 @@ class AudioConsumer(AsyncWebsocketConsumer):
             print(f"❌ ERROR: channel_layer es None en AudioConsumer")
             print(f"🔧 INTENTANDO forzar inicialización de channel_layer...")
             
-            # Forzar obtención del channel layer
+            # DEBUG: Verificar configuración detallada
             try:
                 from django.conf import settings
+                print(f"🔍 DEBUG Settings module: {settings.SETTINGS_MODULE}")
+                
+                # Verificar si CHANNEL_LAYERS existe
+                if hasattr(settings, 'CHANNEL_LAYERS'):
+                    channel_config = getattr(settings, 'CHANNEL_LAYERS', None)
+                    print(f"🔍 DEBUG CHANNEL_LAYERS: {channel_config}")
+                else:
+                    print(f"❌ DEBUG: CHANNEL_LAYERS NO EXISTE en settings")
+                
+                # Forzar obtención del channel layer
                 self.channel_layer = get_channel_layer()
+                print(f"🔍 DEBUG get_channel_layer() result: {self.channel_layer}")
+                
                 if self.channel_layer is not None:
                     print(f"✅ Channel layer forzado exitosamente: {type(self.channel_layer)}")
                 else:
-                    print(f"❌ No se pudo forzar channel_layer")
-                    await self.close()
-                    return
+                    print(f"❌ get_channel_layer() devolvió None")
+                    # Intentar creación manual
+                    from channels.layers import InMemoryChannelLayer
+                    self.channel_layer = InMemoryChannelLayer()
+                    print(f"🔧 EMERGENCY: Creado InMemoryChannelLayer manual")
+                    
             except Exception as e:
                 print(f"❌ Error forzando channel_layer: {e}")
-                await self.close()
-                return
+                # EMERGENCY: Crear channel layer manual
+                try:
+                    from channels.layers import InMemoryChannelLayer
+                    self.channel_layer = InMemoryChannelLayer()
+                    print(f"🚨 EMERGENCY FALLBACK: InMemoryChannelLayer creado manualmente")
+                except Exception as e2:
+                    print(f"💀 FATAL: No se pudo crear ningún channel_layer: {e2}")
+                    await self.close()
+                    return
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -161,20 +183,42 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"❌ ERROR: channel_layer es None en ChatConsumer")
             print(f"🔧 INTENTANDO forzar inicialización de channel_layer...")
             
-            # Forzar obtención del channel layer
+            # DEBUG: Verificar configuración detallada
             try:
                 from django.conf import settings
+                print(f"🔍 DEBUG Settings module: {settings.SETTINGS_MODULE}")
+                
+                # Verificar si CHANNEL_LAYERS existe
+                if hasattr(settings, 'CHANNEL_LAYERS'):
+                    channel_config = getattr(settings, 'CHANNEL_LAYERS', None)
+                    print(f"🔍 DEBUG CHANNEL_LAYERS: {channel_config}")
+                else:
+                    print(f"❌ DEBUG: CHANNEL_LAYERS NO EXISTE en settings")
+                
+                # Forzar obtención del channel layer
                 self.channel_layer = get_channel_layer()
+                print(f"🔍 DEBUG get_channel_layer() result: {self.channel_layer}")
+                
                 if self.channel_layer is not None:
                     print(f"✅ Channel layer forzado exitosamente: {type(self.channel_layer)}")
                 else:
-                    print(f"❌ No se pudo forzar channel_layer")
-                    await self.close()
-                    return
+                    print(f"❌ get_channel_layer() devolvió None")
+                    # Intentar creación manual
+                    from channels.layers import InMemoryChannelLayer
+                    self.channel_layer = InMemoryChannelLayer()
+                    print(f"🔧 EMERGENCY: Creado InMemoryChannelLayer manual")
+                    
             except Exception as e:
                 print(f"❌ Error forzando channel_layer: {e}")
-                await self.close()
-                return
+                # EMERGENCY: Crear channel layer manual
+                try:
+                    from channels.layers import InMemoryChannelLayer
+                    self.channel_layer = InMemoryChannelLayer()
+                    print(f"🚨 EMERGENCY FALLBACK: InMemoryChannelLayer creado manualmente")
+                except Exception as e2:
+                    print(f"💀 FATAL: No se pudo crear ningún channel_layer: {e2}")
+                    await self.close()
+                    return
 
         self.room_group_name = f'chat_{self.user.id}'
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)

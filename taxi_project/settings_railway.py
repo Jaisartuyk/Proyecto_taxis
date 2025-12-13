@@ -143,6 +143,36 @@ if RAILWAY_ENVIRONMENT:
     try:
         import channels_redis.core
         print("✅ [RAILWAY] channels_redis disponible")
+        
+        # Configurar Redis Channel Layer
+        if REDIS_URL:
+            from urllib.parse import urlparse
+            parsed_redis = urlparse(REDIS_URL)
+            
+            CHANNEL_LAYERS = {
+                "default": {
+                    "BACKEND": "channels_redis.core.RedisChannelLayer",
+                    "CONFIG": {
+                        "hosts": [{
+                            "address": (parsed_redis.hostname, parsed_redis.port or 6379),
+                            "password": parsed_redis.password,
+                            "db": 0,
+                        }],
+                        "capacity": 1500,
+                        "expiry": 60,
+                    },
+                },
+            }
+            print(f"🔄 [RAILWAY] Redis Channel Layer configurado: {parsed_redis.hostname}")
+        else:
+            # Fallback a InMemory si Redis no está disponible
+            CHANNEL_LAYERS = {
+                "default": {
+                    "BACKEND": "channels.layers.InMemoryChannelLayer",
+                },
+            }
+            print("🔄 [RAILWAY] Fallback a InMemoryChannelLayer (sin Redis URL)")
+            
     except ImportError as e:
         print(f"❌ [RAILWAY] Error: {e}")
         # Fallback a InMemory si Redis no está disponible
@@ -152,25 +182,6 @@ if RAILWAY_ENVIRONMENT:
             },
         }
         print("🔄 [RAILWAY] Fallback a InMemoryChannelLayer")
-    
-    # COMENTADO: Redis configuration que está causando problemas
-    # from urllib.parse import urlparse
-    # parsed_redis = urlparse(REDIS_URL)
-    # 
-    # CHANNEL_LAYERS = {
-    #     "default": {
-    #         "BACKEND": "channels_redis.core.RedisChannelLayer",
-    #         "CONFIG": {
-    #             "hosts": [{
-    #                 "address": (parsed_redis.hostname, parsed_redis.port or 6379),
-    #                 "password": parsed_redis.password,
-    #                 "db": 0,
-    #             }],
-    #             "capacity": 1500,
-    #             "expiry": 60,
-    #         },
-    #     },
-    # }
     
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

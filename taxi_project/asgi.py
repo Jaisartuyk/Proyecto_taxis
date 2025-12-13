@@ -13,10 +13,17 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 import taxis.routing
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taxi_project.settings')
+# Asegurar que Railway use settings_railway.py
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taxi_project.settings_railway')
+else:
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taxi_project.settings')
+
+# Initialize Django
+django_asgi_app = get_asgi_application()
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
         URLRouter(
             taxis.routing.websocket_urlpatterns  # Aquí enlazamos las rutas de WebSocket de 'gestion'

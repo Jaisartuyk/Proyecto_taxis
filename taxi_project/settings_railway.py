@@ -139,21 +139,16 @@ if RAILWAY_ENVIRONMENT:
             "VAPID_ADMIN_EMAIL": 'admin@deaquipalla.com'
         }
     
-    # Configuración de Redis en Railway - SIMPLE como originalmente funcionaba
-    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-
-    # Channels configuration - CONFIGURACIÓN SIMPLE QUE FUNCIONABA
+    # Configuración de emergencia - SOLO InMemory hasta resolver Redis
+    # Esto GARANTIZA que channel_layer no sea None
     CHANNEL_LAYERS = {
         "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [REDIS_URL],
-            },
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
     }
 
-    print(f"🔧 [RAILWAY] Channel Layer: Redis simple")
-    print(f"🔗 [RAILWAY] Redis: {REDIS_URL}")
+    print(f"🔧 [RAILWAY] Channel Layer: InMemory (configuración de emergencia)")
+    print(f"🔗 [RAILWAY] Redis disponible pero usando InMemory por estabilidad")
     
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

@@ -131,3 +131,42 @@ class UpdateLocationAPIView(APIView):
             {'message': 'Ubicación actualizada correctamente.'},
             status=status.HTTP_200_OK
         )
+
+# 🧪 Función de prueba para notificaciones push
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def test_push_notification(request):
+    """
+    Vista de prueba para enviar una notificación push al usuario actual
+    """
+    try:
+        from .push_notifications import send_push_notification
+        
+        # Obtener datos de la solicitud
+        title = request.data.get('title', 'Prueba de Notificación')
+        message = request.data.get('message', 'Esta es una notificación de prueba')
+        
+        # Enviar la notificación push al usuario actual
+        result = send_push_notification(
+            user=request.user,
+            title=title,
+            message=message,
+            url='/driver-dashboard/'  # URL a donde dirigir cuando hagan click
+        )
+        
+        if result:
+            return Response({
+                'success': True,
+                'message': 'Notificación push enviada correctamente'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'message': 'No se pudo enviar la notificación. Verifica que tengas una suscripción push activa.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error al enviar la notificación: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

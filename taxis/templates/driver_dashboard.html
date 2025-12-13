@@ -454,6 +454,15 @@
             <span class="status-indicator"></span>
             <span>En Línea y Disponible</span>
         </div>
+        <!-- Botón de prueba para notificaciones -->
+        <div class="test-notification-section" style="margin-top: 1rem; position: relative; z-index: 1;">
+            <button class="btn btn-outline-dark" onclick="testNotificationVisual()">
+                🧪 Probar Notificación Visual
+            </button>
+            <button class="btn btn-outline-dark ms-2" onclick="testPushNotification()">
+                📱 Probar Notificación Push
+            </button>
+        </div>
     </div>
 
     <!-- Notification Panel -->
@@ -940,6 +949,66 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     registerPeriodicSync();
+
+    // --- FUNCIONES DE PRUEBA PARA NOTIFICACIONES ---
+    
+    // Función para probar notificación visual (toast)
+    window.testNotificationVisual = function() {
+        if (window.notificationManager) {
+            window.notificationManager.showNotification(
+                'Prueba de Notificación Visual',
+                'Esta es una notificación de prueba que aparece como toast en la esquina superior derecha.',
+                'success'
+            );
+        } else {
+            // Fallback si no está cargado el manager
+            alert('🔔 Notificación de prueba - El sistema visual de notificaciones está funcionando!');
+        }
+    };
+
+    // Función para probar notificación push real
+    window.testPushNotification = async function() {
+        try {
+            // Enviar una notificación de prueba al servidor
+            const response = await fetch('/api/test-push-notification/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    title: 'Prueba de Push Notification',
+                    message: '¡Tu sistema de notificaciones push está funcionando correctamente!'
+                })
+            });
+
+            if (response.ok) {
+                alert('📱 Notificación push enviada! Deberías recibirla en unos segundos.');
+            } else {
+                alert('❌ Error al enviar la notificación push.');
+            }
+        } catch (error) {
+            console.error('Error testing push notification:', error);
+            alert('❌ Error de conexión al probar la notificación push.');
+        }
+    };
+
+    // Función helper para obtener CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
 });
 </script>
 {% endblock %}

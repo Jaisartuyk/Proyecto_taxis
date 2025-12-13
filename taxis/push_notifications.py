@@ -28,6 +28,32 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
     """
     from taxis.models import WebPushSubscription
     
+    # Validate input parameters
+    if not user:
+        logger.error("No user provided for push notification")
+        return 0
+        
+    if not isinstance(title, str):
+        logger.error(f"Title must be a string, got {type(title)}")
+        return 0
+        
+    if not isinstance(body, str):
+        logger.error(f"Body must be a string, got {type(body)}")
+        return 0
+        
+    # Ensure data is a dict or None
+    if data is not None and not isinstance(data, dict):
+        logger.warning(f"Data parameter must be a dict, got {type(data)}, converting to dict")
+        try:
+            if isinstance(data, str):
+                import json
+                data = json.loads(data)
+            else:
+                data = {}
+        except:
+            logger.warning("Could not convert data to dict, using empty dict")
+            data = {}
+    
     subscriptions = WebPushSubscription.objects.filter(user=user)
     
     if not subscriptions.exists():
@@ -36,8 +62,8 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
     
     # Prepare notification payload
     payload = {
-        "title": title,
-        "body": body,
+        "title": str(title),
+        "body": str(body),
         "icon": icon or "/static/imagenes/DE_AQU_PALL_Logo.png",
         "badge": badge or "/static/imagenes/logo1.png",
         "data": data or {},
@@ -49,8 +75,26 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
     
     for subscription in subscriptions:
         try:
+            # Validate subscription_info
+            if not hasattr(subscription, 'subscription_info') or not subscription.subscription_info:
+                logger.warning(f"Invalid subscription_info for user {user.username}")
+                continue
+                
+            # Ensure subscription_info is a dict
+            subscription_info = subscription.subscription_info
+            if isinstance(subscription_info, str):
+                try:
+                    subscription_info = json.loads(subscription_info)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Could not parse subscription_info as JSON: {e}")
+                    continue
+            
+            if not isinstance(subscription_info, dict):
+                logger.warning(f"subscription_info must be a dict, got {type(subscription_info)}")
+                continue
+                
             webpush(
-                subscription_info=subscription.subscription_info,
+                subscription_info=subscription_info,
                 data=json.dumps(payload),
                 vapid_private_key=settings.WEBPUSH_SETTINGS['VAPID_PRIVATE_KEY'],
                 vapid_claims={
@@ -58,14 +102,19 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
                 }
             )
             success_count += 1
-            logger.info(f"Push notification sent to {user.username}")
+            logger.info(f"📱 Notificación push enviada a {user.username}")
             
         except WebPushException as e:
-            logger.error(f"Push notification failed for {user.username}: {e}")
+            logger.error(f"❌ Error al enviar notificación push: {e}")
             
             # If subscription is expired or invalid, mark for deletion
             if e.response and e.response.status_code in [404, 410]:
                 expired_subscriptions.append(subscription.id)
+        except Exception as e:
+            logger.error(f"❌ Error inesperado al enviar notificación push: {e}")
+            logger.error(f"Debug - payload: {payload}")
+            logger.error(f"Debug - subscription_info type: {type(subscription.subscription_info)}")
+            logger.error(f"Debug - subscription_info: {subscription.subscription_info}")
     
     # Clean up expired subscriptions
     if expired_subscriptions:

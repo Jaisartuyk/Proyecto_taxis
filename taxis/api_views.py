@@ -76,9 +76,17 @@ def save_webpush_subscription(request):
     if not subscription_info:
         return Response({"error": "No se proporcionó información de suscripción"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Convertir a string JSON si no lo es
-    if not isinstance(subscription_info, str):
-        subscription_info = json.dumps(subscription_info)
+    # Asegurar que subscription_info sea un diccionario
+    if isinstance(subscription_info, str):
+        try:
+            subscription_info = json.loads(subscription_info)
+        except json.JSONDecodeError:
+            return Response({"error": "Información de suscripción inválida"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validar que tenga las claves necesarias
+    required_keys = ['endpoint', 'keys']
+    if not all(key in subscription_info for key in required_keys):
+        return Response({"error": "Faltan campos requeridos en la suscripción"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Evitar duplicados
     from .models import WebPushSubscription

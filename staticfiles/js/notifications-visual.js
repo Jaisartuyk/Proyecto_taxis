@@ -31,7 +31,9 @@ class NotificationManager {
             if (notificationBell) {
                 notificationBell.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.clearNotifications();
+                    console.log('🔔 Notificaciones limpiadas desde el bell');
                 });
             }
         });
@@ -90,6 +92,7 @@ class NotificationManager {
     }
 
     clearNotifications() {
+        const hadNotifications = this.notificationCount > 0;
         this.notificationCount = 0;
         this.updateNotificationIndicator();
         
@@ -97,7 +100,37 @@ class NotificationManager {
         const toasts = document.querySelectorAll('.toast');
         toasts.forEach(toast => toast.remove());
         
+        if (hadNotifications) {
+            // Mostrar confirmación visual temporal
+            this.showConfirmationMessage('🧹 Notificaciones limpiadas');
+        }
+        
         console.log('🧹 Notificaciones limpiadas');
+    }
+
+    showConfirmationMessage(message) {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) return;
+        
+        const toastElement = document.createElement('div');
+        toastElement.className = 'toast show align-items-center text-white bg-info border-0';
+        toastElement.setAttribute('role', 'alert');
+        toastElement.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        
+        // Auto-remove after 2 seconds (shorter than normal notifications)
+        setTimeout(() => {
+            if (toastElement.parentNode) {
+                toastElement.remove();
+            }
+        }, 2000);
     }
 
     listenForServiceWorkerMessages() {

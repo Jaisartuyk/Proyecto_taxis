@@ -57,6 +57,22 @@
             background-color: #FFD700;
             color: #1a1a1a;
         }
+
+        /* Estilo para el botón de notificaciones */
+        #notification-bell {
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        #notification-bell:hover {
+            color: #FFD700 !important;
+            transform: translateY(-2px);
+        }
+
+        #notification-bell:focus {
+            box-shadow: none !important;
+            outline: none !important;
+        }
     </style>
 
     {% block extra_head %}{% endblock %}
@@ -112,13 +128,13 @@
                     {% if user.is_authenticated %}
                     <!-- Indicador de Notificaciones -->
                     <li class="nav-item position-relative">
-                        <a class="nav-link" href="#" id="notification-bell" title="Notificaciones">
+                        <button type="button" class="nav-link btn btn-link text-decoration-none p-2" id="notification-bell" title="Notificaciones" style="border:none; background:none; color: #ffffff !important;">
                             📱
                             <span id="notification-indicator" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;">
                                 <span id="notification-count">0</span>
                                 <span class="visually-hidden">notificaciones nuevas</span>
                             </span>
-                        </a>
+                        </button>
                     </li>
                     {% if user.role == 'driver' %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'driver_dashboard' %}">Tablero del Taxista</a>

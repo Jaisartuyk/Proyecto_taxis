@@ -139,29 +139,46 @@ if RAILWAY_ENVIRONMENT:
             "VAPID_ADMIN_EMAIL": 'admin@deaquipalla.com'
         }
     
-    # Configuración de Redis en Railway (restaurada a la versión que funcionaba)
+    # Configuración de Redis en Railway (con fallback robusto)
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    
+    # Verificar si Redis está realmente disponible
+    REDIS_AVAILABLE = False
+    try:
+        import redis as redis_client
+        if REDIS_URL and REDIS_URL != 'redis://localhost:6379':
+            r = redis_client.from_url(REDIS_URL)
+            r.ping()
+            REDIS_AVAILABLE = True
+            print(f"✅ [RAILWAY] Redis conectado: {REDIS_URL}")
+        else:
+            print(f"⚠️ [RAILWAY] Redis URL no configurada o es local")
+    except Exception as e:
+        print(f"❌ [RAILWAY] Redis no disponible: {e}")
 
-    # Channels configuration - Redis optimizado para mejor rendimiento (ORIGINAL)
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [REDIS_URL],  # Configuración original que funcionaba
-                # Configuración optimizada para Railway
-                "capacity": 2000,        # Más capacidad para mensajes
-                "expiry": 300,           # TTL de 5 minutos (más tiempo)
-                "group_expiry": 3600,    # Grupos activos por 1 hora
-                "channel_capacity": 500, # Capacidad por canal
-                "asymmetric_expiry": 60, # Mensajes asimétricos por 1 minuto
+    # Configurar Channel Layers basado en disponibilidad de Redis
+    if REDIS_AVAILABLE:
+        # Channels configuration - Redis con configuración válida
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels_redis.core.RedisChannelLayer",
+                "CONFIG": {
+                    "hosts": [REDIS_URL],
+                    # Configuración VÁLIDA para channels_redis 4.x
+                    "capacity": 1500,
+                    "expiry": 60,
+                },
             },
-        },
-    }
-
-    # Debug: Confirmar configuración optimizada
-    print(f"🔧 [RAILWAY] Channel Layer optimizado: {CHANNEL_LAYERS['default']['BACKEND']}")
-    print(f"� [RAILWAY] Redis: {REDIS_URL}")
-    print(f"⚡ [RAILWAY] Capacidad: {CHANNEL_LAYERS['default']['CONFIG']['capacity']}")
+        }
+        print(f"🔧 [RAILWAY] Channel Layer: Redis")
+    else:
+        # Fallback a InMemory si Redis no está disponible
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels.layers.InMemoryChannelLayer",
+            },
+        }
+        print(f"🔧 [RAILWAY] Channel Layer: InMemory (fallback)")
     
     # Verificar disponibilidad de channels_redis
     try:

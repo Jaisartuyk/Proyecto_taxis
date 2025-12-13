@@ -41,13 +41,13 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
         logger.error(f"Body must be a string, got {type(body)}")
         return 0
         
-    # Ensure data is a dict or None
+            # Ensure data is a dict or None
     if data is not None and not isinstance(data, dict):
         logger.warning(f"Data parameter must be a dict, got {type(data)}, converting to dict")
         try:
             if isinstance(data, str):
-                import json
-                data = json.loads(data)
+                import json as json_lib
+                data = json_lib.loads(data)
             else:
                 data = {}
         except:
@@ -80,25 +80,30 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
                 logger.warning(f"Invalid subscription_info for user {user.username}")
                 continue
                 
-            # Ensure subscription_info is a dict
+            # subscription_info should already be a dict thanks to JSONField
             subscription_info = subscription.subscription_info
-            if isinstance(subscription_info, str):
-                try:
-                    subscription_info = json.loads(subscription_info)
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Could not parse subscription_info as JSON: {e}")
-                    continue
             
             if not isinstance(subscription_info, dict):
                 logger.warning(f"subscription_info must be a dict, got {type(subscription_info)}")
                 continue
                 
+            # Construir audience correctamente para VAPID
+            endpoint = subscription_info.get('endpoint', '')
+            if not endpoint:
+                logger.warning(f"Missing endpoint for user {user.username}")
+                continue
+                
+            from urllib.parse import urlparse
+            parsed_endpoint = urlparse(endpoint)
+            aud = f"{parsed_endpoint.scheme}://{parsed_endpoint.netloc}"
+            
             webpush(
                 subscription_info=subscription_info,
                 data=json.dumps(payload),
                 vapid_private_key=settings.WEBPUSH_SETTINGS['VAPID_PRIVATE_KEY'],
                 vapid_claims={
-                    "sub": f"mailto:{settings.WEBPUSH_SETTINGS['VAPID_ADMIN_EMAIL']}"
+                    "sub": f"mailto:{settings.WEBPUSH_SETTINGS['VAPID_ADMIN_EMAIL']}",
+                    "aud": aud
                 }
             )
             success_count += 1

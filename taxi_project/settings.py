@@ -217,12 +217,17 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
     # Railway proporciona REDIS_URL automáticamente
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
-# Channels configuration - Configuración por defecto (será overrideada por settings_railway.py)
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
+# Channels configuration - COMENTADO para usar settings_railway.py
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [REDIS_URL],
+#             "capacity": 1500,
+#             "expiry": 60,
+#         },
+#     },
+# }
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
@@ -245,3 +250,31 @@ WEBPUSH_SETTINGS = {
     "VAPID_PRIVATE_KEY": os.environ.get('VAPID_PRIVATE_KEY', ''),
     "VAPID_ADMIN_EMAIL": os.environ.get('VAPID_ADMIN_EMAIL', 'admin@deaquipalla.com')
 }
+
+# Variables directas para compatibilidad
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_ADMIN_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'admin@deaquipalla.com')
+
+# Cargar claves VAPID desde archivo local si no están en variables de entorno
+if not WEBPUSH_SETTINGS['VAPID_PRIVATE_KEY'] and not os.environ.get('RAILWAY_ENVIRONMENT'):
+    try:
+        # Usar las nuevas claves VAPID en formato base64 (py_vapid compatible)
+        vapid_private_b64 = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg43aoW-NQXpL77lwMkOIfgEtYA3dVD8d3BciAEKFvKNGhRANCAARAfKRm2InYS8lZTQ-I6t-73SIjDMZ1mjx5dYFsLAPAb65em6fmUBfS5eHDaGS7x2wCmtng0J7DuqVKAaL46T4E"
+        
+        vapid_public_b64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQHykZtiJ2EvJWU0PiOrfu90iIwzGdZo8eXWBbCwDwG-uXpun5lAX0uXhw2hku8dsAprZ4NCew7qlSgGi-Ok-BA"
+        
+        WEBPUSH_SETTINGS.update({
+            'VAPID_PUBLIC_KEY': vapid_public_b64,
+            'VAPID_PRIVATE_KEY': vapid_private_b64,
+            'VAPID_ADMIN_EMAIL': 'admin@deaquipalla.com'
+        })
+        
+        # También agregar como variables directas para compatibilidad
+        globals()['VAPID_PUBLIC_KEY'] = vapid_public_b64
+        globals()['VAPID_PRIVATE_KEY'] = vapid_private_b64
+        globals()['VAPID_ADMIN_EMAIL'] = 'admin@deaquipalla.com'
+        
+        print("✅ [LOCAL] Claves VAPID válidas cargadas (formato base64)")
+    except Exception as e:
+        print(f"⚠️ [LOCAL] Error configurando claves VAPID locales: {e}")

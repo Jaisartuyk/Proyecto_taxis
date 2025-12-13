@@ -1,17 +1,32 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from channels.layers import get_channel_layer
 
 class AudioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'audio_{self.room_name}'
 
-        # Verificar que channel_layer esté disponible
+        # FORCE channel_layer initialization si es None
         if self.channel_layer is None:
             print(f"❌ ERROR: channel_layer es None en AudioConsumer")
-            await self.close()
-            return
+            print(f"🔧 INTENTANDO forzar inicialización de channel_layer...")
+            
+            # Forzar obtención del channel layer
+            try:
+                from django.conf import settings
+                self.channel_layer = get_channel_layer()
+                if self.channel_layer is not None:
+                    print(f"✅ Channel layer forzado exitosamente: {type(self.channel_layer)}")
+                else:
+                    print(f"❌ No se pudo forzar channel_layer")
+                    await self.close()
+                    return
+            except Exception as e:
+                print(f"❌ Error forzando channel_layer: {e}")
+                await self.close()
+                return
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -141,11 +156,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Verificar que channel_layer esté disponible
+        # FORCE channel_layer initialization si es None
         if self.channel_layer is None:
             print(f"❌ ERROR: channel_layer es None en ChatConsumer")
-            await self.close()
-            return
+            print(f"🔧 INTENTANDO forzar inicialización de channel_layer...")
+            
+            # Forzar obtención del channel layer
+            try:
+                from django.conf import settings
+                self.channel_layer = get_channel_layer()
+                if self.channel_layer is not None:
+                    print(f"✅ Channel layer forzado exitosamente: {type(self.channel_layer)}")
+                else:
+                    print(f"❌ No se pudo forzar channel_layer")
+                    await self.close()
+                    return
+            except Exception as e:
+                print(f"❌ Error forzando channel_layer: {e}")
+                await self.close()
+                return
 
         self.room_group_name = f'chat_{self.user.id}'
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)

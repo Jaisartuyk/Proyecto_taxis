@@ -139,71 +139,43 @@ if RAILWAY_ENVIRONMENT:
             "VAPID_ADMIN_EMAIL": 'admin@deaquipalla.com'
         }
     
-    # Configuración simplificada de Channel Layers (priorizar funcionamiento)
-    # Por ahora usar InMemory para asegurar que WebSockets funcionen
+    # Configuración de Redis en Railway (restaurada a la versión que funcionaba)
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+
+    # Channels configuration - Redis optimizado para mejor rendimiento (ORIGINAL)
     CHANNEL_LAYERS = {
         "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],  # Configuración original que funcionaba
+                # Configuración optimizada para Railway
+                "capacity": 2000,        # Más capacidad para mensajes
+                "expiry": 300,           # TTL de 5 minutos (más tiempo)
+                "group_expiry": 3600,    # Grupos activos por 1 hora
+                "channel_capacity": 500, # Capacidad por canal
+                "asymmetric_expiry": 60, # Mensajes asimétricos por 1 minuto
+            },
         },
     }
-    print("🔄 [RAILWAY] Usando InMemoryChannelLayer (configuración simplificada)")
+
+    # Debug: Confirmar configuración optimizada
+    print(f"🔧 [RAILWAY] Channel Layer optimizado: {CHANNEL_LAYERS['default']['BACKEND']}")
+    print(f"� [RAILWAY] Redis: {REDIS_URL}")
+    print(f"⚡ [RAILWAY] Capacidad: {CHANNEL_LAYERS['default']['CONFIG']['capacity']}")
     
-    # Comentamos Redis temporalmente hasta resolver el problema
-    # try:
-    #     import channels_redis.core
-    #     print("✅ [RAILWAY] channels_redis disponible")
-    #     
-    #     # Configurar Redis Channel Layer con manejo robusto de errores
-    #     if REDIS_URL and REDIS_URL != 'redis://localhost:6379':
-    #         try:
-    #             from urllib.parse import urlparse
-    #             parsed_redis = urlparse(REDIS_URL)
-    #             
-    #             CHANNEL_LAYERS = {
-    #                 "default": {
-    #                     "BACKEND": "channels_redis.core.RedisChannelLayer",
-    #                     "CONFIG": {
-    #                         "hosts": [{
-    #                             "address": (parsed_redis.hostname, parsed_redis.port or 6379),
-    #                             "password": parsed_redis.password,
-    #                             "db": 0,
-    #                         }],
-    #                         "capacity": 1500,
-    #                         "expiry": 60,
-    #                         # Agregar configuraciones robustas
-    #                         "symmetric_encryption_keys": [b"1234567890123456"],
-    #                         "max_age": 3600,
-    #                     },
-    #                 },
-    #             }
-    #             print(f"🔄 [RAILWAY] Redis Channel Layer configurado: {parsed_redis.hostname}")
-    #         except Exception as redis_error:
-    #             print(f"❌ [RAILWAY] Error configurando Redis: {redis_error}")
-    #             # Fallback inmediato a InMemory
-    #             CHANNEL_LAYERS = {
-    #                 "default": {
-    #                     "BACKEND": "channels.layers.InMemoryChannelLayer",
-    #                 },
-    #             }
-    #             print("🔄 [RAILWAY] Fallback a InMemoryChannelLayer (Redis error)")
-    #     else:
-    #         # Usar InMemory si no hay Redis URL válida
-    #         CHANNEL_LAYERS = {
-    #             "default": {
-    #                 "BACKEND": "channels.layers.InMemoryChannelLayer",
-    #             },
-    #         }
-    #         print("🔄 [RAILWAY] Usando InMemoryChannelLayer (sin Redis URL válida)")
-    #         
-    # except ImportError as e:
-    #     print(f"❌ [RAILWAY] channels_redis no disponible: {e}")
-    #     # Fallback a InMemory si channels_redis no está disponible
-    #     CHANNEL_LAYERS = {
-    #         "default": {
-    #             "BACKEND": "channels.layers.InMemoryChannelLayer",
-    #         },
-    #     }
-    #     print("🔄 [RAILWAY] Fallback a InMemoryChannelLayer (sin channels_redis)")
+    # Verificar disponibilidad de channels_redis
+    try:
+        import channels_redis.core
+        print("✅ [RAILWAY] channels_redis disponible")
+    except ImportError as e:
+        print(f"❌ [RAILWAY] Error: {e}")
+        # Fallback a InMemory si Redis no está disponible
+        CHANNEL_LAYERS = {
+            "default": {
+                "BACKEND": "channels.layers.InMemoryChannelLayer",
+            },
+        }
+        print("🔄 [RAILWAY] Fallback a InMemoryChannelLayer")
     
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

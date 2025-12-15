@@ -92,17 +92,8 @@
     <meta name="vapid-public-key" content="{{ WEBPUSH_SETTINGS.VAPID_PUBLIC_KEY }}">
     <div data-user-id="{{ user.id }}" style="display:none;"></div>
 
-    <!-- Notifications Script - v5.0 FORZAR ACTUALIZACIÓN -->
-    <script src="{% static 'js/notifications-v5.js' %}"></script>
-
-    <!-- Sistema de Notificaciones Visuales -->
-    <script src="{% static 'js/notifications-visual.js' %}"></script>
-
-    <!-- Badge Manager - Contador en ícono de app -->
-    <script src="{% static 'js/badge-manager.js' %}"></script>
-
-    <!-- Chat Badge Manager - Actualización de badge en chats -->
-    <script src="{% static 'js/chat-badge.js' %}"></script>
+    <!-- Notifications Script - Simplificado -->
+    <script src="{% static 'js/notifications.js' %}"></script>
 
     <!-- Install Prompt Script -->
     <script src="{% static 'js/install-prompt.js' %}"></script>
@@ -261,12 +252,8 @@
     </script>
     {% endblock %}
 
-    <!-- Audio Player Global - Disponible en todas las vistas (INLINE) -->
-    <script>
-    // REPRODUCTOR DE AUDIO GLOBAL - Inline para evitar problemas con collectstatic
-    console.log('🎵 Audio Player Global inicializado');
-    let globalCurrentAudio=null;let globalAudioContext=null;function playGlobalAudio(e,o="Central",l=1){try{console.log(`🔊 [GLOBAL] Reproduciendo audio de: ${o}`),console.log(`📍 [GLOBAL] URL del audio: ${e.substring(0,100)}...`),globalCurrentAudio&&(globalCurrentAudio.pause(),globalCurrentAudio=null);const a=new Audio;if(a.src=e,a.volume=l,a.preload="auto",globalCurrentAudio=a,"mediaSession"in navigator&&(navigator.mediaSession.metadata=new MediaMetadata({title:`Audio de ${o}`,artist:"De Aquí Pa'llá - Central de Taxis",album:"Comunicación Walkie-Talkie",artwork:[{src:"/static/imagenes/icon-192x192.png",sizes:"192x192",type:"image/png"},{src:"/static/imagenes/icon-512x512.png",sizes:"512x512",type:"image/png"}]}),navigator.mediaSession.setActionHandler("play",()=>{a.play()}),navigator.mediaSession.setActionHandler("pause",()=>{a.pause()}),navigator.mediaSession.setActionHandler("stop",()=>{a.pause(),a.currentTime=0,globalCurrentAudio=null}),console.log("✅ [GLOBAL] Media Session configurada")),void 0!==(t=a.play()))t.then(()=>{console.log("✅ [GLOBAL] Audio reproduciéndose correctamente"),showGlobalAudioNotification(o)}).catch(e=>{console.error("❌ [GLOBAL] Error al reproducir audio:",e),"NotAllowedError"===e.name&&(console.warn("⚠️ [GLOBAL] Autoplay bloqueado"),showAutoplayBlockedWarning(o))});var t;a.addEventListener("ended",()=>{console.log("✅ [GLOBAL] Audio terminado"),globalCurrentAudio=null,hideGlobalAudioNotification(),"mediaSession"in navigator&&(navigator.mediaSession.metadata=null)}),a.addEventListener("error",e=>{console.error("❌ [GLOBAL] Error en el audio:",e),globalCurrentAudio=null,hideGlobalAudioNotification()})}catch(e){console.error("❌ [GLOBAL] Error general:",e)}}function showGlobalAudioNotification(e){let o=document.getElementById("global-audio-notification");o||(o=document.createElement("div"),o.id="global-audio-notification",o.style.cssText="position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px 20px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:10000;font-family:Arial,sans-serif;font-size:14px;display:flex;align-items:center;gap:10px;animation:slideInRight 0.3s ease-out",document.body.appendChild(o)),o.innerHTML=`<span style="font-size:20px">🔊</span><div><div style="font-weight:bold">Audio de ${e}</div><div style="font-size:12px;opacity:0.9">Reproduciéndose...</div></div>`,o.style.display="flex"}function hideGlobalAudioNotification(){const e=document.getElementById("global-audio-notification");e&&(e.style.display="none")}function showAutoplayBlockedWarning(e){const o=document.createElement("div");o.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;color:#333;padding:30px;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.3);z-index:10001;text-align:center;max-width:90%;width:400px",o.innerHTML=`<div style="font-size:50px;margin-bottom:15px">🔊</div><h3 style="margin:0 0 10px 0;color:#667eea">Audio de ${e}</h3><p style="margin:0 0 20px 0;color:#666">Toca el botón para escuchar</p><button id="play-blocked-audio" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;padding:15px 30px;border-radius:25px;font-size:16px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(102,126,234,0.4)">🔊 Reproducir Audio</button>`,document.body.appendChild(o),document.getElementById("play-blocked-audio").addEventListener("click",()=>{globalCurrentAudio&&globalCurrentAudio.play(),document.body.removeChild(o)}),setTimeout(()=>{o.addEventListener("click",e=>{e.target===o&&document.body.removeChild(o)})},100)}function initGlobalAudioContext(){!globalAudioContext&&("AudioContext"in window||"webkitAudioContext"in window)&&(globalAudioContext=new(window.AudioContext||window.webkitAudioContext),"suspended"===globalAudioContext.state&&globalAudioContext.resume().then(()=>{console.log("✅ [GLOBAL] Contexto de audio activado")}))}document.addEventListener("DOMContentLoaded",()=>{initGlobalAudioContext(),console.log("✅ [GLOBAL] Audio Player listo")}),"serviceWorker"in navigator&&(navigator.serviceWorker.addEventListener("message",e=>{console.log("📨 [GLOBAL] Mensaje del SW:",e.data),e.data&&"PLAY_AUDIO_IMMEDIATELY"===e.data.type&&(console.log(`🔊 [GLOBAL] Reproducción: ${e.data.senderName}`),playGlobalAudio(e.data.audioUrl,e.data.senderName,1))}),console.log("✅ [GLOBAL] Listener SW configurado"));const globalAudioStyle=document.createElement("style");globalAudioStyle.textContent="@keyframes slideInRight{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}",document.head.appendChild(globalAudioStyle),console.log("🎵 [GLOBAL] Sistema de audio global inicializado");
-    </script>
+    <!-- Audio Player Global - SIMPLIFICADO -->
+    <audio id="global-audio-player" style="display: none;"></audio>
 
     <script>
         // Register Service Worker
@@ -287,83 +274,7 @@
     <footer class="text-center mt-5">
         <p class="text-muted"> 2024 De Aquí Pa'llá</p>
     </footer>
-    <!-- GLOBAL AUDIO SYSTEM -->
-    {% if user.is_authenticated and user.role == 'driver' or user.is_superuser %}
-    <audio id="global-audio-player" style="display: none;"></audio>
-    <script>
-        (function () {
-            console.log('🎧 Iniciando Sistema de Audio Global...');
-            const currentUser = {
-                id: "{{ request.user.id }}",
-                username: "{{ request.user.username }}",
-                role: "{{ request.user.role }}"
-            };
 
-            let audioSocket = null;
-            const audioPlayer = document.getElementById('global-audio-player');
-
-            function setupGlobalAudioWebSocket() {
-                const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-                const wsPath = wsProtocol + window.location.host + '/ws/audio/conductores/';
-
-                console.log('🎧 Conectando Audio Global a:', wsPath);
-                audioSocket = new WebSocket(wsPath);
-
-                audioSocket.onopen = function (e) {
-                    console.log('✅ Audio Global Conectado');
-                };
-
-                audioSocket.onclose = function (e) {
-                    console.log('❌ Audio Global Desconectado. Reintentando en 5s...');
-                    setTimeout(setupGlobalAudioWebSocket, 5000);
-                };
-
-                audioSocket.onmessage = function (e) {
-                    try {
-                        const data = JSON.parse(e.data);
-
-                        // Solo procesar mensajes de audio broadcast
-                        if (data.type !== 'audio_broadcast' || !data.audio) return;
-
-                        // Ignorar mi propio audio
-                        const myId = String(currentUser.id);
-                        const senderId = String(data.senderId);
-
-                        if (senderId === myId) {
-                            return; // Es mi propio audio
-                        }
-
-                        console.log('🔊 Audio Global Recibido de:', senderId);
-
-                        // Reproducir audio
-                        const audioData = 'data:audio/webm;base64,' + data.audio;
-                        audioPlayer.src = audioData;
-                        audioPlayer.play().catch(e => console.error('Error reproduciendo audio:', e));
-
-                        // Disparar evento para que las vistas específicas puedan actualizar su UI si lo desean
-                        const event = new CustomEvent('global-audio-received', {
-                            detail: {
-                                senderId: senderId,
-                                senderRole: data.senderRole,
-                                timestamp: new Date()
-                            }
-                        });
-                        window.dispatchEvent(event);
-
-                    } catch (err) {
-                        console.error('Error procesando mensaje de audio:', err);
-                    }
-                };
-
-                // Exponer socket globalmente para que las vistas puedan enviar audio
-                window.globalAudioSocket = audioSocket;
-            }
-
-            // Iniciar conexión
-            setupGlobalAudioWebSocket();
-        })();
-    </script>
-    {% endif %}
 </body>
 
 </html>

@@ -1173,5 +1173,40 @@ function clearMediaSession() {
     }
 }
 
+// ========================================
+// LISTENER PARA MENSAJES DEL SERVICE WORKER
+// ========================================
+
+/**
+ * Escuchar mensajes del Service Worker para reproducir audio inmediatamente
+ * Esto permite que el audio se reproduzca cuando la app está en segundo plano
+ */
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        console.log('📨 Mensaje recibido del Service Worker:', event.data);
+        
+        if (event.data && event.data.type === 'PLAY_AUDIO_IMMEDIATELY') {
+            const { audioUrl, senderName, timestamp } = event.data;
+            
+            console.log(`🔊 REPRODUCCIÓN INMEDIATA SOLICITADA por ${senderName}`);
+            
+            // Reproducir el audio inmediatamente
+            if (audioUrl && senderName) {
+                playAudioImmediately(audioUrl, senderName, 1.0);
+                
+                // Mostrar notificación visual en la app
+                showAudioPlayingIndicator(senderName);
+                
+                // Log del evento
+                logAudio(`🎧 Audio urgente de ${senderName} reproducido desde notificación push`);
+            } else {
+                console.error('❌ Datos de audio incompletos en mensaje del SW');
+            }
+        }
+    });
+    
+    console.log('✅ Listener de Service Worker configurado para reproducción de audio');
+}
+
 // Limpiar audios antiguos cada 30 minutos
 setInterval(cleanOldPendingAudios, 30 * 60 * 1000);

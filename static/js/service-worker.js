@@ -145,21 +145,50 @@ self.addEventListener('push', (event) => {
             
             // CONFIGURACIÓN ESPECIAL PARA AUDIO WALKIE-TALKIE
             if (pushData.data && pushData.data.type === 'walkie_talkie_audio') {
-                console.log('📻 AUDIO WALKIE-TALKIE RECIBIDO - REPRODUCIENDO INMEDIATAMENTE');
+                console.log('📻 AUDIO WALKIE-TALKIE RECIBIDO - ABRIENDO APP AUTOMÁTICAMENTE');
                 console.log('🎵 Datos del audio:', {
                     sender: pushData.data.sender_name,
                     urgent: pushData.data.urgent,
                     audioLength: pushData.data.audio_url ? pushData.data.audio_url.length : 'No audio'
                 });
                 
-                // *** REPRODUCIR AUDIO INMEDIATAMENTE EN BACKGROUND ***
                 const audioUrl = pushData.data.audio_url;
                 const senderName = pushData.data.sender_name;
                 
                 if (audioUrl && senderName) {
-                    // LLAMADA INMEDIATA - SIN DEMORAS
-                    playAudioInBackground(audioUrl, senderName);
-                    console.log('🔊 REPRODUCCIÓN DE AUDIO INICIADA');
+                    // ESTRATEGIA 1: Intentar abrir la app automáticamente
+                    // Esto funciona en Android Chrome y permite reproducir el audio
+                    event.waitUntil(
+                        self.clients.matchAll({ 
+                            type: 'window',
+                            includeUncontrolled: true 
+                        }).then(clients => {
+                            console.log(`🔍 Clientes encontrados: ${clients.length}`);
+                            
+                            // Si hay una ventana abierta, enfocarla y enviar el audio
+                            if (clients.length > 0) {
+                                const client = clients[0];
+                                console.log('📱 Enfocando ventana existente y enviando audio');
+                                
+                                // Enviar mensaje al cliente para reproducir audio
+                                client.postMessage({
+                                    type: 'PLAY_AUDIO_IMMEDIATELY',
+                                    audioUrl: audioUrl,
+                                    senderName: senderName,
+                                    timestamp: Date.now()
+                                });
+                                
+                                // Enfocar la ventana
+                                return client.focus();
+                            } else {
+                                // Si no hay ventana abierta, abrir una nueva
+                                console.log('🆕 Abriendo nueva ventana para reproducir audio');
+                                return self.clients.openWindow('/comunicacion/?autoplay=true&audio=' + encodeURIComponent(audioUrl) + '&sender=' + encodeURIComponent(senderName));
+                            }
+                        })
+                    );
+                    
+                    console.log('🔊 COMANDO DE REPRODUCCIÓN ENVIADO');
                 } else {
                     console.error('❌ Datos de audio incompletos:', {
                         audioUrl: !!audioUrl,
@@ -167,30 +196,26 @@ self.addEventListener('push', (event) => {
                     });
                 }
                 
-                // Sonido más persistente para walkie-talkie
+                // Notificación más prominente para walkie-talkie
                 notificationData.requireInteraction = true; // No se cierra automáticamente
                 notificationData.silent = false; // IMPORTANTE: Asegurar que haga sonido
                 notificationData.tag = 'walkie-talkie-audio'; // Agrupar audios
+                notificationData.renotify = true; // Volver a notificar si hay otra con el mismo tag
                 
                 // Vibración específica para walkie-talkie (más larga e intensa)
                 notificationData.vibrate = [300, 100, 300, 100, 300, 100, 300];
                 
-                // Configurar sonido personalizado si está disponible
-                if ('sound' in notificationData) {
-                    notificationData.sound = '/static/sounds/walkie-beep.mp3';
-                }
-                
                 // Acciones rápidas
                 notificationData.actions = [
                     {
-                        action: 'replay_audio',
-                        title: '� Repetir Audio',
-                        icon: '/static/imagenes/audio-icon.png'
+                        action: 'open_and_play',
+                        title: '🔊 Abrir y Escuchar',
+                        icon: '/static/imagenes/icon-192x192.png'
                     },
                     {
                         action: 'dismiss',
                         title: '❌ Descartar',
-                        icon: '/static/imagenes/close-icon.png'
+                        icon: '/static/imagenes/icon-192x192.png'
                     }
                 ];
                 
@@ -251,29 +276,37 @@ self.addEventListener('notificationclick', (event) => {
     if (notificationData.type === 'walkie_talkie_audio' || notificationData.type === 'background_audio_playback') {
         console.log('📻 Click en notificación de walkie-talkie');
         
-        if (action === 'open_audio' || action === 'replay_audio' || !action) {
+        if (action === 'open_and_play' || action === 'replay_audio' || !action) {
+            console.log('🔊 Abriendo app para reproducir audio');
             
-            // Reproducir audio nuevamente si se solicita
-            if (action === 'replay_audio' && notificationData.audio_url) {
-                console.log('🔄 Repitiendo audio de walkie-talkie');
-                playAudioInBackground(notificationData.audio_url, notificationData.sender_name);
-            }
-            
-            // Abrir app y ir a central de comunicaciones
+            // Abrir app y enviar comando para reproducir audio
             event.waitUntil(
-                clients.matchAll({ type: 'window' }).then((clientList) => {
-                    // Si hay una ventana abierta, enfocarla
-                    for (const client of clientList) {
-                        if (client.url.includes('central-comunicacion') && 'focus' in client) {
-                            console.log('📻 Enfocando central de comunicaciones existente');
-                            return client.focus();
-                        }
-                    }
+                clients.matchAll({ 
+                    type: 'window',
+                    includeUncontrolled: true 
+                }).then((clientList) => {
+                    console.log(`🔍 Ventanas encontradas: ${clientList.length}`);
                     
-                    // Si no hay ventana abierta o no está en central, abrir nueva
-                    if (clients.openWindow) {
-                        console.log('📻 Abriendo central de comunicaciones');
-                        return clients.openWindow('/central-comunicacion/');
+                    // Si hay una ventana abierta, enfocarla y enviar audio
+                    if (clientList.length > 0) {
+                        const client = clientList[0];
+                        console.log('📱 Enfocando ventana existente y enviando audio');
+                        
+                        // Enviar mensaje al cliente para reproducir audio
+                        client.postMessage({
+                            type: 'PLAY_AUDIO_IMMEDIATELY',
+                            audioUrl: notificationData.audio_url,
+                            senderName: notificationData.sender_name,
+                            timestamp: Date.now()
+                        });
+                        
+                        return client.focus();
+                    } else {
+                        // Si no hay ventana abierta, abrir una nueva
+                        console.log('🆕 Abriendo nueva ventana para reproducir audio');
+                        if (clients.openWindow) {
+                            return clients.openWindow('/comunicacion/?autoplay=true&audio=' + encodeURIComponent(notificationData.audio_url) + '&sender=' + encodeURIComponent(notificationData.sender_name));
+                        }
                     }
                 })
             );
@@ -283,17 +316,6 @@ self.addEventListener('notificationclick', (event) => {
             if (notificationData.sender_id && notificationData.timestamp) {
                 markAudioAsDismissed(notificationData.sender_id, notificationData.timestamp);
             }
-        } else if (action === 'stop_audio') {
-            console.log('⏹️ Deteniendo reproducción de audio');
-            // Enviar comando para detener audio a las ventanas abiertas
-            clients.matchAll({ type: 'window' }).then((clientList) => {
-                clientList.forEach(client => {
-                    client.postMessage({
-                        type: 'STOP_AUDIO',
-                        payload: { immediate: true }
-                    });
-                });
-            });
         }
     } else {
         // Comportamiento normal para otras notificaciones

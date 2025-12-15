@@ -1,3 +1,14 @@
+// ========================================
+// VERIFICAR SI ESTAMOS EN LA VISTA DE COMUNICACIÓN
+// ========================================
+// Este script solo debe ejecutarse en /central-comunicacion/
+if (!window.location.pathname.includes('/central-comunicacion/') && 
+    !window.location.pathname.includes('/comunicacion/')) {
+    console.log('⏭️ comunicacion.js: No estamos en vista de comunicación, saltando inicialización');
+    // No ejecutar el resto del script
+} else {
+    console.log('✅ comunicacion.js: Inicializando en vista de comunicación');
+
 // Variables globales
 let map;
 let socket;
@@ -1266,4 +1277,7 @@ function checkAutoplayParameters() {
     } catch (error) {
         console.error('❌ Error verificando parámetros de autoplay:', error);
     }
+}
+
+// Cerrar el bloque if/else de verificación de vista
 }

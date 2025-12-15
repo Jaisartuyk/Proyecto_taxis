@@ -1,14 +1,3 @@
-// ========================================
-// VERIFICAR SI ESTAMOS EN LA VISTA DE COMUNICACIÓN
-// ========================================
-// Este script solo debe ejecutarse en /central-comunicacion/
-if (!window.location.pathname.includes('/central-comunicacion/') && 
-    !window.location.pathname.includes('/comunicacion/')) {
-    console.log('⏭️ comunicacion.js: No estamos en vista de comunicación, saltando inicialización');
-    // No ejecutar el resto del script
-} else {
-    console.log('✅ comunicacion.js: Inicializando en vista de comunicación');
-
 // Variables globales
 let map;
 let socket;
@@ -34,9 +23,9 @@ let currentPlayingAudio = null; // Para poder detener audio actual
 const roomName = "conductores";
 const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
 
-// Elementos del DOM
-const startCentralMicBtn = document.getElementById('startCentralMic');
-const stopCentralMicBtn = document.getElementById('stopCentralMic');
+// Elementos del DOM - se inicializarán después
+let startCentralMicBtn;
+let stopCentralMicBtn;
 
 // Inicialización
 async function init() {
@@ -64,6 +53,18 @@ function loadGoogleMapsAPI() {
 
 window.initMap = function () {
     const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
+    
+    // Inicializar elementos del DOM
+    startCentralMicBtn = document.getElementById('record-audio-btn');
+    stopCentralMicBtn = document.getElementById('stop-audio-btn'); // Puede no existir
+    
+    if (!startCentralMicBtn) {
+        console.warn('Botón de grabación central no encontrado en el DOM');
+    }
+    
+    // Crear elementos faltantes si es necesario
+    ensureRequiredElements();
+    
     map = new google.maps.Map(document.getElementById("map"), {
         zoom: 14,
         center: defaultLatLng,
@@ -77,6 +78,35 @@ window.initMap = function () {
     setInterval(fetchDriverLocations, 10000);
     fetchDriverLocations();
 };
+
+// Función para crear elementos DOM faltantes
+function ensureRequiredElements() {
+    // Verificar y crear elemento de status si no existe
+    if (!document.getElementById('status')) {
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'status';
+        statusDiv.className = 'status disconnected';
+        statusDiv.textContent = 'Iniciando...';
+        statusDiv.style.cssText = 'padding: 10px; margin: 10px; border-radius: 5px; color: white; text-align: center;';
+        document.body.appendChild(statusDiv);
+    }
+    
+    // Verificar y crear elemento de log si no existe
+    if (!document.getElementById('log')) {
+        const logDiv = document.createElement('div');
+        logDiv.id = 'log';
+        logDiv.style.cssText = 'max-height: 200px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 5px; margin: 10px; font-family: monospace; font-size: 12px;';
+        document.body.appendChild(logDiv);
+    }
+    
+    // Verificar y crear elemento de audioLog si no existe
+    if (!document.getElementById('audioLog')) {
+        const audioLogDiv = document.createElement('div');
+        audioLogDiv.id = 'audioLog';
+        audioLogDiv.style.cssText = 'max-height: 200px; overflow-y: auto; padding: 10px; background: #e3f2fd; border-radius: 5px; margin: 10px; font-family: monospace; font-size: 12px;';
+        document.body.appendChild(audioLogDiv);
+    }
+}
 
 // Variables de reconexión
 wsReconnectAttempts = 0;
@@ -279,7 +309,10 @@ function updateDriverLocation(driverId, lat, lng, driverName = null) {
 // Funciones de utilidad
 function logMessage(msg) {
     const logDiv = document.getElementById('log');
-    if (!logDiv) return; // Verificar si el elemento existe
+    if (!logDiv) {
+        console.warn('Elemento #log no encontrado en el DOM');
+        return; // Verificar si el elemento existe
+    }
     const p = document.createElement('p');
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     logDiv.appendChild(p);
@@ -288,7 +321,10 @@ function logMessage(msg) {
 
 function logAudio(msg) {
     const audioLogDiv = document.getElementById('audioLog');
-    if (!audioLogDiv) return; // Verificar si el elemento existe
+    if (!audioLogDiv) {
+        console.warn('Elemento #audioLog no encontrado en el DOM');
+        return; // Verificar si el elemento existe
+    }
     const p = document.createElement('p');
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     audioLogDiv.appendChild(p);
@@ -297,13 +333,21 @@ function logAudio(msg) {
 
 function updateStatus(message, className) {
     const statusDiv = document.getElementById('status');
-    if (!statusDiv) return; // Verificar si el elemento existe
+    if (!statusDiv) {
+        console.warn('Elemento #status no encontrado en el DOM');
+        return;
+    }
     statusDiv.textContent = message;
     statusDiv.className = `status ${className}`;
 }
 
 // Funciones para grabar y enviar audio desde la Central
 function setupCentralAudioControls() {
+    if (!startCentralMicBtn) {
+        console.warn('Botón de grabación central no está disponible');
+        return;
+    }
+    
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
             centralAudioStream = stream;
@@ -382,7 +426,13 @@ function processAudioQueue() {
 
     isPlayingAudio = true;
     const base64Audio = audioQueue.shift();
-    const audioPlayer = document.getElementById('audioPlayer');
+    const audioPlayer = document.getElementById('audio-player');
+
+    if (!audioPlayer) {
+        console.warn('Elemento #audioPlayer no encontrado en el DOM');
+        isPlayingAudio = false;
+        return;
+    }
 
     const audioBlob = base64ToBlob(base64Audio, 'audio/webm');
     const audioUrl = URL.createObjectURL(audioBlob);
@@ -1280,5 +1330,5 @@ function checkAutoplayParameters() {
     }
 }
 
-// Cerrar el bloque if/else de verificación de vista
-}
+// Limpiar audios antiguos cada 30 minutos
+setInterval(cleanOldPendingAudios, 30 * 60 * 1000);

@@ -7,20 +7,41 @@
 <style>
     /* === ANIMACIONES PARA SISTEMA DE AUDIO === */
     @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
     }
-    
+
     @keyframes audioIndicatorPulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.05); opacity: 0.9; }
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
     }
-    
+
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
-    
+
     /* === DISEÑO PROFESIONAL CENTRO DE COMANDO === */
     body {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
@@ -114,6 +135,7 @@
         .command-center-header h1 {
             font-size: 1.2rem;
         }
+
         .status-indicator span {
             display: none;
         }
@@ -231,22 +253,23 @@
         .header-controls {
             gap: 5px;
         }
-        
+
         .header-toggle-btn {
             padding: 3px 6px;
             font-size: 10px;
             min-width: 18px;
             height: 20px;
         }
-        
-        .chat-header, .audio-log-header {
+
+        .chat-header,
+        .audio-log-header {
             padding: 12px 15px;
         }
-        
+
         .audio-log-header {
             font-size: 0.8rem;
         }
-        
+
         /* Ajustar botones flotantes en móvil */
         .floating-controls {
             right: 10px;
@@ -257,7 +280,7 @@
             justify-content: center;
             gap: 15px;
         }
-        
+
         .floating-btn {
             width: 45px;
             height: 45px;
@@ -298,7 +321,7 @@
         font-weight: 600;
         font-size: 1rem;
         border-bottom: 2px solid #5f3dc4;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -380,12 +403,12 @@
         background: rgba(255, 255, 255, 0.95);
         font-size: 14px;
         outline: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
 
     #chat-message-input:focus {
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         background: white;
     }
 
@@ -447,7 +470,7 @@
         letter-spacing: 1px;
         font-size: 0.9rem;
         border-bottom: 2px solid #2d3748;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -581,7 +604,7 @@
         font-size: 1rem;
         border-bottom: 2px solid #a93226;
         text-align: center;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
     .broadcast-controls {
@@ -594,11 +617,11 @@
     }
 
     .central-mic-section {
-        background: rgba(0,0,0,0.1);
+        background: rgba(0, 0, 0, 0.1);
         border-radius: 15px;
         padding: 20px;
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     #record-audio-btn {
@@ -628,7 +651,7 @@
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
         transition: left 0.5s;
     }
 
@@ -660,10 +683,10 @@
 
     /* SECCIÓN DE CONTROLES AVANZADOS */
     .advanced-controls {
-        background: rgba(0,0,0,0.1);
+        background: rgba(0, 0, 0, 0.1);
         border-radius: 10px;
         padding: 15px;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .control-group {
@@ -718,10 +741,10 @@
     }
 
     .status-indicator-panel {
-        background: rgba(0,0,0,0.1);
+        background: rgba(0, 0, 0, 0.1);
         border-radius: 10px;
         padding: 12px;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .status-row {
@@ -753,16 +776,16 @@
             height: 80px;
             font-size: 32px;
         }
-        
+
         .broadcast-controls {
             padding: 15px;
             gap: 10px;
         }
-        
+
         .button-row {
             flex-direction: column;
         }
-        
+
         .control-btn {
             flex: none;
             width: 100%;
@@ -787,6 +810,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -1051,17 +1075,18 @@
                         <div class="mic-label">TRANSMISIÓN GENERAL</div>
                         <div class="mic-sublabel">Mantén presionado para hablar<br>con TODOS los conductores</div>
                     </div>
-                    
+
                     <!-- CONTROLES AVANZADOS -->
                     <div class="advanced-controls">
                         <div class="control-group">
                             <label class="control-label">📡 Acciones Rápidas</label>
                             <div class="button-row">
                                 <button class="control-btn" onclick="testConnection()">🔗 Test</button>
-                                <button class="control-btn emergency" onclick="emergencyBroadcast()">🚨 Emergencia</button>
+                                <button class="control-btn emergency" onclick="emergencyBroadcast()">🚨
+                                    Emergencia</button>
                             </div>
                         </div>
-                        
+
                         <div class="control-group">
                             <label class="control-label">🎛️ Configuración</label>
                             <div class="button-row">
@@ -1070,7 +1095,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- INDICADORES DE ESTADO -->
                     <div class="status-indicator-panel">
                         <div class="status-row">
@@ -1094,8 +1119,10 @@
                 <div class="chat-header" id="chat-header">
                     <span>💬 Chat Privado</span>
                     <div class="header-controls">
-                        <button class="header-toggle-btn" id="toggle-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa (F11)">🔳</button>
-                        <button class="header-toggle-btn minimize" onclick="toggleChat()" title="Ocultar chat (Ctrl+H)">✕</button>
+                        <button class="header-toggle-btn" id="toggle-fullscreen" onclick="toggleFullscreen()"
+                            title="Pantalla completa (F11)">🔳</button>
+                        <button class="header-toggle-btn minimize" onclick="toggleChat()"
+                            title="Ocultar chat (Ctrl+H)">✕</button>
                     </div>
                 </div>
                 <div class="chat-messages" id="chat-log">
@@ -1120,7 +1147,8 @@
                 <span>📻 Registro de Audio</span>
                 <div class="header-controls">
                     <button class="header-toggle-btn" onclick="clearHistory()" title="Limpiar historial">🗑️</button>
-                    <button class="header-toggle-btn minimize" onclick="toggleAudioLog()" title="Ocultar audio (Ctrl+J)">✕</button>
+                    <button class="header-toggle-btn minimize" onclick="toggleAudioLog()"
+                        title="Ocultar audio (Ctrl+J)">✕</button>
                 </div>
             </div>
             <div class="audio-log-content" id="audio-log">
@@ -1134,8 +1162,10 @@
 
 <!-- BOTONES FLOTANTES PARA PANELES OCULTOS -->
 <div class="floating-controls">
-    <button class="floating-btn chat-btn" id="floating-chat-btn" onclick="toggleChat()" title="Mostrar Chat (Ctrl+H)">💬</button>
-    <button class="floating-btn audio-btn" id="floating-audio-btn" onclick="toggleAudioLog()" title="Mostrar Audio (Ctrl+J)">📻</button>
+    <button class="floating-btn chat-btn" id="floating-chat-btn" onclick="toggleChat()"
+        title="Mostrar Chat (Ctrl+H)">💬</button>
+    <button class="floating-btn audio-btn" id="floating-audio-btn" onclick="toggleAudioLog()"
+        title="Mostrar Audio (Ctrl+J)">📻</button>
 </div>
 
 <audio id="audio-player" style="display: none;"></audio>
@@ -1151,23 +1181,24 @@
     document.addEventListener('DOMContentLoaded', function () {
         const currentUser = {
             id: "{{ request.user.id }}",
-            is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
+            is_superuser: {{ request.user.is_superuser| yesno: "true,false"
+    }}
         };
-        const adminUserId = "{{ admin_user_id }}";
+    const adminUserId = "{{ admin_user_id }}";
 
-        const chatLog = document.getElementById('chat-log');
-        const chatHeader = document.getElementById('chat-header');
-        const messageInput = document.getElementById('chat-message-input');
-        const messageSubmit = document.getElementById('chat-message-submit');
-        const inputContainer = document.getElementById('chat-input-container');
-        const noChatSelected = document.getElementById('no-chat-selected');
-        const audioLogPanel = document.getElementById('audio-log');
+    const chatLog = document.getElementById('chat-log');
+    const chatHeader = document.getElementById('chat-header');
+    const messageInput = document.getElementById('chat-message-input');
+    const messageSubmit = document.getElementById('chat-message-submit');
+    const inputContainer = document.getElementById('chat-input-container');
+    const noChatSelected = document.getElementById('no-chat-selected');
+    const audioLogPanel = document.getElementById('audio-log');
 
-        let activeChatRecipientId = null;
-        let chatSocket = null;
+    let activeChatRecipientId = null;
+    let chatSocket = null;
 
-        // Función para agregar entrada al registro de audio
-        function addAudioLogEntry(senderName, type) {
+    // Función para agregar entrada al registro de audio
+    function addAudioLogEntry(senderName, type) {
         const emptyMsg = audioLogPanel.querySelector('.audio-log-empty');
         if (emptyMsg) emptyMsg.remove();
 
@@ -1240,7 +1271,7 @@
         if (message && activeChatRecipientId && chatSocket.readyState === WebSocket.OPEN) {
             // Agregar el mensaje inmediatamente a la vista
             appendMessage(message, currentUser.id, 'Tú');
-            
+
             // Enviar por WebSocket
             chatSocket.send(JSON.stringify({
                 'message': message,
@@ -1300,59 +1331,12 @@
     const recordBtn = document.getElementById('record-audio-btn');
     const audioPlayer = document.getElementById('audio-player');
 
-    // Configurar WebSocket de audio
+    // Configurar WebSocket de audio (AHORA MANEJADO GLOBALMENTE EN BASE.HTML)
+    /*
     function setupAudioWebSocket() {
-        const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-        const wsPath = wsProtocol + window.location.host + '/ws/audio/conductores/';
-
-        audioSocket = new WebSocket(wsPath);
-
-        audioSocket.onopen = function (e) {
-            console.log('🔊 Audio WebSocket conectado');
-        };
-
-        audioSocket.onclose = function (e) {
-            console.error('🔊 Audio WebSocket desconectado. Reintentando en 5s...');
-            setTimeout(setupAudioWebSocket, 5000);
-        };
-
-        audioSocket.onmessage = function (e) {
-            const data = JSON.parse(e.data);
-
-            // Solo procesar mensajes de audio (ignorar ubicaciones)
-            if (data.type !== 'audio_broadcast') {
-                return;
-            }
-
-            console.log('🔊 Mensaje de audio recibido completo:', data);
-            console.log('🔍 Mi ID:', currentUser.id, 'Sender ID:', data.senderId, 'Tipo:', typeof data.senderId);
-
-            // Manejar audio de conductores
-            if (data.audio) {
-                // No reproducir mi propio audio (comparar por ID de usuario - ambos como string)
-                const myId = String(currentUser.id);
-                const senderId = String(data.senderId);
-
-                if (senderId === myId) {
-                    console.log('🔇 Audio propio ignorado - Mi ID:', myId, 'Sender:', senderId);
-                    return;
-                }
-
-                console.log('✅ Audio de otra persona - reproduciendo');
-
-                const audioData = 'data:audio/webm;base64,' + data.audio;
-                audioPlayer.src = audioData;
-                audioPlayer.play();
-
-                const senderName = data.senderRole === 'Central' ? 'Otra Central' : (data.senderId || 'Conductor');
-                appendAudioMessage(senderName, false);
-
-                // Agregar al registro de audio
-                addAudioLogEntry(`📥 ${senderName}`, 'received');
-                console.log('🔊 Audio reproduciendo de:', senderName);
-            }
-        };
+        // ... lógica movida a base.html ...
     }
+    */
 
     // WALKIE-TALKIE: Mantener presionado para hablar
     let audioStream = null;
@@ -1468,12 +1452,12 @@
     }
 
     // FUNCIONES PARA LOS CONTROLES AVANZADOS
-    window.testConnection = function() {
+    window.testConnection = function () {
         console.log('🔗 Probando conexión...');
         const statusEl = document.getElementById('connection-status');
         statusEl.textContent = 'Probando...';
         statusEl.style.color = '#f39c12';
-        
+
         // Simular test de conexión
         setTimeout(() => {
             if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
@@ -1487,23 +1471,23 @@
             }
         }, 1000);
     }
-    
-    window.emergencyBroadcast = function() {
+
+    window.emergencyBroadcast = function () {
         console.log('🚨 Transmisión de emergencia');
         showNotification('🚨 Modo emergencia activado', 'warning');
-        
+
         // Cambiar el estilo del botón de micrófono temporalmente
         const micBtn = document.getElementById('record-audio-btn');
         const originalStyle = micBtn.style.background;
         micBtn.style.background = 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)';
-        
+
         setTimeout(() => {
             micBtn.style.background = originalStyle;
         }, 3000);
     }
-    
+
     let isMuted = false;
-    window.toggleMute = function() {
+    window.toggleMute = function () {
         isMuted = !isMuted;
         const btn = event.target;
         if (isMuted) {
@@ -1516,8 +1500,8 @@
             showNotification('🔊 Micrófono activado', 'success');
         }
     }
-    
-    window.clearHistory = function() {
+
+    window.clearHistory = function () {
         console.log('🗑️ Limpiando historial...');
         const audioLog = document.getElementById('audio-log');
         if (audioLog) {
@@ -1525,12 +1509,12 @@
         }
         showNotification('🗑️ Historial limpiado', 'info');
     }
-    
+
     // FUNCIONES PARA CONTROLAR VISIBILIDAD DE PANELES
-    window.toggleChat = function() {
+    window.toggleChat = function () {
         const chatWindow = document.querySelector('.chat-window');
         const floatingBtn = document.getElementById('floating-chat-btn');
-        
+
         if (chatWindow.classList.contains('hidden')) {
             chatWindow.classList.remove('hidden');
             floatingBtn.classList.remove('visible');
@@ -1541,11 +1525,11 @@
             showNotification('💬 Chat oculto', 'info');
         }
     }
-    
-    window.toggleAudioLog = function() {
+
+    window.toggleAudioLog = function () {
         const audioPanel = document.querySelector('.audio-log-panel');
         const floatingBtn = document.getElementById('floating-audio-btn');
-        
+
         if (audioPanel.classList.contains('hidden')) {
             audioPanel.classList.remove('hidden');
             floatingBtn.classList.remove('visible');
@@ -1556,8 +1540,8 @@
             showNotification('📻 Registro de audio oculto', 'info');
         }
     }
-    
-    window.toggleFullscreen = function() {
+
+    window.toggleFullscreen = function () {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().then(() => {
                 showNotification('🔳 Pantalla completa activada', 'success');
@@ -1570,40 +1554,40 @@
             });
         }
     }
-    
+
     // CARGAR PREFERENCIAS GUARDADAS
     function loadViewPreferences() {
         const chatVisible = localStorage.getItem('chatVisible') !== 'false';
         const audioVisible = localStorage.getItem('audioVisible') !== 'false';
-        
+
         // Configurar estado inicial de los paneles y botones flotantes
         const chatWindow = document.querySelector('.chat-window');
         const audioPanel = document.querySelector('.audio-log-panel');
         const floatingChatBtn = document.getElementById('floating-chat-btn');
         const floatingAudioBtn = document.getElementById('floating-audio-btn');
-        
+
         if (!chatVisible) {
             chatWindow.classList.add('hidden');
             floatingChatBtn.classList.add('visible');
         }
-        
+
         if (!audioVisible) {
             audioPanel.classList.add('hidden');
             floatingAudioBtn.classList.add('visible');
         }
     }
-    
+
     // GUARDAR PREFERENCIAS
     function saveViewPreferences() {
         const chatVisible = !document.querySelector('.chat-window').classList.contains('hidden');
         const audioVisible = !document.querySelector('.audio-log-panel').classList.contains('hidden');
-        
+
         localStorage.setItem('chatVisible', chatVisible);
         localStorage.setItem('audioVisible', audioVisible);
     }
-    
+
     // SHORTCUTS DE TECLADO
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         // Ctrl/Cmd + H = Toggle Chat
         if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
             e.preventDefault();
@@ -1617,31 +1601,31 @@
         // F11 = Toggle Fullscreen (funciona automáticamente)
         // Escape en fullscreen funciona automáticamente
     });
-    
+
     // Guardar preferencias al cambiar vista
     const originalToggleChat = window.toggleChat;
     const originalToggleAudio = window.toggleAudioLog;
-    
-    window.toggleChat = function() {
+
+    window.toggleChat = function () {
         originalToggleChat();
         saveViewPreferences();
     };
-    
-    window.toggleAudioLog = function() {
+
+    window.toggleAudioLog = function () {
         originalToggleAudio();
         saveViewPreferences();
     };
-    
+
     // Cargar preferencias al iniciar
     setTimeout(loadViewPreferences, 500); // Pequeño delay para asegurar que el DOM esté listo
-    
+
     // SISTEMA DE NOTIFICACIONES
     function showNotification(message, type = 'info') {
         // Crear elemento de notificación
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
-        
+
         // Estilos
         Object.assign(notification.style, {
             position: 'fixed',
@@ -1660,15 +1644,15 @@
             transform: 'translateX(100%)',
             transition: 'all 0.3s ease'
         });
-        
+
         document.body.appendChild(notification);
-        
+
         // Animación de entrada
         setTimeout(() => {
             notification.style.opacity = '1';
             notification.style.transform = 'translateX(0)';
         }, 100);
-        
+
         // Auto-remove después de 3 segundos
         setTimeout(() => {
             notification.style.opacity = '0';
@@ -1680,129 +1664,129 @@
             }, 300);
         }, 3000);
     }
-    
+
     function getNotificationColor(type) {
         switch (type) {
             case 'success': return 'linear-gradient(135deg, #27ae60 0%, #229954 100%)';
             case 'error': return 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
             case 'warning': return 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
-            case 'info': 
+            case 'info':
             default: return 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
         }
     }
 
     // Iniciar conexiones
     setupWebSocket();
-    setupAudioWebSocket();
+    // setupAudioWebSocket(); // AHORA GLOBAL
 });
 
-// ==================== MAPA DE GOOGLE MAPS ====================
-// Función global para inicializar el mapa
-window.initMap = function () {
-    // Centro en Guayaquil, Ecuador
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -2.1894, lng: -79.8890 },
-        zoom: 13,
-        styles: [
-            {
-                "featureType": "all",
-                "elementType": "geometry",
-                "stylers": [{ "color": "#242f3e" }]
-            },
-            {
-                "featureType": "all",
-                "elementType": "labels.text.stroke",
-                "stylers": [{ "lightness": -80 }]
-            },
-            {
-                "featureType": "administrative",
-                "elementType": "labels.text.fill",
-                "stylers": [{ "color": "#746855" }]
-            },
-            {
-                "featureType": "poi",
-                "elementType": "labels.text.fill",
-                "stylers": [{ "color": "#d59563" }]
-            },
-            {
-                "featureType": "road",
-                "elementType": "geometry.fill",
-                "stylers": [{ "color": "#2b3544" }]
-            },
-            {
-                "featureType": "road",
-                "elementType": "labels.text.fill",
-                "stylers": [{ "color": "#9ca5b3" }]
-            },
-            {
-                "featureType": "water",
-                "elementType": "geometry",
-                "stylers": [{ "color": "#17263c" }]
-            }
-        ]
-    });
-
-    // Agregar capa de tráfico
-    const trafficLayer = new google.maps.TrafficLayer();
-    trafficLayer.setMap(map);
-
-    console.log('🗺️ Mapa de Google Maps inicializado');
-
-    // Obtener ubicaciones iniciales
-    fetchDriverLocations();
-
-    // Actualizar cada 5 segundos
-    setInterval(fetchDriverLocations, 5000);
-};
-
-// Funciones auxiliares globales
-function fetchDriverLocations() {
-    fetch('/api/ubicaciones_taxis/')
-        .then(response => response.json())
-        .then(data => {
-            console.log('📍 Ubicaciones recibidas:', data);
-            // El backend devuelve {taxis: [...]}
-            if (data.taxis && data.taxis.length > 0) {
-                updateMarkers(data.taxis);
-            } else {
-                console.warn('⚠️ No hay taxis disponibles');
-            }
-        })
-        .catch(error => console.error('❌ Error al obtener ubicaciones:', error));
-}
-
-function updateMarkers(taxis) {
-    console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
-
-    taxis.forEach(taxi => {
-        // Verificar que tenga coordenadas válidas
-        if (!taxi.lat || !taxi.lng) {
-            console.warn('⚠️ Taxi sin coordenadas:', taxi);
-            return;
-        }
-
-        const position = { lat: parseFloat(taxi.lat), lng: parseFloat(taxi.lng) };
-        const taxiId = taxi.id;
-
-        if (markers[taxiId]) {
-            // Actualizar posición del marcador existente
-            console.log('📍 Actualizando marcador:', taxi.nombre);
-            markers[taxiId].setPosition(position);
-        } else {
-            // Crear nuevo marcador
-            console.log('📍 Creando nuevo marcador:', taxi.nombre);
-            const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                title: taxi.nombre,
-                icon: {
-                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+    // ==================== MAPA DE GOOGLE MAPS ====================
+    // Función global para inicializar el mapa
+    window.initMap = function () {
+        // Centro en Guayaquil, Ecuador
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: -2.1894, lng: -79.8890 },
+            zoom: 13,
+            styles: [
+                {
+                    "featureType": "all",
+                    "elementType": "geometry",
+                    "stylers": [{ "color": "#242f3e" }]
+                },
+                {
+                    "featureType": "all",
+                    "elementType": "labels.text.stroke",
+                    "stylers": [{ "lightness": -80 }]
+                },
+                {
+                    "featureType": "administrative",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#746855" }]
+                },
+                {
+                    "featureType": "poi",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#d59563" }]
+                },
+                {
+                    "featureType": "road",
+                    "elementType": "geometry.fill",
+                    "stylers": [{ "color": "#2b3544" }]
+                },
+                {
+                    "featureType": "road",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#9ca5b3" }]
+                },
+                {
+                    "featureType": "water",
+                    "elementType": "geometry",
+                    "stylers": [{ "color": "#17263c" }]
                 }
-            });
+            ]
+        });
 
-            // InfoWindow con información del conductor
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
+        // Agregar capa de tráfico
+        const trafficLayer = new google.maps.TrafficLayer();
+        trafficLayer.setMap(map);
+
+        console.log('🗺️ Mapa de Google Maps inicializado');
+
+        // Obtener ubicaciones iniciales
+        fetchDriverLocations();
+
+        // Actualizar cada 5 segundos
+        setInterval(fetchDriverLocations, 5000);
+    };
+
+    // Funciones auxiliares globales
+    function fetchDriverLocations() {
+        fetch('/api/ubicaciones_taxis/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('📍 Ubicaciones recibidas:', data);
+                // El backend devuelve {taxis: [...]}
+                if (data.taxis && data.taxis.length > 0) {
+                    updateMarkers(data.taxis);
+                } else {
+                    console.warn('⚠️ No hay taxis disponibles');
+                }
+            })
+            .catch(error => console.error('❌ Error al obtener ubicaciones:', error));
+    }
+
+    function updateMarkers(taxis) {
+        console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
+
+        taxis.forEach(taxi => {
+            // Verificar que tenga coordenadas válidas
+            if (!taxi.lat || !taxi.lng) {
+                console.warn('⚠️ Taxi sin coordenadas:', taxi);
+                return;
+            }
+
+            const position = { lat: parseFloat(taxi.lat), lng: parseFloat(taxi.lng) };
+            const taxiId = taxi.id;
+
+            if (markers[taxiId]) {
+                // Actualizar posición del marcador existente
+                console.log('📍 Actualizando marcador:', taxi.nombre);
+                markers[taxiId].setPosition(position);
+            } else {
+                // Crear nuevo marcador
+                console.log('📍 Creando nuevo marcador:', taxi.nombre);
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: taxi.nombre,
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    }
+                });
+
+                // InfoWindow con información del conductor
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
             <div style="padding: 10px;">
                 <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
                 <p style="margin: 0; color: #666;">🚕 ${taxi.placa || 'Sin placa'}</p>
@@ -1814,16 +1798,16 @@ function updateMarkers(taxis) {
                 </p>
             </div>
         `
-            });
+                });
 
-            marker.addListener('click', () => {
-                infoWindow.open(map, marker);
-            });
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
 
-            markers[taxiId] = marker;
-        }
-    });
-}
+                markers[taxiId] = marker;
+            }
+        });
+    }
 </script>
 
 <!-- Google Maps API -->

@@ -293,7 +293,7 @@
         const ADMIN_ID = '{{ admin_user_id }}';
 
         // Estado
-        let audioSocket = null;
+        // let audioSocket = null; // AHORA GLOBAL
         let chatSocket = null;
         let mediaRecorder = null;
         let audioChunks = [];
@@ -352,41 +352,18 @@
 
         // --- WEBSOCKETS SETUP ---
         function setupWebSockets() {
-            console.log('🔌 Iniciando WebSockets...');
+            console.log('🔌 Iniciando WebSockets (Chat)...');
             console.log('👤 MY_ID:', MY_ID, 'ADMIN_ID:', ADMIN_ID);
-            
+
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             const host = window.location.host;
 
-            // 1. Audio WebSocket
-            console.log('🎤 Conectando Audio WebSocket...');
-            audioSocket = new WebSocket(`${wsProtocol}${host}/ws/audio/conductores/`);
-
-            audioSocket.onopen = () => {
-                console.log('🎤 Audio WS Conectado');
-                updateStatus();
-            };
-
-            audioSocket.onclose = () => {
-                console.log('🎤 Audio WS Desconectado');
-                updateStatus();
-                setTimeout(setupWebSockets, 5000);
-            };
-
-            audioSocket.onmessage = (e) => {
-                const data = JSON.parse(e.data);
-                if (data.type === 'audio_broadcast' && data.audio) {
-                    // Ignorar mi propio audio
-                    if (String(data.senderId) === String(MY_USERNAME)) return;
-
-                    // Reproducir audio
-                    const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/webm' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    audioPlayer.src = audioUrl;
-                    audioPlayer.play().catch(console.error);
-                    document.getElementById('audioStatus').textContent = `🔊 Audio de ${data.senderId}`;
-                }
-            };
+            // 1. Audio WebSocket: AHORA ES GLOBAL (ver base.html)
+            // Escuchar eventos del audio global para actualizar UI
+            window.addEventListener('global-audio-received', (e) => {
+                const data = e.detail;
+                document.getElementById('audioStatus').textContent = `🔊 Audio de ${data.senderId}`;
+            });
 
             // 2. Chat WebSocket
             console.log('💬 Conectando Chat WebSocket...');
@@ -427,7 +404,7 @@
         }
 
         function updateStatus() {
-            const audioConnected = audioSocket && audioSocket.readyState === WebSocket.OPEN;
+            const audioConnected = window.globalAudioSocket && window.globalAudioSocket.readyState === WebSocket.OPEN;
             const chatConnected = chatSocket && chatSocket.readyState === WebSocket.OPEN;
 
             if (audioConnected && chatConnected) {
@@ -461,13 +438,19 @@
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         const base64Audio = reader.result.split(',')[1];
-                        if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
-                            audioSocket.send(JSON.stringify({
+                        // Usar el socket global definido en base.html
+                        const socket = window.globalAudioSocket;
+
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({
                                 type: 'audio_message',
                                 senderId: MY_USERNAME,
                                 senderRole: 'driver',
                                 audio: base64Audio
                             }));
+                        } else {
+                            console.error('Audio Global Socket no conectado');
+                            alert('No hay conexión de audio');
                         }
                     };
                     reader.readAsDataURL(blob);
@@ -515,7 +498,7 @@
             if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
                 // Agregar el mensaje inmediatamente a la vista
                 appendMessage(text, true);
-                
+
                 // Enviar por WebSocket
                 chatSocket.send(JSON.stringify({
                     message: text,

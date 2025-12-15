@@ -9,27 +9,81 @@ let mediaRecorderCentral;
 let centralAudioStream;
 let Maps_API_KEY;
 
+// Variables de reconexión WebSocket
+let wsReconnectAttempts = 0;
+let wsMaxReconnectAttempts = 10;
+let wsReconnectInterval = 1000;
+let wsReconnectTimeout;
+
+// Variables del sistema walkie-talkie
+let pendingAudioQueue = [];
+let dismissedAudios = new Set();
+let currentPlayingAudio = null; // Para poder detener audio actual
+
 const roomName = "conductores";
 const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
 
-// Elementos del DOM
-const startCentralMicBtn = document.getElementById('startCentralMic');
-const stopCentralMicBtn = document.getElementById('stopCentralMic');
+// Elementos del DOM - se inicializarán después de que el DOM esté listo
+let startCentralMicBtn = null;
+let stopCentralMicBtn = null;
+
+// Flag para asegurar que solo se inicialice una vez
+let systemInitialized = false;
 
 // Inicialización
 async function init() {
     try {
+        // Crear elementos DOM faltantes PRIMERO
+        ensureRequiredElements();
+        
+        console.log('🚀 Iniciando sistema...');
+        
         // Obtener API key de Google Maps de forma segura
         const response = await fetch('/api/maps-key/');
         const data = await response.json();
         Maps_API_KEY = data.maps_api_key;
         
-        // Cargar Google Maps
-        loadGoogleMapsAPI();
+        // Cargar Google Maps solo si tenemos la API key
+        if (Maps_API_KEY) {
+            loadGoogleMapsAPI();
+        } else {
+            console.error('❌ No se pudo obtener la API key de Google Maps');
+        }
     } catch (error) {
         console.error('Error obteniendo API key:', error);
         updateStatus("Error de configuración", "disconnected");
+        
+        // Intentar inicializar solo el WebSocket sin el mapa
+        setTimeout(() => {
+            console.log('🔄 Intentando inicialización básica sin mapa...');
+            initBasicSystem();
+        }, 2000);
     }
+}
+
+// Función de inicialización básica sin mapa
+function initBasicSystem() {
+    try {
+        ensureRequiredElements();
+        initializeDOMElements();
+        setupWebSocket();
+        setupCentralAudioControls();
+        updateStatus("Sistema básico activo", "connected");
+    } catch (error) {
+        console.error('❌ Error en inicialización básica:', error);
+    }
+}
+
+// Función para inicializar elementos del DOM de manera segura
+function initializeDOMElements() {
+    // Inicializar botones
+    startCentralMicBtn = document.getElementById('record-audio-btn');
+    stopCentralMicBtn = document.getElementById('stop-audio-btn');
+    
+    console.log('🔍 Elementos encontrados:', {
+        startBtn: !!startCentralMicBtn,
+        stopBtn: !!stopCentralMicBtn
+    });
 }
 
 function loadGoogleMapsAPI() {
@@ -41,29 +95,153 @@ function loadGoogleMapsAPI() {
 }
 
 window.initMap = function () {
-    const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
-    map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 14,
-        center: defaultLatLng,
-        mapTypeId: 'roadmap'
-    });
-    console.log("Mapa de Google Maps inicializado.");
-    setupWebSocket();
-    setupCentralAudioControls();
-    
-    // Iniciar actualización periódica de ubicaciones
-    setInterval(fetchDriverLocations, 10000);
-    fetchDriverLocations();
+    try {
+        console.log('🗺️ initMap llamado, verificando estado del sistema...');
+        
+        const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
+        
+        // Inicializar elementos del DOM de manera segura
+        initializeDOMElements();
+        
+        // Crear mapa solo si el contenedor existe
+        const mapContainer = document.getElementById("map");
+        if (!mapContainer) {
+            console.warn('❌ Contenedor del mapa no encontrado');
+            if (!systemInitialized) {
+                initBasicSystem();
+            }
+            return;
+        }
+        
+        map = new google.maps.Map(mapContainer, {
+            zoom: 14,
+            center: defaultLatLng,
+            mapTypeId: 'roadmap'
+        });
+        console.log("✅ Mapa de Google Maps inicializado.");
+        
+        // Solo inicializar WebSocket y audio si no se ha hecho antes
+        if (!systemInitialized) {
+            setupWebSocket();
+            setupCentralAudioControls();
+            systemInitialized = true;
+        }
+        
+        // Iniciar actualización periódica de ubicaciones
+        setInterval(fetchDriverLocations, 10000);
+        fetchDriverLocations();
+        
+    } catch (error) {
+        console.error('❌ Error en initMap:', error);
+        // Fallback a sistema básico
+        if (!systemInitialized) {
+            initBasicSystem();
+        }
+    }
 };
+
+// Función para crear elementos DOM faltantes
+function ensureRequiredElements() {
+    console.log('🔧 Verificando elementos DOM requeridos...');
+    
+    // Verificar y crear elemento de status si no existe
+    if (!document.getElementById('status')) {
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'status';
+        statusDiv.className = 'status disconnected';
+        statusDiv.textContent = 'Iniciando...';
+        statusDiv.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1001;
+            background: #dc3545;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
+        document.body.appendChild(statusDiv);
+        console.log('✅ Elemento status creado');
+    }
+    
+    // Verificar y crear elemento de log si no existe
+    if (!document.getElementById('log')) {
+        const logDiv = document.createElement('div');
+        logDiv.id = 'log';
+        logDiv.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            max-width: 400px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(248, 249, 250, 0.95);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
+        document.body.appendChild(logDiv);
+        console.log('✅ Elemento log creado');
+    }
+    
+    // Verificar y crear elemento de audioLog si no existe
+    if (!document.getElementById('audioLog')) {
+        const audioLogDiv = document.createElement('div');
+        audioLogDiv.id = 'audioLog';
+        audioLogDiv.style.cssText = `
+            position: fixed;
+            bottom: 220px;
+            left: 10px;
+            max-width: 400px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(227, 242, 253, 0.95);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
+        document.body.appendChild(audioLogDiv);
+        console.log('✅ Elemento audioLog creado');
+    }
+    
+    console.log('✅ Verificación de elementos DOM completada');
+}
+
+// Variables de reconexión
+wsReconnectAttempts = 0;
+wsMaxReconnectAttempts = 10;
+wsReconnectInterval = 1000; // Inicio con 1 segundo
+wsReconnectTimeout;
 
 function setupWebSocket() {
     const host = window.location.host;
+    
+    // Limpiar timeout anterior si existe
+    if (wsReconnectTimeout) {
+        clearTimeout(wsReconnectTimeout);
+        wsReconnectTimeout = null;
+    }
+    
+    console.log(`📻 Intentando conexión WebSocket (intento ${wsReconnectAttempts + 1}/${wsMaxReconnectAttempts})...`);
     socket = new WebSocket(`${wsProtocol}${host}/ws/audio/${roomName}/`);
 
     socket.onopen = function(event) {
-        console.log('Conexión WebSocket abierta.');
+        console.log('✅ Conexión WebSocket abierta.');
         updateStatus("Conectado", "connected");
-        logMessage("Conectado a la central de taxis.");
+        logMessage("🔗 Conectado a la central de taxis.");
+        
+        // Resetear contador de intentos de reconexión
+        wsReconnectAttempts = 0;
+        wsReconnectInterval = 1000;
+        
         if (mediaRecorderCentral) {
             startCentralMicBtn.disabled = false;
         }
@@ -72,7 +250,7 @@ function setupWebSocket() {
     socket.onmessage = function(event) {
         if (typeof event.data === "string") {
             const data = JSON.parse(event.data);
-            console.log('Mensaje de WebSocket recibido:', data);
+            console.log('📻 Mensaje de WebSocket recibido:', data);
 
             // Manejo de actualización de ubicación
             if (data.type === 'driver_location_update') {
@@ -82,7 +260,7 @@ function setupWebSocket() {
 
                 if (lat && lng) {
                     updateDriverLocation(driverId, lat, lng);
-                    logMessage(`Ubicación de ${driverId}: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`);
+                    logMessage(`📍 Ubicación de ${driverId}: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`);
                 }
             } 
             // Manejo de mensajes de audio
@@ -105,39 +283,77 @@ function setupWebSocket() {
             } 
             // Manejo de nuevas carreras
             else if (data.type === 'new_ride') {
-                logMessage(`Nueva carrera: ${data.pickup} → ${data.destination}`);
+                logMessage(`🚕 Nueva carrera: ${data.pickup} → ${data.destination}`);
                 if (window.notificationManager) {
                     window.notificationManager.notifyNewRide(data);
                 }
             }
             // Manejo de carrera aceptada
             else if (data.type === 'ride_accepted') {
-                logMessage(`Carrera aceptada por ${data.driverName}`);
+                logMessage(`✅ Carrera aceptada por ${data.driverName}`);
                 if (window.notificationManager) {
                     window.notificationManager.notifyRideAccepted(data);
                 }
             }
             else {
-                logMessage(`Mensaje desconocido: ${JSON.stringify(data)}`);
+                logMessage(`❓ Mensaje desconocido: ${JSON.stringify(data)}`);
             }
         }
     };
 
     socket.onclose = function(event) {
-        console.log('Conexión WebSocket cerrada:', event.code, event.reason);
+        console.log(`❌ Conexión WebSocket cerrada: Código ${event.code}, Razón: ${event.reason}`);
         updateStatus("Desconectado", "disconnected");
-        logMessage(`Conexión cerrada. Código: ${event.code}. Reintentando...`);
-        startCentralMicBtn.disabled = true;
-        stopCentralMicBtn.disabled = true;
-        setTimeout(setupWebSocket, 5000);
+        
+        // Deshabilitar botones de manera segura
+        if (startCentralMicBtn) {
+            startCentralMicBtn.disabled = true;
+        }
+        if (stopCentralMicBtn) {
+            stopCentralMicBtn.disabled = true;
+        }
+        
+        // Intentar reconexión automática con backoff exponencial
+        if (wsReconnectAttempts < wsMaxReconnectAttempts) {
+            wsReconnectAttempts++;
+            const delay = Math.min(wsReconnectInterval * Math.pow(2, wsReconnectAttempts - 1), 30000); // Máximo 30 segundos
+            
+            logMessage(`🔄 Reconectando en ${delay/1000}s... (intento ${wsReconnectAttempts}/${wsMaxReconnectAttempts})`);
+            
+            wsReconnectTimeout = setTimeout(() => {
+                setupWebSocket();
+            }, delay);
+        } else {
+            logMessage(`❌ Máximo número de intentos alcanzado. Conexión fallida.`);
+            updateStatus("Error Fatal", "error");
+        }
     };
 
     socket.onerror = function(error) {
-        console.error('Error de WebSocket:', error);
+        console.error('❌ Error de WebSocket:', error);
         updateStatus("Error de Conexión", "disconnected");
-        logMessage(`Error de conexión`);
+        logMessage(`❌ Error de conexión WebSocket`);
     };
 }
+
+// Manejar cambios de visibilidad de la página
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        console.log('📱 App enviada al background');
+    } else {
+        console.log('📱 App regresó al foreground');
+        
+        // Verificar estado de conexión WebSocket cuando regrese al foreground
+        if (!socket || socket.readyState === WebSocket.CLOSED) {
+            console.log('🔄 Reconectando WebSocket después de regresar del background...');
+            wsReconnectAttempts = 0; // Resetear contador para reconexión inmediata
+            setupWebSocket();
+        }
+        
+        // Cargar datos persistidos por si hubo cambios mientras estaba en background
+        loadPersistedAudioData();
+    }
+});
 
 // Función para obtener ubicaciones desde la API
 async function fetchDriverLocations() {
@@ -206,7 +422,10 @@ function updateDriverLocation(driverId, lat, lng, driverName = null) {
 // Funciones de utilidad
 function logMessage(msg) {
     const logDiv = document.getElementById('log');
-    if (!logDiv) return; // Verificar si el elemento existe
+    if (!logDiv) {
+        console.warn('Elemento #log no encontrado en el DOM');
+        return; // Verificar si el elemento existe
+    }
     const p = document.createElement('p');
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     logDiv.appendChild(p);
@@ -215,7 +434,10 @@ function logMessage(msg) {
 
 function logAudio(msg) {
     const audioLogDiv = document.getElementById('audioLog');
-    if (!audioLogDiv) return; // Verificar si el elemento existe
+    if (!audioLogDiv) {
+        console.warn('Elemento #audioLog no encontrado en el DOM');
+        return; // Verificar si el elemento existe
+    }
     const p = document.createElement('p');
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     audioLogDiv.appendChild(p);
@@ -224,12 +446,44 @@ function logAudio(msg) {
 
 function updateStatus(message, className) {
     const statusDiv = document.getElementById('status');
+    if (!statusDiv) {
+        console.warn('Elemento #status no encontrado en el DOM');
+        return;
+    }
     statusDiv.textContent = message;
     statusDiv.className = `status ${className}`;
+    
+    // Actualizar color según estado
+    if (className === 'connected') {
+        statusDiv.style.background = '#28a745';
+    } else if (className === 'disconnected') {
+        statusDiv.style.background = '#dc3545';
+    } else if (className === 'error') {
+        statusDiv.style.background = '#fd7e14';
+    }
 }
 
 // Funciones para grabar y enviar audio desde la Central
 function setupCentralAudioControls() {
+    console.log('🎤 Configurando controles de audio central...');
+    
+    // Re-obtener el elemento para asegurar que existe
+    const micBtn = document.getElementById('record-audio-btn');
+    
+    if (!micBtn) {
+        console.warn('❌ Botón de grabación central no encontrado - creando interfaz alternativa');
+        createFallbackAudioInterface();
+        return;
+    }
+    
+    startCentralMicBtn = micBtn; // Asignar a variable global
+    
+    // Verificar que el botón es válido
+    if (typeof startCentralMicBtn.addEventListener !== 'function') {
+        console.warn('❌ Elemento de botón no es válido');
+        return;
+    }
+    
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
             centralAudioStream = stream;
@@ -262,6 +516,12 @@ function setupCentralAudioControls() {
                 reader.readAsDataURL(audioBlob);
             };
 
+            // Verificar que el elemento sigue siendo válido antes de cada addEventListener
+            if (!startCentralMicBtn || typeof startCentralMicBtn.addEventListener !== 'function') {
+                console.error('❌ Elemento startCentralMicBtn inválido al configurar eventos');
+                return;
+            }
+
             startCentralMicBtn.addEventListener('mousedown', () => {
                 if (socket && socket.readyState === WebSocket.OPEN) {
                     mediaRecorderCentral.start();
@@ -283,12 +543,72 @@ function setupCentralAudioControls() {
                     startCentralMicBtn.style.backgroundColor = '#007bff';
                 }
             });
+            
+            // Habilitar el botón después de configurar el micrófono
+            if (startCentralMicBtn) {
+                startCentralMicBtn.disabled = false;
+            }
         })
         .catch(error => {
             console.error('Error al acceder al micrófono:', error);
             logAudio('⚠️ No se pudo acceder al micrófono.');
-            startCentralMicBtn.disabled = true;
+            if (startCentralMicBtn) {
+                startCentralMicBtn.disabled = true;
+            }
         });
+}
+
+// Función para crear interfaz alternativa de audio si no existe el botón
+function createFallbackAudioInterface() {
+    console.log('🔧 Creando interfaz de audio alternativa...');
+    
+    const container = document.querySelector('.central-broadcast-panel') || 
+                     document.querySelector('.container-fluid') || 
+                     document.body;
+    
+    if (!container) {
+        console.warn('❌ No se encontró contenedor para interfaz alternativa');
+        return;
+    }
+    
+    const fallbackInterface = document.createElement('div');
+    fallbackInterface.id = 'fallback-audio-interface';
+    fallbackInterface.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 1000;
+    `;
+    
+    fallbackInterface.innerHTML = `
+        <div style="text-align: center;">
+            <div style="font-size: 12px; margin-bottom: 5px;">🎤 CENTRAL</div>
+            <button id="fallback-record-btn" style="
+                background: #ff5722;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 50%;
+                font-size: 20px;
+                cursor: pointer;
+            ">🎙️</button>
+            <div style="font-size: 10px; margin-top: 5px;">Mantén presionado</div>
+        </div>
+    `;
+    
+    container.appendChild(fallbackInterface);
+    
+    // Configurar el botón alternativo
+    const fallbackBtn = document.getElementById('fallback-record-btn');
+    if (fallbackBtn) {
+        startCentralMicBtn = fallbackBtn;
+        console.log('✅ Interfaz de audio alternativa creada');
+    }
 }
 
 // Funciones para manejo y reproducción de audio
@@ -302,20 +622,31 @@ function playAudioFromBase64(base64String) {
 function processAudioQueue() {
     if (audioQueue.length === 0) {
         isPlayingAudio = false;
+        clearMediaSession(); // Limpiar Media Session cuando no hay audio
         return;
     }
 
     isPlayingAudio = true;
     const base64Audio = audioQueue.shift();
-    const audioPlayer = document.getElementById('audioPlayer');
+    const audioPlayer = document.getElementById('audio-player');
+
+    if (!audioPlayer) {
+        console.warn('Elemento #audioPlayer no encontrado en el DOM');
+        isPlayingAudio = false;
+        return;
+    }
 
     const audioBlob = base64ToBlob(base64Audio, 'audio/webm');
     const audioUrl = URL.createObjectURL(audioBlob);
 
     audioPlayer.src = audioUrl;
+    
+    // Configurar Media Session ANTES de reproducir
+    setupMediaSession(audioPlayer, 'Central de Taxis');
+    
     audioPlayer.play()
         .then(() => {
-            console.log('Reproduciendo audio...');
+            console.log('✅ Reproduciendo audio con Media Session activa');
         })
         .catch(error => {
             console.error('Error al reproducir audio:', error);
@@ -340,3 +671,882 @@ function base64ToBlob(base64, mimeType) {
 
 // Iniciar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', init);
+
+// ========================================
+// SISTEMA DE GESTIÓN DE AUDIOS WALKIE-TALKIE
+// ========================================
+
+/**
+ * Cola de audios pendientes para reproducir cuando el usuario abra la app
+ */
+pendingAudioQueue = [];
+dismissedAudios = new Set();
+
+/**
+ * Guardar audio pendiente en localStorage
+ */
+function savePendingAudio(senderId, senderName, audioUrl, timestamp) {
+    const audioId = `audio_${senderId}_${timestamp}`;
+    
+    // Evitar duplicados
+    if (dismissedAudios.has(audioId)) {
+        console.log('📻 Audio ya fue descartado:', audioId);
+        return;
+    }
+    
+    const pendingAudio = {
+        id: audioId,
+        senderId: senderId,
+        senderName: senderName,
+        audioUrl: audioUrl,
+        timestamp: timestamp,
+        received: Date.now()
+    };
+    
+    // Agregar a la cola
+    pendingAudioQueue.push(pendingAudio);
+    
+    // Guardar en localStorage
+    localStorage.setItem('walkie_pending_audios', JSON.stringify(pendingAudioQueue));
+    
+    console.log(`📻 Audio pendiente guardado: ${senderName} - ${timestamp}`);
+    
+    // Mostrar indicador visual
+    showPendingAudioIndicator();
+}
+
+/**
+ * Marcar audio como descartado
+ */
+function markAudioAsDismissed(senderId, timestamp) {
+    const audioId = `audio_${senderId}_${timestamp}`;
+    
+    // Agregar a la lista de descartados
+    dismissedAudios.add(audioId);
+    
+    // Remover de la cola pendiente
+    pendingAudioQueue = pendingAudioQueue.filter(audio => audio.id !== audioId);
+    
+    // Actualizar localStorage
+    localStorage.setItem('walkie_pending_audios', JSON.stringify(pendingAudioQueue));
+    localStorage.setItem('walkie_dismissed_audios', JSON.stringify([...dismissedAudios]));
+    
+    console.log(`📻 Audio marcado como descartado: ${audioId}`);
+    
+    // Actualizar indicador visual
+    updatePendingAudioIndicator();
+}
+
+/**
+ * Limpiar audios pendientes antiguos (más de 1 hora)
+ */
+function cleanOldPendingAudios(beforeTimestamp = null) {
+    if (!beforeTimestamp) {
+        beforeTimestamp = Date.now() - (60 * 60 * 1000); // 1 hora
+    }
+    
+    const initialCount = pendingAudioQueue.length;
+    
+    // Filtrar audios antiguos
+    pendingAudioQueue = pendingAudioQueue.filter(audio => audio.received > beforeTimestamp);
+    
+    // Limpiar audios descartados antiguos
+    const oldDismissedIds = [...dismissedAudios].filter(audioId => {
+        const timestamp = audioId.split('_')[2];
+        return parseInt(timestamp) < beforeTimestamp;
+    });
+    
+    oldDismissedIds.forEach(id => dismissedAudios.delete(id));
+    
+    // Actualizar localStorage
+    localStorage.setItem('walkie_pending_audios', JSON.stringify(pendingAudioQueue));
+    localStorage.setItem('walkie_dismissed_audios', JSON.stringify([...dismissedAudios]));
+    
+    const removedCount = initialCount - pendingAudioQueue.length;
+    if (removedCount > 0) {
+        console.log(`🧹 ${removedCount} audios antiguos limpiados`);
+        updatePendingAudioIndicator();
+    }
+}
+
+/**
+ * Cargar datos persistidos al inicializar
+ */
+function loadPersistedAudioData() {
+    try {
+        // Cargar cola pendiente
+        const savedQueue = localStorage.getItem('walkie_pending_audios');
+        if (savedQueue) {
+            pendingAudioQueue = JSON.parse(savedQueue);
+        }
+        
+        // Cargar audios descartados
+        const savedDismissed = localStorage.getItem('walkie_dismissed_audios');
+        if (savedDismissed) {
+            dismissedAudios = new Set(JSON.parse(savedDismissed));
+        }
+        
+        // Limpiar audios antiguos al cargar
+        cleanOldPendingAudios();
+        
+        console.log(`📻 Datos cargados: ${pendingAudioQueue.length} audios pendientes, ${dismissedAudios.size} descartados`);
+        
+        // Mostrar indicador si hay audios pendientes
+        if (pendingAudioQueue.length > 0) {
+            console.log(`🚨 HAY ${pendingAudioQueue.length} AUDIOS PENDIENTES - Mostrando banner`);
+            showPendingAudioIndicator();
+            
+            // Opcional: Reproducir automáticamente los audios pendientes
+            // (descomenta la siguiente línea si quieres reproducción automática al regresar)
+            // setTimeout(() => playPendingAudios(), 2000);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando datos persistidos:', error);
+        pendingAudioQueue = [];
+        dismissedAudios = new Set();
+    }
+}
+
+/**
+ * Mostrar indicador de audios pendientes
+ */
+function showPendingAudioIndicator() {
+    let indicator = document.getElementById('pending-audio-indicator');
+    
+    if (!indicator && pendingAudioQueue.length > 0) {
+        indicator = document.createElement('div');
+        indicator.id = 'pending-audio-indicator';
+        indicator.innerHTML = `
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="fas fa-volume-up me-2"></i>
+                <div class="flex-grow-1">
+                    <strong>📻 ${pendingAudioQueue.length} mensaje(s) de audio pendiente(s)</strong>
+                    <br><small>Haga clic para reproducir los audios recibidos mientras estaba ausente</small>
+                </div>
+                <button type="button" class="btn btn-warning btn-sm me-2" onclick="playPendingAudios()">
+                    <i class="fas fa-play"></i> Reproducir
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissAllPendingAudios()">
+                    <i class="fas fa-times"></i> Descartar
+                </button>
+            </div>
+        `;
+        
+        // Insertar al inicio del contenido principal
+        const mainContent = document.querySelector('.container-fluid');
+        if (mainContent && mainContent.firstChild) {
+            mainContent.insertBefore(indicator, mainContent.firstChild);
+        }
+    }
+    
+    updatePendingAudioIndicator();
+}
+
+/**
+ * Actualizar indicador de audios pendientes
+ */
+function updatePendingAudioIndicator() {
+    const indicator = document.getElementById('pending-audio-indicator');
+    
+    if (pendingAudioQueue.length === 0) {
+        if (indicator) {
+            indicator.remove();
+        }
+    } else if (indicator) {
+        const countElement = indicator.querySelector('strong');
+        if (countElement) {
+            countElement.textContent = `📻 ${pendingAudioQueue.length} mensaje(s) de audio pendiente(s)`;
+        }
+    }
+}
+
+/**
+ * Reproducir todos los audios pendientes en secuencia
+ */
+function playPendingAudios() {
+    if (pendingAudioQueue.length === 0) {
+        console.log('📻 No hay audios pendientes para reproducir');
+        return;
+    }
+    
+    console.log(`📻 Iniciando reproducción de ${pendingAudioQueue.length} audios pendientes`);
+    
+    // Agregar todos los audios a la cola de reproducción
+    pendingAudioQueue.forEach(pendingAudio => {
+        audioQueue.push({
+            audioData: pendingAudio.audioUrl,
+            sender: pendingAudio.senderName,
+            timestamp: pendingAudio.timestamp
+        });
+    });
+    
+    // Limpiar la cola pendiente
+    pendingAudioQueue = [];
+    localStorage.setItem('walkie_pending_audios', JSON.stringify(pendingAudioQueue));
+    
+    // Actualizar indicador
+    updatePendingAudioIndicator();
+    
+    // Iniciar reproducción si no está en curso
+    if (!isPlayingAudio) {
+        processAudioQueue();
+    }
+    
+    logMessage('📻 Reproduciendo audios pendientes...');
+}
+
+/**
+ * Descartar todos los audios pendientes
+ */
+function dismissAllPendingAudios() {
+    pendingAudioQueue.forEach(audio => {
+        dismissedAudios.add(audio.id);
+    });
+    
+    pendingAudioQueue = [];
+    
+    // Actualizar localStorage
+    localStorage.setItem('walkie_pending_audios', JSON.stringify(pendingAudioQueue));
+    localStorage.setItem('walkie_dismissed_audios', JSON.stringify([...dismissedAudios]));
+    
+    // Actualizar indicador
+    updatePendingAudioIndicator();
+    
+    console.log('📻 Todos los audios pendientes han sido descartados');
+    logMessage('📻 Audios pendientes descartados');
+}
+
+/**
+ * Manejar mensajes del service worker
+ */
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(event) {
+        const { type, payload } = event.data;
+        
+        switch (type) {
+            case 'SAVE_PENDING_AUDIO':
+                savePendingAudio(
+                    payload.senderId,
+                    payload.senderName,
+                    payload.audioUrl,
+                    payload.timestamp
+                );
+                break;
+                
+            case 'DISMISS_AUDIO':
+                markAudioAsDismissed(payload.senderId, payload.timestamp);
+                break;
+                
+            case 'CLEAN_OLD_AUDIOS':
+                cleanOldPendingAudios(payload.beforeTimestamp);
+                break;
+                
+            case 'PLAY_AUDIO_IMMEDIATELY':
+                // REPRODUCIR AUDIO INMEDIATAMENTE - FUNCIONALIDAD CLAVE
+                playAudioImmediately(payload.audioUrl, payload.senderName, payload.volume || 1.0);
+                break;
+                
+            case 'STOP_AUDIO':
+                // DETENER REPRODUCCIÓN DE AUDIO INMEDIATAMENTE
+                stopAllAudio();
+                break;
+                
+            case 'PUSH_RECEIVED':
+                // Notificación recibida mientras la app está abierta
+                console.log('📻 Push notification recibida:', payload);
+                break;
+        }
+    });
+}
+
+/**
+ * Reproducir audio inmediatamente sin agregarlo a cola (para background)
+ */
+function playAudioImmediately(audioUrl, senderName, volume = 1.0) {
+    try {
+        console.log(`🔊 REPRODUCCIÓN INMEDIATA: Audio de ${senderName}`);
+        
+        // Detener audio anterior si existe
+        if (currentPlayingAudio) {
+            currentPlayingAudio.pause();
+            currentPlayingAudio = null;
+        }
+        
+        // Crear elemento de audio
+        const audioElement = new Audio();
+        audioElement.src = audioUrl;
+        audioElement.volume = volume;
+        audioElement.preload = 'auto';
+        
+        // Guardar referencia para poder detenerlo
+        currentPlayingAudio = audioElement;
+        
+        // Configurar para máximo volumen y prioridad
+        if (audioElement.setSinkId) {
+            // Usar el dispositivo de salida por defecto
+            audioElement.setSinkId('default').catch(console.warn);
+        }
+        
+        // Configurar Media Session para reproducción en segundo plano
+        setupMediaSession(audioElement, senderName);
+        
+        // Reproducir inmediatamente
+        const playPromise = audioElement.play();
+        
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    console.log(`✅ Audio de ${senderName} reproduciéndose correctamente`);
+                    
+                    // Mostrar indicador visual temporal
+                    showAudioPlayingIndicator(senderName);
+                    
+                    // Log del audio recibido
+                    logAudio(`🎧 Audio urgente de ${senderName} reproducido automáticamente`);
+                })
+                .catch(error => {
+                    console.error('❌ Error reproduciendo audio inmediato:', error);
+                    
+                    // Si falla la reproducción automática, agregar a cola
+                    console.log('🔄 Agregando a cola de reproducción como fallback');
+                    audioQueue.push({
+                        audioData: audioUrl,
+                        sender: senderName,
+                        timestamp: Date.now()
+                    });
+                    
+                    if (!isPlayingAudio) {
+                        processAudioQueue();
+                    }
+                });
+        }
+        
+        // Limpiar cuando termine
+        audioElement.addEventListener('ended', () => {
+            hideAudioPlayingIndicator();
+            currentPlayingAudio = null;
+            URL.revokeObjectURL(audioUrl);
+            console.log(`🏁 Audio de ${senderName} terminado`);
+        });
+        
+        audioElement.addEventListener('error', (error) => {
+            console.error(`❌ Error en audio de ${senderName}:`, error);
+            hideAudioPlayingIndicator();
+            currentPlayingAudio = null;
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en playAudioImmediately:', error);
+        
+        // Fallback: agregar a cola normal
+        audioQueue.push({
+            audioData: audioUrl,
+            sender: senderName,
+            timestamp: Date.now()
+        });
+        
+        if (!isPlayingAudio) {
+            processAudioQueue();
+        }
+    }
+}
+
+/**
+ * Detener toda reproducción de audio
+ */
+function stopAllAudio() {
+    console.log('⏹️ Deteniendo toda reproducción de audio');
+    
+    // Detener audio actual si existe
+    if (currentPlayingAudio) {
+        currentPlayingAudio.pause();
+        currentPlayingAudio = null;
+        console.log('⏹️ Audio inmediato detenido');
+    }
+    
+    // Limpiar cola de audio
+    audioQueue = [];
+    isPlayingAudio = false;
+    
+    // Ocultar indicador visual
+    hideAudioPlayingIndicator();
+    
+    // Detener cualquier audio en reproducción normal
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    
+    console.log('⏹️ Toda reproducción de audio detenida');
+}
+
+/**
+ * Mostrar indicador visual de audio reproduciéndose
+ */
+function showAudioPlayingIndicator(senderName) {
+    // Remover indicador anterior si existe
+    hideAudioPlayingIndicator();
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'audio-playing-indicator';
+    indicator.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 25px;
+        box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+        z-index: 10000;
+        font-weight: bold;
+        font-size: 14px;
+        animation: audioIndicatorPulse 1.5s infinite;
+        max-width: 300px;
+    `;
+    
+    indicator.innerHTML = `
+        <i class="fas fa-volume-up" style="margin-right: 8px; animation: spin 2s linear infinite;"></i>
+        <strong>📻 ${senderName}</strong><br>
+        <small>Reproduciendo audio...</small>
+    `;
+    
+    // Agregar animación CSS
+    if (!document.getElementById('audio-indicator-styles')) {
+        const style = document.createElement('style');
+        style.id = 'audio-indicator-styles';
+        style.textContent = `
+            @keyframes audioIndicatorPulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.9; }
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(indicator);
+    
+    console.log(`👁️ Indicador visual mostrado para ${senderName}`);
+}
+
+/**
+ * Ocultar indicador visual de audio
+ */
+function hideAudioPlayingIndicator() {
+    const indicator = document.getElementById('audio-playing-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+// Cargar datos al inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    loadPersistedAudioData();
+    requestAudioPermissions();
+    
+    // Verificar si se abrió con parámetros de autoplay
+    checkAutoplayParameters();
+});
+
+/**
+ * Solicitar permisos para reproducción automática de audio
+ */
+async function requestAudioPermissions() {
+    try {
+        console.log('🎵 Solicitando permisos de audio...');
+        
+        // 1. Solicitar permisos de notificaciones
+        if ('Notification' in window && Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            console.log(`🔔 Permisos de notificación: ${permission}`);
+        }
+        
+        // 2. Crear contexto de audio para permitir autoplay
+        if ('AudioContext' in window || 'webkitAudioContext' in window) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!audioContext) {
+                audioContext = new AudioContextClass();
+            }
+            
+            // Reanudar contexto si está suspendido
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+                console.log('🎵 Contexto de audio activado');
+            }
+        }
+        
+        // 3. Mostrar aviso al usuario para interactuar y permitir autoplay
+        showAudioPermissionRequest();
+        
+    } catch (error) {
+        console.error('❌ Error solicitando permisos de audio:', error);
+    }
+}
+
+/**
+ * Mostrar solicitud de permisos de audio al usuario
+ */
+function showAudioPermissionRequest() {
+    // No mostrar si ya se dio permiso anteriormente
+    if (localStorage.getItem('walkie_audio_permission') === 'granted') {
+        return;
+    }
+    
+    const permissionBanner = document.createElement('div');
+    permissionBanner.id = 'audio-permission-banner';
+    permissionBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        text-align: center;
+        z-index: 10001;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        border-bottom: 3px solid #5a6fd8;
+    `;
+    
+    permissionBanner.innerHTML = `
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h4 style="margin: 0 0 10px 0; color: #fff;">
+                🎵 Activar Audio Automático de Walkie-Talkie
+            </h4>
+            <p style="margin: 0 0 15px 0; opacity: 0.9;">
+                Para recibir mensajes de audio automáticamente (como radio/boquitoki), 
+                haga clic en "Activar" y permita la reproducción automática.
+            </p>
+            <button 
+                onclick="enableAutoAudio()" 
+                style="background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; margin-right: 10px; cursor: pointer;"
+            >
+                🔊 Activar Audio Automático
+            </button>
+            <button 
+                onclick="dismissAudioPermission()" 
+                style="background: transparent; color: white; border: 2px solid rgba(255,255,255,0.5); padding: 10px 20px; border-radius: 20px; cursor: pointer;"
+            >
+                Después
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(permissionBanner);
+    console.log('📢 Banner de permisos de audio mostrado');
+}
+
+/**
+ * Activar audio automático (función global para el botón)
+ */
+window.enableAutoAudio = async function() {
+    try {
+        console.log('🎵 Usuario activando audio automático...');
+        
+        // 1. Crear y reproducir audio silencioso para desbloquear autoplay
+        const silentAudio = new Audio();
+        silentAudio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ';
+        silentAudio.volume = 0.01; // Muy bajo pero audible
+        silentAudio.loop = false;
+        
+        const playPromise = silentAudio.play();
+        if (playPromise !== undefined) {
+            await playPromise;
+        }
+        
+        // 2. Activar contexto de audio si está disponible
+        if (audioContext && audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        
+        // 3. Guardar permiso concedido
+        localStorage.setItem('walkie_audio_permission', 'granted');
+        localStorage.setItem('walkie_audio_enabled_date', new Date().toISOString());
+        
+        // 4. Ocultar banner
+        const banner = document.getElementById('audio-permission-banner');
+        if (banner) {
+            banner.remove();
+        }
+        
+        // 5. Mostrar confirmación
+        showAudioEnabledConfirmation();
+        
+        console.log('✅ Audio automático activado correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error activando audio automático:', error);
+        alert('Error activando audio automático. Por favor, recargue la página e intente nuevamente.');
+    }
+};
+
+/**
+ * Descartar solicitud de permisos temporalmente
+ */
+window.dismissAudioPermission = function() {
+    const banner = document.getElementById('audio-permission-banner');
+    if (banner) {
+        banner.remove();
+    }
+    
+    // Recordar que se descartó por esta sesión
+    sessionStorage.setItem('audio_permission_dismissed', 'true');
+    console.log('📋 Solicitud de audio descartada temporalmente');
+};
+
+/**
+ * Mostrar confirmación de audio activado
+ */
+function showAudioEnabledConfirmation() {
+    const confirmation = document.createElement('div');
+    confirmation.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(45deg, #4CAF50, #45a049);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+        z-index: 10002;
+        max-width: 350px;
+        animation: slideInRight 0.5s ease-out;
+    `;
+    
+    confirmation.innerHTML = `
+        <h4 style="margin: 0 0 10px 0;">🎵 ¡Audio Automático Activado!</h4>
+        <p style="margin: 0; opacity: 0.9;">
+            Ahora recibirás audios de walkie-talkie automáticamente, 
+            incluso cuando la app esté en background.
+        </p>
+    `;
+    
+    document.body.appendChild(confirmation);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (confirmation.parentNode) {
+            confirmation.remove();
+        }
+    }, 5000);
+}
+
+// ========================================
+// MEDIA SESSION API - REPRODUCCIÓN EN SEGUNDO PLANO
+// ========================================
+
+/**
+ * Configurar Media Session API para permitir reproducción en segundo plano
+ * Esto permite que el audio continúe cuando:
+ * - El usuario cambia de app
+ * - El usuario bloquea la pantalla
+ * - El usuario cambia de pestaña
+ */
+function setupMediaSession(audioElement, senderName = 'Central de Taxis') {
+    // Verificar si Media Session API está disponible
+    if (!('mediaSession' in navigator)) {
+        console.log('⚠️ Media Session API no disponible en este navegador');
+        return;
+    }
+
+    try {
+        // Configurar metadata del audio actual
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: '🎤 Audio de Comunicación',
+            artist: senderName,
+            album: 'De Aquí Pa\'llá - Walkie Talkie',
+            artwork: [
+                { 
+                    src: '/static/imagenes/icon-192x192.png', 
+                    sizes: '192x192', 
+                    type: 'image/png' 
+                },
+                { 
+                    src: '/static/imagenes/icon-512x512.png', 
+                    sizes: '512x512', 
+                    type: 'image/png' 
+                }
+            ]
+        });
+
+        // Configurar handlers para controles de reproducción
+        // Estos aparecerán en la barra de notificaciones y pantalla de bloqueo
+        
+        navigator.mediaSession.setActionHandler('play', () => {
+            console.log('▶️ Media Session: Play solicitado');
+            audioElement.play()
+                .then(() => console.log('✅ Reproducción iniciada desde Media Session'))
+                .catch(err => console.error('❌ Error al reproducir:', err));
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+            console.log('⏸️ Media Session: Pause solicitado');
+            audioElement.pause();
+        });
+
+        // Algunos navegadores soportan estos controles adicionales
+        try {
+            navigator.mediaSession.setActionHandler('stop', () => {
+                console.log('⏹️ Media Session: Stop solicitado');
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                clearMediaSession();
+            });
+        } catch (error) {
+            console.log('⚠️ Action "stop" no soportada');
+        }
+
+        // Actualizar estado de reproducción
+        navigator.mediaSession.playbackState = 'playing';
+        
+        console.log('✅ Media Session configurada correctamente para:', senderName);
+        
+    } catch (error) {
+        console.error('❌ Error configurando Media Session:', error);
+    }
+}
+
+/**
+ * Limpiar Media Session cuando no hay audio reproduciéndose
+ */
+function clearMediaSession() {
+    if (!('mediaSession' in navigator)) {
+        return;
+    }
+
+    try {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.metadata = null;
+        
+        // Limpiar handlers
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        
+        try {
+            navigator.mediaSession.setActionHandler('stop', null);
+        } catch (error) {
+            // Ignorar si no está soportado
+        }
+        
+        console.log('🧹 Media Session limpiada');
+    } catch (error) {
+        console.error('❌ Error limpiando Media Session:', error);
+    }
+}
+
+// ========================================
+// LISTENER PARA MENSAJES DEL SERVICE WORKER
+// ========================================
+
+/**
+ * Escuchar mensajes del Service Worker para reproducir audio inmediatamente
+ * Esto permite que el audio se reproduzca cuando la app está en segundo plano
+ */
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        console.log('📨 Mensaje recibido del Service Worker:', event.data);
+        
+        if (event.data && event.data.type === 'PLAY_AUDIO_IMMEDIATELY') {
+            const { audioUrl, senderName, timestamp } = event.data;
+            
+            console.log(`🔊 REPRODUCCIÓN INMEDIATA SOLICITADA por ${senderName}`);
+            
+            // Reproducir el audio inmediatamente
+            if (audioUrl && senderName) {
+                playAudioImmediately(audioUrl, senderName, 1.0);
+                
+                // Mostrar notificación visual en la app
+                showAudioPlayingIndicator(senderName);
+                
+                // Log del evento
+                logAudio(`🎧 Audio urgente de ${senderName} reproducido desde notificación push`);
+            } else {
+                console.error('❌ Datos de audio incompletos en mensaje del SW');
+            }
+        }
+    });
+    
+    console.log('✅ Listener de Service Worker configurado para reproducción de audio');
+}
+
+// Limpiar audios antiguos cada 30 minutos
+setInterval(cleanOldPendingAudios, 30 * 60 * 1000);
+
+// ========================================
+// AUTOPLAY DESDE URL PARAMETERS
+// ========================================
+
+/**
+ * Verificar si la página se abrió con parámetros de autoplay
+ * Esto sucede cuando el Service Worker abre la app automáticamente
+ */
+function checkAutoplayParameters() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoplay = urlParams.get('autoplay');
+        const audioUrl = urlParams.get('audio');
+        const senderName = urlParams.get('sender');
+        const background = urlParams.get('background');
+        
+        console.log('🔍 Verificando parámetros de URL:', {
+            autoplay,
+            hasAudio: !!audioUrl,
+            sender: senderName,
+            background
+        });
+        
+        if (autoplay === 'true' && audioUrl && senderName) {
+            console.log('🎬 AUTOPLAY DETECTADO - Reproduciendo audio automáticamente');
+            
+            // Esperar un momento para que todo se inicialice
+            setTimeout(() => {
+                // Decodificar URL del audio
+                const decodedAudioUrl = decodeURIComponent(audioUrl);
+                const decodedSenderName = decodeURIComponent(senderName);
+                
+                console.log(`🔊 Reproduciendo: ${decodedSenderName}`);
+                
+                // Reproducir inmediatamente
+                playAudioImmediately(decodedAudioUrl, decodedSenderName, 1.0);
+                
+                // Si es en background, no mostrar indicadores visuales
+                if (background !== 'true') {
+                    showAudioPlayingIndicator(decodedSenderName);
+                }
+                
+                // Limpiar URL para que no se reproduzca de nuevo si recarga
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+                
+                console.log('✅ Autoplay completado - URL limpiada');
+            }, 500); // Esperar 500ms para que se inicialice todo
+        }
+    } catch (error) {
+        console.error('❌ Error verificando parámetros de autoplay:', error);
+    }
+}
+
+// Limpiar audios antiguos cada 30 minutos
+setInterval(cleanOldPendingAudios, 30 * 60 * 1000);
+
+// Inicializar el sistema cuando se carga el DOM
+document.addEventListener('DOMContentLoaded', function() {
+    if (systemInitialized) {
+        console.warn('⚠️ Sistema ya inicializado, evitando duplicación');
+        return;
+    }
+    
+    console.log('🚀 Iniciando sistema de comunicación...');
+    systemInitialized = true;
+    
+    // Pequeño delay para asegurar que el DOM esté completamente cargado
+    setTimeout(() => {
+        init();
+    }, 100);
+});

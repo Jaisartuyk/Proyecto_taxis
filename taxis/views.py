@@ -1638,10 +1638,12 @@ def chat_central(request):
     drivers = AppUser.objects.filter(role='driver')
     admin_user = AppUser.objects.filter(is_superuser=True).first()
 
+    import time
     context = {
         'drivers': drivers,
         'admin_user_id': admin_user.id if admin_user else None,
-        'GOOGLE_API_KEY': settings.GOOGLE_API_KEY  # Para el mapa
+        'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,  # Para el mapa
+        'timestamp': int(time.time())  # Para evitar caché del JS
     }
     return render(request, 'central_comunicacion.html', context)
 

@@ -23,9 +23,12 @@ let currentPlayingAudio = null; // Para poder detener audio actual
 const roomName = "conductores";
 const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
 
-// Elementos del DOM - se inicializarán después
-let startCentralMicBtn;
-let stopCentralMicBtn;
+// Elementos del DOM - se inicializarán después de que el DOM esté listo
+let startCentralMicBtn = null;
+let stopCentralMicBtn = null;
+
+// Flag para asegurar que solo se inicialice una vez
+let systemInitialized = false;
 
 // Inicialización
 async function init() {
@@ -93,6 +96,8 @@ function loadGoogleMapsAPI() {
 
 window.initMap = function () {
     try {
+        console.log('🗺️ initMap llamado, verificando estado del sistema...');
+        
         const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
         
         // Inicializar elementos del DOM de manera segura
@@ -102,7 +107,9 @@ window.initMap = function () {
         const mapContainer = document.getElementById("map");
         if (!mapContainer) {
             console.warn('❌ Contenedor del mapa no encontrado');
-            initBasicSystem();
+            if (!systemInitialized) {
+                initBasicSystem();
+            }
             return;
         }
         
@@ -113,8 +120,12 @@ window.initMap = function () {
         });
         console.log("✅ Mapa de Google Maps inicializado.");
         
-        setupWebSocket();
-        setupCentralAudioControls();
+        // Solo inicializar WebSocket y audio si no se ha hecho antes
+        if (!systemInitialized) {
+            setupWebSocket();
+            setupCentralAudioControls();
+            systemInitialized = true;
+        }
         
         // Iniciar actualización periódica de ubicaciones
         setInterval(fetchDriverLocations, 10000);
@@ -123,7 +134,9 @@ window.initMap = function () {
     } catch (error) {
         console.error('❌ Error en initMap:', error);
         // Fallback a sistema básico
-        initBasicSystem();
+        if (!systemInitialized) {
+            initBasicSystem();
+        }
     }
 };
 
@@ -291,8 +304,14 @@ function setupWebSocket() {
     socket.onclose = function(event) {
         console.log(`❌ Conexión WebSocket cerrada: Código ${event.code}, Razón: ${event.reason}`);
         updateStatus("Desconectado", "disconnected");
-        startCentralMicBtn.disabled = true;
-        stopCentralMicBtn.disabled = true;
+        
+        // Deshabilitar botones de manera segura
+        if (startCentralMicBtn) {
+            startCentralMicBtn.disabled = true;
+        }
+        if (stopCentralMicBtn) {
+            stopCentralMicBtn.disabled = true;
+        }
         
         // Intentar reconexión automática con backoff exponencial
         if (wsReconnectAttempts < wsMaxReconnectAttempts) {
@@ -496,6 +515,12 @@ function setupCentralAudioControls() {
                 };
                 reader.readAsDataURL(audioBlob);
             };
+
+            // Verificar que el elemento sigue siendo válido antes de cada addEventListener
+            if (!startCentralMicBtn || typeof startCentralMicBtn.addEventListener !== 'function') {
+                console.error('❌ Elemento startCentralMicBtn inválido al configurar eventos');
+                return;
+            }
 
             startCentralMicBtn.addEventListener('mousedown', () => {
                 if (socket && socket.readyState === WebSocket.OPEN) {
@@ -1512,6 +1537,16 @@ setInterval(cleanOldPendingAudios, 30 * 60 * 1000);
 
 // Inicializar el sistema cuando se carga el DOM
 document.addEventListener('DOMContentLoaded', function() {
+    if (systemInitialized) {
+        console.warn('⚠️ Sistema ya inicializado, evitando duplicación');
+        return;
+    }
+    
     console.log('🚀 Iniciando sistema de comunicación...');
-    init();
+    systemInitialized = true;
+    
+    // Pequeño delay para asegurar que el DOM esté completamente cargado
+    setTimeout(() => {
+        init();
+    }, 100);
 });

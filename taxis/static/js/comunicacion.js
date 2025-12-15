@@ -297,6 +297,7 @@ function logAudio(msg) {
 
 function updateStatus(message, className) {
     const statusDiv = document.getElementById('status');
+    if (!statusDiv) return; // Verificar si el elemento existe
     statusDiv.textContent = message;
     statusDiv.className = `status ${className}`;
 }

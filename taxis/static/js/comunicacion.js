@@ -885,6 +885,9 @@ function hideAudioPlayingIndicator() {
 document.addEventListener('DOMContentLoaded', function() {
     loadPersistedAudioData();
     requestAudioPermissions();
+    
+    // Verificar si se abrió con parámetros de autoplay
+    checkAutoplayParameters();
 });
 
 /**
@@ -1210,3 +1213,57 @@ if ('serviceWorker' in navigator) {
 
 // Limpiar audios antiguos cada 30 minutos
 setInterval(cleanOldPendingAudios, 30 * 60 * 1000);
+
+// ========================================
+// AUTOPLAY DESDE URL PARAMETERS
+// ========================================
+
+/**
+ * Verificar si la página se abrió con parámetros de autoplay
+ * Esto sucede cuando el Service Worker abre la app automáticamente
+ */
+function checkAutoplayParameters() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoplay = urlParams.get('autoplay');
+        const audioUrl = urlParams.get('audio');
+        const senderName = urlParams.get('sender');
+        const background = urlParams.get('background');
+        
+        console.log('🔍 Verificando parámetros de URL:', {
+            autoplay,
+            hasAudio: !!audioUrl,
+            sender: senderName,
+            background
+        });
+        
+        if (autoplay === 'true' && audioUrl && senderName) {
+            console.log('🎬 AUTOPLAY DETECTADO - Reproduciendo audio automáticamente');
+            
+            // Esperar un momento para que todo se inicialice
+            setTimeout(() => {
+                // Decodificar URL del audio
+                const decodedAudioUrl = decodeURIComponent(audioUrl);
+                const decodedSenderName = decodeURIComponent(senderName);
+                
+                console.log(`🔊 Reproduciendo: ${decodedSenderName}`);
+                
+                // Reproducir inmediatamente
+                playAudioImmediately(decodedAudioUrl, decodedSenderName, 1.0);
+                
+                // Si es en background, no mostrar indicadores visuales
+                if (background !== 'true') {
+                    showAudioPlayingIndicator(decodedSenderName);
+                }
+                
+                // Limpiar URL para que no se reproduzca de nuevo si recarga
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+                
+                console.log('✅ Autoplay completado - URL limpiada');
+            }, 500); // Esperar 500ms para que se inicialice todo
+        }
+    } catch (error) {
+        console.error('❌ Error verificando parámetros de autoplay:', error);
+    }
+}

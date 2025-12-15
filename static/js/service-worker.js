@@ -156,7 +156,7 @@ self.addEventListener('push', (event) => {
                 const senderName = pushData.data.sender_name;
                 
                 if (audioUrl && senderName) {
-                    // REPRODUCIR AUDIO AUTOMÁTICAMENTE EN SEGUNDO PLANO
+                    // ESTRATEGIA INTELIGENTE PARA REPRODUCCIÓN AUTOMÁTICA
                     event.waitUntil(
                         self.clients.matchAll({ 
                             type: 'window',
@@ -164,10 +164,10 @@ self.addEventListener('push', (event) => {
                         }).then(clients => {
                             console.log(`🔍 Clientes encontrados: ${clients.length}`);
                             
-                            // Si hay una ventana abierta, enviar audio SIN enfocar
                             if (clients.length > 0) {
+                                // ✅ HAY VENTANA ABIERTA - Reproducir en segundo plano
                                 const client = clients[0];
-                                console.log('📱 Enviando audio a ventana en segundo plano');
+                                console.log('📱 App abierta - Reproduciendo audio en segundo plano');
                                 
                                 // Enviar mensaje al cliente para reproducir audio
                                 client.postMessage({
@@ -175,15 +175,41 @@ self.addEventListener('push', (event) => {
                                     audioUrl: audioUrl,
                                     senderName: senderName,
                                     timestamp: Date.now(),
-                                    background: true // Indicar que es reproducción en segundo plano
+                                    background: true // No enfocar la ventana
                                 });
                                 
-                                // NO enfocar la ventana - dejar que el audio suene en segundo plano
-                                console.log('🔇 Audio reproduciéndose en segundo plano');
+                                console.log('🔇 Audio reproduciéndose sin interrumpir al usuario');
+                                
+                                // Retornar promesa resuelta
+                                return Promise.resolve();
                             } else {
-                                // Si no hay ventana abierta, abrir una nueva en comunicación
-                                console.log('🆕 Abriendo comunicación para reproducir audio');
-                                return self.clients.openWindow('/central-comunicacion/?autoplay=true&audio=' + encodeURIComponent(audioUrl) + '&sender=' + encodeURIComponent(senderName));
+                                // ❌ NO HAY VENTANA - Abrir app automáticamente
+                                console.log('🆕 App cerrada - Abriendo automáticamente para reproducir');
+                                
+                                // Abrir la app en comunicación con parámetros de autoplay
+                                return self.clients.openWindow(
+                                    '/central-comunicacion/?autoplay=true&audio=' + 
+                                    encodeURIComponent(audioUrl) + 
+                                    '&sender=' + encodeURIComponent(senderName) +
+                                    '&background=true' // Indicar que debe reproducir automáticamente
+                                ).then(windowClient => {
+                                    console.log('✅ App abierta automáticamente');
+                                    
+                                    // Esperar a que la ventana cargue y enviar el audio
+                                    if (windowClient) {
+                                        setTimeout(() => {
+                                            windowClient.postMessage({
+                                                type: 'PLAY_AUDIO_IMMEDIATELY',
+                                                audioUrl: audioUrl,
+                                                senderName: senderName,
+                                                timestamp: Date.now(),
+                                                background: true
+                                            });
+                                        }, 1000); // Esperar 1 segundo para que cargue
+                                    }
+                                    
+                                    return windowClient;
+                                });
                             }
                         })
                     );

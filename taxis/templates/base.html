@@ -257,6 +257,9 @@
     </script>
     {% endblock %}
 
+    <!-- Audio Player Global - Disponible en todas las vistas -->
+    <script src="{% static 'js/audio-player-global.js' %}"></script>
+
     <script>
         // Register Service Worker
         if ('serviceWorker' in navigator) {
@@ -270,7 +273,6 @@
                 console.log('ServiceWorker registration failed: ', err);
               });
           });
-        }
         }
     </script>
 

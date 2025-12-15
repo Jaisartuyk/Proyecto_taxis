@@ -33,17 +33,54 @@ async function init() {
         // Crear elementos DOM faltantes PRIMERO
         ensureRequiredElements();
         
+        console.log('🚀 Iniciando sistema...');
+        
         // Obtener API key de Google Maps de forma segura
         const response = await fetch('/api/maps-key/');
         const data = await response.json();
         Maps_API_KEY = data.maps_api_key;
         
-        // Cargar Google Maps
-        loadGoogleMapsAPI();
+        // Cargar Google Maps solo si tenemos la API key
+        if (Maps_API_KEY) {
+            loadGoogleMapsAPI();
+        } else {
+            console.error('❌ No se pudo obtener la API key de Google Maps');
+        }
     } catch (error) {
         console.error('Error obteniendo API key:', error);
         updateStatus("Error de configuración", "disconnected");
+        
+        // Intentar inicializar solo el WebSocket sin el mapa
+        setTimeout(() => {
+            console.log('🔄 Intentando inicialización básica sin mapa...');
+            initBasicSystem();
+        }, 2000);
     }
+}
+
+// Función de inicialización básica sin mapa
+function initBasicSystem() {
+    try {
+        ensureRequiredElements();
+        initializeDOMElements();
+        setupWebSocket();
+        setupCentralAudioControls();
+        updateStatus("Sistema básico activo", "connected");
+    } catch (error) {
+        console.error('❌ Error en inicialización básica:', error);
+    }
+}
+
+// Función para inicializar elementos del DOM de manera segura
+function initializeDOMElements() {
+    // Inicializar botones
+    startCentralMicBtn = document.getElementById('record-audio-btn');
+    stopCentralMicBtn = document.getElementById('stop-audio-btn');
+    
+    console.log('🔍 Elementos encontrados:', {
+        startBtn: !!startCentralMicBtn,
+        stopBtn: !!stopCentralMicBtn
+    });
 }
 
 function loadGoogleMapsAPI() {
@@ -55,57 +92,114 @@ function loadGoogleMapsAPI() {
 }
 
 window.initMap = function () {
-    const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
-    
-    // Inicializar elementos del DOM
-    startCentralMicBtn = document.getElementById('record-audio-btn');
-    stopCentralMicBtn = document.getElementById('stop-audio-btn'); // Puede no existir
-    
-    if (!startCentralMicBtn) {
-        console.warn('Botón de grabación central no encontrado en el DOM');
+    try {
+        const defaultLatLng = { lat: -2.170998, lng: -79.922359 };
+        
+        // Inicializar elementos del DOM de manera segura
+        initializeDOMElements();
+        
+        // Crear mapa solo si el contenedor existe
+        const mapContainer = document.getElementById("map");
+        if (!mapContainer) {
+            console.warn('❌ Contenedor del mapa no encontrado');
+            initBasicSystem();
+            return;
+        }
+        
+        map = new google.maps.Map(mapContainer, {
+            zoom: 14,
+            center: defaultLatLng,
+            mapTypeId: 'roadmap'
+        });
+        console.log("✅ Mapa de Google Maps inicializado.");
+        
+        setupWebSocket();
+        setupCentralAudioControls();
+        
+        // Iniciar actualización periódica de ubicaciones
+        setInterval(fetchDriverLocations, 10000);
+        fetchDriverLocations();
+        
+    } catch (error) {
+        console.error('❌ Error en initMap:', error);
+        // Fallback a sistema básico
+        initBasicSystem();
     }
-    
-    map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 14,
-        center: defaultLatLng,
-        mapTypeId: 'roadmap'
-    });
-    console.log("Mapa de Google Maps inicializado.");
-    setupWebSocket();
-    setupCentralAudioControls();
-    
-    // Iniciar actualización periódica de ubicaciones
-    setInterval(fetchDriverLocations, 10000);
-    fetchDriverLocations();
 };
 
 // Función para crear elementos DOM faltantes
 function ensureRequiredElements() {
+    console.log('🔧 Verificando elementos DOM requeridos...');
+    
     // Verificar y crear elemento de status si no existe
     if (!document.getElementById('status')) {
         const statusDiv = document.createElement('div');
         statusDiv.id = 'status';
         statusDiv.className = 'status disconnected';
         statusDiv.textContent = 'Iniciando...';
-        statusDiv.style.cssText = 'padding: 10px; margin: 10px; border-radius: 5px; color: white; text-align: center;';
+        statusDiv.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1001;
+            background: #dc3545;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
         document.body.appendChild(statusDiv);
+        console.log('✅ Elemento status creado');
     }
     
     // Verificar y crear elemento de log si no existe
     if (!document.getElementById('log')) {
         const logDiv = document.createElement('div');
         logDiv.id = 'log';
-        logDiv.style.cssText = 'max-height: 200px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 5px; margin: 10px; font-family: monospace; font-size: 12px;';
+        logDiv.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            max-width: 400px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(248, 249, 250, 0.95);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
         document.body.appendChild(logDiv);
+        console.log('✅ Elemento log creado');
     }
     
     // Verificar y crear elemento de audioLog si no existe
     if (!document.getElementById('audioLog')) {
         const audioLogDiv = document.createElement('div');
         audioLogDiv.id = 'audioLog';
-        audioLogDiv.style.cssText = 'max-height: 200px; overflow-y: auto; padding: 10px; background: #e3f2fd; border-radius: 5px; margin: 10px; font-family: monospace; font-size: 12px;';
+        audioLogDiv.style.cssText = `
+            position: fixed;
+            bottom: 220px;
+            left: 10px;
+            max-width: 400px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(227, 242, 253, 0.95);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
         document.body.appendChild(audioLogDiv);
+        console.log('✅ Elemento audioLog creado');
     }
+    
+    console.log('✅ Verificación de elementos DOM completada');
 }
 
 // Variables de reconexión
@@ -339,15 +433,35 @@ function updateStatus(message, className) {
     }
     statusDiv.textContent = message;
     statusDiv.className = `status ${className}`;
+    
+    // Actualizar color según estado
+    if (className === 'connected') {
+        statusDiv.style.background = '#28a745';
+    } else if (className === 'disconnected') {
+        statusDiv.style.background = '#dc3545';
+    } else if (className === 'error') {
+        statusDiv.style.background = '#fd7e14';
+    }
 }
 
 // Funciones para grabar y enviar audio desde la Central
 function setupCentralAudioControls() {
     console.log('🎤 Configurando controles de audio central...');
     
-    // Verificar que el botón existe y es válido
-    if (!startCentralMicBtn || typeof startCentralMicBtn.addEventListener !== 'function') {
-        console.warn('Botón de grabación central no está disponible o es inválido');
+    // Re-obtener el elemento para asegurar que existe
+    const micBtn = document.getElementById('record-audio-btn');
+    
+    if (!micBtn) {
+        console.warn('❌ Botón de grabación central no encontrado - creando interfaz alternativa');
+        createFallbackAudioInterface();
+        return;
+    }
+    
+    startCentralMicBtn = micBtn; // Asignar a variable global
+    
+    // Verificar que el botón es válido
+    if (typeof startCentralMicBtn.addEventListener !== 'function') {
+        console.warn('❌ Elemento de botón no es válido');
         return;
     }
     
@@ -417,6 +531,59 @@ function setupCentralAudioControls() {
                 startCentralMicBtn.disabled = true;
             }
         });
+}
+
+// Función para crear interfaz alternativa de audio si no existe el botón
+function createFallbackAudioInterface() {
+    console.log('🔧 Creando interfaz de audio alternativa...');
+    
+    const container = document.querySelector('.central-broadcast-panel') || 
+                     document.querySelector('.container-fluid') || 
+                     document.body;
+    
+    if (!container) {
+        console.warn('❌ No se encontró contenedor para interfaz alternativa');
+        return;
+    }
+    
+    const fallbackInterface = document.createElement('div');
+    fallbackInterface.id = 'fallback-audio-interface';
+    fallbackInterface.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 1000;
+    `;
+    
+    fallbackInterface.innerHTML = `
+        <div style="text-align: center;">
+            <div style="font-size: 12px; margin-bottom: 5px;">🎤 CENTRAL</div>
+            <button id="fallback-record-btn" style="
+                background: #ff5722;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 50%;
+                font-size: 20px;
+                cursor: pointer;
+            ">🎙️</button>
+            <div style="font-size: 10px; margin-top: 5px;">Mantén presionado</div>
+        </div>
+    `;
+    
+    container.appendChild(fallbackInterface);
+    
+    // Configurar el botón alternativo
+    const fallbackBtn = document.getElementById('fallback-record-btn');
+    if (fallbackBtn) {
+        startCentralMicBtn = fallbackBtn;
+        console.log('✅ Interfaz de audio alternativa creada');
+    }
 }
 
 // Funciones para manejo y reproducción de audio

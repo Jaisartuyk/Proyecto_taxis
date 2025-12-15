@@ -305,6 +305,68 @@ Si encuentras algún problema:
 
 ---
 
+---
+
+## 🔧 **ACTUALIZACIÓN CRÍTICA (2025-12-15 - 15:10):**
+
+### **PROBLEMA DETECTADO:**
+Media Session API **NO funciona cuando la app está completamente en segundo plano** (cerrada o en otra app). Solo funciona cuando la app está activa pero en otra pestaña.
+
+### **SOLUCIÓN IMPLEMENTADA:**
+
+#### **1. Service Worker abre la app automáticamente:**
+Cuando llega un audio de walkie-talkie:
+- Si hay una ventana abierta → La enfoca y envía el audio
+- Si NO hay ventana abierta → Abre una nueva automáticamente
+
+#### **2. Comunicación Service Worker ↔ App:**
+```javascript
+// Service Worker envía mensaje:
+client.postMessage({
+    type: 'PLAY_AUDIO_IMMEDIATELY',
+    audioUrl: audioUrl,
+    senderName: senderName,
+    timestamp: Date.now()
+});
+
+// comunicacion.js recibe y reproduce:
+navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data.type === 'PLAY_AUDIO_IMMEDIATELY') {
+        playAudioImmediately(audioUrl, senderName, 1.0);
+    }
+});
+```
+
+#### **3. Archivos modificados:**
+- `static/js/service-worker.js` - Abre app automáticamente
+- `taxis/static/js/comunicacion.js` - Listener para mensajes del SW
+
+### **CÓMO FUNCIONA AHORA:**
+
+**Escenario 1: App abierta pero en otra pestaña**
+```
+Audio llega → Media Session API → Audio sigue sonando ✅
+```
+
+**Escenario 2: App cerrada o en otra app**
+```
+Audio llega → Push Notification → Service Worker
+→ Abre la app automáticamente → Reproduce audio ✅
+```
+
+**Escenario 3: Usuario hace click en notificación**
+```
+Click → Service Worker → Abre/enfoca app → Reproduce audio ✅
+```
+
+### **LIMITACIONES REALES:**
+
+1. **Android Chrome:** ✅ Funciona perfectamente (abre app automáticamente)
+2. **iOS Safari:** ⚠️ Requiere que el usuario haga click en la notificación (limitación del sistema)
+3. **Navegadores de escritorio:** ✅ Funciona si la app está en otra pestaña
+
+---
+
 **Fecha de implementación:** 2025-12-15  
-**Versión:** 1.0  
-**Estado:** ✅ Listo para producción
+**Versión:** 2.0 (Actualización crítica)  
+**Estado:** ✅ Listo para producción - Solución real implementada

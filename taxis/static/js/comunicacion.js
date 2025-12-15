@@ -30,6 +30,9 @@ let stopCentralMicBtn;
 // Inicialización
 async function init() {
     try {
+        // Crear elementos DOM faltantes PRIMERO
+        ensureRequiredElements();
+        
         // Obtener API key de Google Maps de forma segura
         const response = await fetch('/api/maps-key/');
         const data = await response.json();
@@ -61,9 +64,6 @@ window.initMap = function () {
     if (!startCentralMicBtn) {
         console.warn('Botón de grabación central no encontrado en el DOM');
     }
-    
-    // Crear elementos faltantes si es necesario
-    ensureRequiredElements();
     
     map = new google.maps.Map(document.getElementById("map"), {
         zoom: 14,
@@ -343,8 +343,11 @@ function updateStatus(message, className) {
 
 // Funciones para grabar y enviar audio desde la Central
 function setupCentralAudioControls() {
-    if (!startCentralMicBtn) {
-        console.warn('Botón de grabación central no está disponible');
+    console.log('🎤 Configurando controles de audio central...');
+    
+    // Verificar que el botón existe y es válido
+    if (!startCentralMicBtn || typeof startCentralMicBtn.addEventListener !== 'function') {
+        console.warn('Botón de grabación central no está disponible o es inválido');
         return;
     }
     
@@ -401,11 +404,18 @@ function setupCentralAudioControls() {
                     startCentralMicBtn.style.backgroundColor = '#007bff';
                 }
             });
+            
+            // Habilitar el botón después de configurar el micrófono
+            if (startCentralMicBtn) {
+                startCentralMicBtn.disabled = false;
+            }
         })
         .catch(error => {
             console.error('Error al acceder al micrófono:', error);
             logAudio('⚠️ No se pudo acceder al micrófono.');
-            startCentralMicBtn.disabled = true;
+            if (startCentralMicBtn) {
+                startCentralMicBtn.disabled = true;
+            }
         });
 }
 
@@ -1332,3 +1342,9 @@ function checkAutoplayParameters() {
 
 // Limpiar audios antiguos cada 30 minutos
 setInterval(cleanOldPendingAudios, 30 * 60 * 1000);
+
+// Inicializar el sistema cuando se carga el DOM
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando sistema de comunicación...');
+    init();
+});

@@ -140,71 +140,6 @@
         }
     }
 
-    /* BARRA DE CONTROLES DE VISTA */
-    .view-controls {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-        border-bottom: 2px solid #1a252f;
-        padding: 10px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-
-    .view-controls h3 {
-        color: #ecf0f1;
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 600;
-    }
-
-    .view-toggle-buttons {
-        display: flex;
-        gap: 10px;
-    }
-
-    .toggle-btn {
-        background: rgba(255, 255, 255, 0.1);
-        color: #bdc3c7;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
-        padding: 8px 15px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        backdrop-filter: blur(10px);
-    }
-
-    .toggle-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: #ecf0f1;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    .toggle-btn.active {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        color: white;
-        border-color: #2980b9;
-        box-shadow: 0 3px 10px rgba(52, 152, 219, 0.4);
-    }
-
-    .toggle-btn.chat-toggle.active {
-        background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);
-        border-color: #5f3dc4;
-        box-shadow: 0 3px 10px rgba(108, 92, 231, 0.4);
-    }
-
-    .toggle-btn.audio-toggle.active {
-        background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
-        border-color: #d63031;
-        box-shadow: 0 3px 10px rgba(225, 112, 85, 0.4);
-    }
-
     /* ESTADOS DE VISIBILIDAD */
     .chat-window.hidden {
         display: none;
@@ -214,65 +149,25 @@
         display: none;
     }
 
-    /* RESPONSIVE ADJUSTMENTS PARA LOS CONTROLES */
+    /* RESPONSIVE ADJUSTMENTS PARA MÓVILES */
     @media (max-width: 768px) {
-        .view-controls {
-            padding: 8px 12px;
+        .header-controls {
+            gap: 5px;
         }
         
-        .view-controls h3 {
-            font-size: 0.9rem;
+        .header-toggle-btn {
+            padding: 3px 6px;
+            font-size: 10px;
+            min-width: 18px;
+            height: 20px;
         }
         
-        .toggle-btn {
-            padding: 6px 12px;
-            font-size: 11px;
+        .chat-header, .audio-log-header {
+            padding: 12px 15px;
         }
         
-        .view-toggle-buttons {
-            gap: 8px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .view-controls {
-            flex-direction: column;
-            gap: 10px;
-            text-align: center;
-        }
-        
-        .view-toggle-buttons {
-            justify-content: center;
-        }
-        
-        /* En móvil, mostrar solo uno a la vez por defecto */
-        .main-layout {
-            position: relative;
-        }
-        
-        .chat-container {
-            position: relative;
-        }
-        
-        /* Estilo de tabs en móvil */
-        .content-layout {
-            position: relative;
-        }
-        
-        .mobile-hint {
-            display: block;
-            background: rgba(52, 152, 219, 0.1);
-            color: #3498db;
-            padding: 8px;
-            text-align: center;
-            font-size: 11px;
-            border-bottom: 1px solid rgba(52, 152, 219, 0.2);
-        }
-    }
-    
-    @media (min-width: 481px) {
-        .mobile-hint {
-            display: none;
+        .audio-log-header {
+            font-size: 0.8rem;
         }
     }
 
@@ -310,6 +205,46 @@
         font-size: 1rem;
         border-bottom: 2px solid #5f3dc4;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .header-toggle-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        backdrop-filter: blur(10px);
+        min-width: 20px;
+        height: 24px;
+    }
+
+    .header-toggle-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+    }
+
+    .header-toggle-btn.minimize {
+        background: rgba(231, 76, 60, 0.8);
+    }
+
+    .header-toggle-btn.minimize:hover {
+        background: rgba(231, 76, 60, 1);
     }
 
     .chat-messages {
@@ -419,6 +354,23 @@
         font-size: 0.9rem;
         border-bottom: 2px solid #2d3748;
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .audio-log-header .header-controls {
+        display: flex;
+        gap: 5px;
+    }
+
+    .audio-log-header .header-toggle-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .audio-log-header .header-toggle-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
     }
 
     @media (max-width: 768px) {
@@ -978,27 +930,6 @@
     </div>
 
     <div class="content-layout">
-        <!-- BARRA DE CONTROLES DE VISTA -->
-        <div class="view-controls">
-            <h3>🎛️ Panel de Control</h3>
-            <div class="view-toggle-buttons">
-                <button class="toggle-btn chat-toggle active" id="toggle-chat" onclick="toggleChat()">
-                    💬 Chat
-                </button>
-                <button class="toggle-btn audio-toggle active" id="toggle-audio" onclick="toggleAudioLog()">
-                    📻 Audio
-                </button>
-                <button class="toggle-btn" id="toggle-fullscreen" onclick="toggleFullscreen()">
-                    🔳 Pantalla
-                </button>
-            </div>
-        </div>
-
-        <!-- SUGERENCIA PARA MÓVILES -->
-        <div class="mobile-hint">
-            💡 Usa los botones arriba para mostrar/ocultar paneles. Shortcuts: Ctrl+H (Chat), Ctrl+J (Audio)
-        </div>
-
         <div class="chat-container">
             {% if request.user.is_superuser %}
             <div class="user-list">
@@ -1066,7 +997,13 @@
 
             <!-- PANEL DE CHAT PRIVADO MEJORADO -->
             <div class="chat-window">
-                <div class="chat-header" id="chat-header">💬 Selecciona un chat privado</div>
+                <div class="chat-header" id="chat-header">
+                    <span>💬 Chat Privado</span>
+                    <div class="header-controls">
+                        <button class="header-toggle-btn" id="toggle-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa (F11)">🔳</button>
+                        <button class="header-toggle-btn minimize" onclick="toggleChat()" title="Ocultar chat (Ctrl+H)">✕</button>
+                    </div>
+                </div>
                 <div class="chat-messages" id="chat-log">
                     <div id="no-chat-selected">
                         <div style="text-align: center; padding: 40px 20px; color: #7f8c8d;">
@@ -1086,7 +1023,11 @@
         <!-- PANEL DE REGISTRO DE AUDIO -->
         <div class="audio-log-panel">
             <div class="audio-log-header">
-                📻 Registro de Audio
+                <span>📻 Registro de Audio</span>
+                <div class="header-controls">
+                    <button class="header-toggle-btn" onclick="clearHistory()" title="Limpiar historial">🗑️</button>
+                    <button class="header-toggle-btn minimize" onclick="toggleAudioLog()" title="Ocultar audio (Ctrl+J)">✕</button>
+                </div>
             </div>
             <div class="audio-log-content" id="audio-log">
                 <div class="audio-log-empty">
@@ -1488,66 +1429,41 @@
     // FUNCIONES PARA CONTROLAR VISIBILIDAD DE PANELES
     window.toggleChat = function() {
         const chatWindow = document.querySelector('.chat-window');
-        const toggleBtn = document.getElementById('toggle-chat');
         
         if (chatWindow.classList.contains('hidden')) {
             chatWindow.classList.remove('hidden');
-            toggleBtn.classList.add('active');
-            toggleBtn.innerHTML = '💬 Chat';
             showNotification('💬 Chat activado', 'success');
         } else {
             chatWindow.classList.add('hidden');
-            toggleBtn.classList.remove('active');
-            toggleBtn.innerHTML = '💬 Mostrar Chat';
             showNotification('💬 Chat oculto', 'info');
         }
     }
     
     window.toggleAudioLog = function() {
         const audioPanel = document.querySelector('.audio-log-panel');
-        const toggleBtn = document.getElementById('toggle-audio');
         
         if (audioPanel.classList.contains('hidden')) {
             audioPanel.classList.remove('hidden');
-            toggleBtn.classList.add('active');
-            toggleBtn.innerHTML = '📻 Audio';
             showNotification('📻 Registro de audio activado', 'success');
         } else {
             audioPanel.classList.add('hidden');
-            toggleBtn.classList.remove('active');
-            toggleBtn.innerHTML = '📻 Mostrar Audio';
             showNotification('📻 Registro de audio oculto', 'info');
         }
     }
     
     window.toggleFullscreen = function() {
-        const toggleBtn = document.getElementById('toggle-fullscreen');
-        
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().then(() => {
-                toggleBtn.innerHTML = '🔲 Salir Pantalla';
-                toggleBtn.classList.add('active');
                 showNotification('🔳 Pantalla completa activada', 'success');
             }).catch(() => {
                 showNotification('❌ No se pudo activar pantalla completa', 'error');
             });
         } else {
             document.exitFullscreen().then(() => {
-                toggleBtn.innerHTML = '🔳 Pantalla';
-                toggleBtn.classList.remove('active');
                 showNotification('🔲 Pantalla completa desactivada', 'info');
             });
         }
     }
-    
-    // DETECTAR CAMBIOS DE PANTALLA COMPLETA
-    document.addEventListener('fullscreenchange', function() {
-        const toggleBtn = document.getElementById('toggle-fullscreen');
-        if (!document.fullscreenElement) {
-            toggleBtn.innerHTML = '🔳 Pantalla';
-            toggleBtn.classList.remove('active');
-        }
-    });
     
     // CARGAR PREFERENCIAS GUARDADAS
     function loadViewPreferences() {

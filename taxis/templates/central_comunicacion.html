@@ -149,6 +149,67 @@
         display: none;
     }
 
+    /* BOTONES FLOTANTES PARA MOSTRAR PANELES OCULTOS */
+    .floating-controls {
+        position: fixed;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 1000;
+    }
+
+    .floating-btn {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        font-size: 18px;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        transform: scale(0) translateY(-50%);
+        pointer-events: none;
+    }
+
+    .floating-btn.visible {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        pointer-events: all;
+    }
+
+    .floating-btn:hover {
+        transform: scale(1.1) translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6);
+    }
+
+    .floating-btn.chat-btn {
+        background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);
+        box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+    }
+
+    .floating-btn.chat-btn:hover {
+        box-shadow: 0 6px 20px rgba(108, 92, 231, 0.6);
+    }
+
+    .floating-btn.audio-btn {
+        background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+        box-shadow: 0 4px 15px rgba(225, 112, 85, 0.4);
+    }
+
+    .floating-btn.audio-btn:hover {
+        box-shadow: 0 6px 20px rgba(225, 112, 85, 0.6);
+    }
+
     /* RESPONSIVE ADJUSTMENTS PARA MÓVILES */
     @media (max-width: 768px) {
         .header-controls {
@@ -168,6 +229,23 @@
         
         .audio-log-header {
             font-size: 0.8rem;
+        }
+        
+        /* Ajustar botones flotantes en móvil */
+        .floating-controls {
+            right: 10px;
+            bottom: 20px;
+            top: auto;
+            transform: none;
+            flex-direction: row;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .floating-btn {
+            width: 45px;
+            height: 45px;
+            font-size: 16px;
         }
     }
 
@@ -1038,6 +1116,12 @@
     </div> <!-- Cierre content-layout -->
 </div> <!-- Cierre main-layout -->
 
+<!-- BOTONES FLOTANTES PARA PANELES OCULTOS -->
+<div class="floating-controls">
+    <button class="floating-btn chat-btn" id="floating-chat-btn" onclick="toggleChat()" title="Mostrar Chat (Ctrl+H)">💬</button>
+    <button class="floating-btn audio-btn" id="floating-audio-btn" onclick="toggleAudioLog()" title="Mostrar Audio (Ctrl+J)">📻</button>
+</div>
+
 <audio id="audio-player" style="display: none;"></audio>
 
 {% endblock %}
@@ -1429,24 +1513,30 @@
     // FUNCIONES PARA CONTROLAR VISIBILIDAD DE PANELES
     window.toggleChat = function() {
         const chatWindow = document.querySelector('.chat-window');
+        const floatingBtn = document.getElementById('floating-chat-btn');
         
         if (chatWindow.classList.contains('hidden')) {
             chatWindow.classList.remove('hidden');
+            floatingBtn.classList.remove('visible');
             showNotification('💬 Chat activado', 'success');
         } else {
             chatWindow.classList.add('hidden');
+            floatingBtn.classList.add('visible');
             showNotification('💬 Chat oculto', 'info');
         }
     }
     
     window.toggleAudioLog = function() {
         const audioPanel = document.querySelector('.audio-log-panel');
+        const floatingBtn = document.getElementById('floating-audio-btn');
         
         if (audioPanel.classList.contains('hidden')) {
             audioPanel.classList.remove('hidden');
+            floatingBtn.classList.remove('visible');
             showNotification('📻 Registro de audio activado', 'success');
         } else {
             audioPanel.classList.add('hidden');
+            floatingBtn.classList.add('visible');
             showNotification('📻 Registro de audio oculto', 'info');
         }
     }
@@ -1470,11 +1560,20 @@
         const chatVisible = localStorage.getItem('chatVisible') !== 'false';
         const audioVisible = localStorage.getItem('audioVisible') !== 'false';
         
+        // Configurar estado inicial de los paneles y botones flotantes
+        const chatWindow = document.querySelector('.chat-window');
+        const audioPanel = document.querySelector('.audio-log-panel');
+        const floatingChatBtn = document.getElementById('floating-chat-btn');
+        const floatingAudioBtn = document.getElementById('floating-audio-btn');
+        
         if (!chatVisible) {
-            toggleChat();
+            chatWindow.classList.add('hidden');
+            floatingChatBtn.classList.add('visible');
         }
+        
         if (!audioVisible) {
-            toggleAudioLog();
+            audioPanel.classList.add('hidden');
+            floatingAudioBtn.classList.add('visible');
         }
     }
     

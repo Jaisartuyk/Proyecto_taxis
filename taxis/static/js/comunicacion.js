@@ -524,7 +524,12 @@ function loadPersistedAudioData() {
         
         // Mostrar indicador si hay audios pendientes
         if (pendingAudioQueue.length > 0) {
+            console.log(`🚨 HAY ${pendingAudioQueue.length} AUDIOS PENDIENTES - Mostrando banner`);
             showPendingAudioIndicator();
+            
+            // Opcional: Reproducir automáticamente los audios pendientes
+            // (descomenta la siguiente línea si quieres reproducción automática al regresar)
+            // setTimeout(() => playPendingAudios(), 2000);
         }
         
     } catch (error) {

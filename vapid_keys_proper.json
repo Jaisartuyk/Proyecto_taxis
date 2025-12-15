@@ -1,0 +1,6 @@
+{
+  "private_key_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgjSOYDwDJC4q1MRlv\nagvdYn4P8wGF/daxWb0KmhpLp9ShRANCAARPhjg4Ws2keNx1lZVJf8D1pw36lW8T\n4h8tX7NVQxJt6/rDvJqVlxu6nsyEqnJ6nUgoVu0eK9vrNrw5yOVcgNj7\n-----END PRIVATE KEY-----\n",
+  "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAET4Y4OFrNpHjcdZWVSX/A9acN+pVv\nE+IfLV+zVUMSbev6w7yalZcbup7MhKpyep1IKFbtHivb6za8OcjlXIDY+w==\n-----END PUBLIC KEY-----\n",
+  "public_key_b64": "BE-GODhazaR43HWVlUl_wPWnDfqVbxPiHy1fs1VDEm3r-sO8mpWXG7qezISqcnqdSChW7R4r2-s2vDnI5VyA2Ps",
+  "admin_email": "admin@deaquipalla.com"
+}

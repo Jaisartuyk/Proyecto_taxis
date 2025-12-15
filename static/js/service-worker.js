@@ -143,6 +143,43 @@ self.addEventListener('push', (event) => {
             if (pushData.badge) notificationData.badge = pushData.badge;
             if (pushData.data) notificationData.data = { ...notificationData.data, ...pushData.data };
             
+            // CONFIGURACIÓN ESPECIAL PARA AUDIO WALKIE-TALKIE
+            if (pushData.data && pushData.data.type === 'walkie_talkie_audio') {
+                console.log('📻 Configurando notificación walkie-talkie');
+                
+                // Sonido más persistente para walkie-talkie
+                notificationData.requireInteraction = true; // No se cierra automáticamente
+                notificationData.silent = false; // Asegurar que haga sonido
+                notificationData.tag = 'walkie-talkie-audio'; // Agrupar audios
+                
+                // Vibración específica para walkie-talkie
+                if (pushData.data.vibrate) {
+                    notificationData.vibrate = pushData.data.vibrate;
+                }
+                
+                // Acciones rápidas
+                notificationData.actions = [
+                    {
+                        action: 'open_audio',
+                        title: '🔊 Escuchar',
+                        icon: '/static/imagenes/audio-icon.png'
+                    },
+                    {
+                        action: 'dismiss',
+                        title: '❌ Descartar',
+                        icon: '/static/imagenes/close-icon.png'
+                    }
+                ];
+                
+                // Guardar audio pendiente para cuando abra la app
+                savePendingAudio(
+                    pushData.data.sender_id,
+                    pushData.data.sender_name,
+                    pushData.data.audio_url,
+                    pushData.data.timestamp || Date.now()
+                );
+            }
+            
         } catch (e) {
             console.error('❌ Error al parsear datos del push:', e);
         }
@@ -182,7 +219,54 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
     console.log('🖱️ Click en notificación:', event.action);
     
+    const notificationData = event.notification.data || {};
+    const action = event.action;
+    
     event.notification.close();
+
+    // MANEJO ESPECÍFICO PARA AUDIO WALKIE-TALKIE
+    if (notificationData.type === 'walkie_talkie_audio') {
+        console.log('📻 Click en notificación de walkie-talkie');
+        
+        if (action === 'open_audio' || !action) {
+            // Abrir app y ir a central de comunicaciones
+            event.waitUntil(
+                clients.matchAll({ type: 'window' }).then((clientList) => {
+                    // Si hay una ventana abierta, enfocarla
+                    for (const client of clientList) {
+                        if (client.url.includes('central-comunicacion') && 'focus' in client) {
+                            console.log('📻 Enfocando central de comunicaciones existente');
+                            return client.focus();
+                        }
+                    }
+                    
+                    // Si no hay ventana abierta o no está en central, abrir nueva
+                    if (clients.openWindow) {
+                        console.log('📻 Abriendo central de comunicaciones');
+                        return clients.openWindow('/central-comunicacion/');
+                    }
+                })
+            );
+        } else if (action === 'dismiss') {
+            console.log('📻 Audio walkie-talkie descartado');
+            // Marcar como descartado en localStorage
+            markAudioAsDismissed(notificationData.sender_id, notificationData.timestamp);
+        }
+    } else {
+        // Comportamiento normal para otras notificaciones
+        event.waitUntil(
+            clients.matchAll({ type: 'window' }).then((clientList) => {
+                for (const client of clientList) {
+                    if ('focus' in client) {
+                        return client.focus();
+                    }
+                }
+                if (clients.openWindow) {
+                    return clients.openWindow('/');
+                }
+            })
+        );
+    }
 
     // Actualizar badge al hacer clic
     const updateBadge = async () => {
@@ -342,5 +426,102 @@ self.addEventListener('push', (event) => {
         );
     }
 });
+
+// ========================================
+// FUNCIONES DE GESTIÓN DE AUDIO WALKIE-TALKIE
+// ========================================
+
+/**
+ * Guarda un audio pendiente para reproducir cuando el usuario abra la app
+ */
+function savePendingAudio(senderId, senderName, audioUrl, timestamp) {
+    return new Promise((resolve) => {
+        try {
+            // Obtener lista actual de audios pendientes
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                if (clients.length > 0) {
+                    // Usar postMessage si hay ventanas abiertas
+                    clients[0].postMessage({
+                        type: 'SAVE_PENDING_AUDIO',
+                        payload: {
+                            senderId: senderId,
+                            senderName: senderName,
+                            audioUrl: audioUrl,
+                            timestamp: timestamp,
+                            id: `audio_${senderId}_${timestamp}`
+                        }
+                    });
+                }
+            });
+            
+            console.log(`📻 Audio pendiente guardado: ${senderName} - ${timestamp}`);
+            resolve();
+        } catch (error) {
+            console.error('❌ Error guardando audio pendiente:', error);
+            resolve();
+        }
+    });
+}
+
+/**
+ * Marca un audio como descartado para evitar reproducirlo
+ */
+function markAudioAsDismissed(senderId, timestamp) {
+    return new Promise((resolve) => {
+        try {
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                if (clients.length > 0) {
+                    clients[0].postMessage({
+                        type: 'DISMISS_AUDIO',
+                        payload: {
+                            senderId: senderId,
+                            timestamp: timestamp,
+                            id: `audio_${senderId}_${timestamp}`
+                        }
+                    });
+                }
+            });
+            
+            console.log(`📻 Audio marcado como descartado: ${senderId} - ${timestamp}`);
+            resolve();
+        } catch (error) {
+            console.error('❌ Error marcando audio como descartado:', error);
+            resolve();
+        }
+    });
+}
+
+/**
+ * Limpia audios pendientes antiguos (más de 1 hora)
+ */
+function cleanOldPendingAudios() {
+    return new Promise((resolve) => {
+        try {
+            const oneHourAgo = Date.now() - (60 * 60 * 1000);
+            
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                if (clients.length > 0) {
+                    clients[0].postMessage({
+                        type: 'CLEAN_OLD_AUDIOS',
+                        payload: {
+                            beforeTimestamp: oneHourAgo
+                        }
+                    });
+                }
+            });
+            
+            console.log('🧹 Limpieza de audios antiguos solicitada');
+            resolve();
+        } catch (error) {
+            console.error('❌ Error limpiando audios antiguos:', error);
+            resolve();
+        }
+    });
+}
+
+// Limpiar audios antiguos cada 30 minutos
+self.setInterval(() => {
+    cleanOldPendingAudios();
+}, 30 * 60 * 1000);
 
 console.log('✅ Service Worker v5.4 cargado con soporte Push Notifications completo');

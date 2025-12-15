@@ -63,13 +63,29 @@ class AudioConsumer(AsyncWebsocketConsumer):
         try:
             sender = User.objects.get(id=sender_id)
             sender_name = sender.get_full_name() or "Central"
+            
+            # Datos específicos para audio walkie-talkie
+            audio_data = {
+                "type": "walkie_talkie_audio",
+                "sender_id": str(sender_id),
+                "sender_name": sender_name,
+                "timestamp": int(__import__('time').time() * 1000),
+                "urgent": True,
+                "requires_immediate_attention": True,
+                "sound": "walkie_talkie",
+                "vibrate": [200, 100, 200],
+                "action": "open_audio_channel"
+            }
+            
+            # Notificación tipo walkie-talkie
             send_push_to_all_drivers(
-                title=f"🎤 Mensaje de Audio de {sender_name}",
-                body="Toca para escuchar",
-                data={"type": "audio_message", "sender_id": str(sender_id)}
+                title=f"📻 {sender_name}",
+                body="🎤 Mensaje de audio - Toca para escuchar",
+                data=audio_data
             )
+            print(f"📻 Push de audio walkie-talkie enviado por {sender_name}")
         except Exception as e:
-            print(f"Error sending push notification: {e}")
+            print(f"Error sending walkie-talkie push notification: {e}")
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name') and self.channel_layer is not None:

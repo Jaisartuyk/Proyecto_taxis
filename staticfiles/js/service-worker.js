@@ -62,6 +62,11 @@ self.addEventListener('activate', (event) => {
 
 // Estrategia de caché: Network First, fallback a Cache
 self.addEventListener('fetch', (event) => {
+    // Ignorar peticiones que no sean GET (como POST, PUT, etc.)
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
     event.respondWith(
         fetch(event.request)
             .then((response) => {

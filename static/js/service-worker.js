@@ -147,21 +147,30 @@ self.addEventListener('push', (event) => {
             if (pushData.data && pushData.data.type === 'walkie_talkie_audio') {
                 console.log('📻 Configurando notificación walkie-talkie');
                 
+                // REPRODUCIR AUDIO INMEDIATAMENTE EN BACKGROUND
+                playAudioInBackground(
+                    pushData.data.audio_url,
+                    pushData.data.sender_name
+                );
+                
                 // Sonido más persistente para walkie-talkie
                 notificationData.requireInteraction = true; // No se cierra automáticamente
-                notificationData.silent = false; // Asegurar que haga sonido
+                notificationData.silent = false; // IMPORTANTE: Asegurar que haga sonido
                 notificationData.tag = 'walkie-talkie-audio'; // Agrupar audios
                 
-                // Vibración específica para walkie-talkie
-                if (pushData.data.vibrate) {
-                    notificationData.vibrate = pushData.data.vibrate;
+                // Vibración específica para walkie-talkie (más larga e intensa)
+                notificationData.vibrate = [300, 100, 300, 100, 300, 100, 300];
+                
+                // Configurar sonido personalizado si está disponible
+                if ('sound' in notificationData) {
+                    notificationData.sound = '/static/sounds/walkie-beep.mp3';
                 }
                 
                 // Acciones rápidas
                 notificationData.actions = [
                     {
-                        action: 'open_audio',
-                        title: '🔊 Escuchar',
+                        action: 'replay_audio',
+                        title: '� Repetir Audio',
                         icon: '/static/imagenes/audio-icon.png'
                     },
                     {
@@ -225,10 +234,17 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     // MANEJO ESPECÍFICO PARA AUDIO WALKIE-TALKIE
-    if (notificationData.type === 'walkie_talkie_audio') {
+    if (notificationData.type === 'walkie_talkie_audio' || notificationData.type === 'background_audio_playback') {
         console.log('📻 Click en notificación de walkie-talkie');
         
-        if (action === 'open_audio' || !action) {
+        if (action === 'open_audio' || action === 'replay_audio' || !action) {
+            
+            // Reproducir audio nuevamente si se solicita
+            if (action === 'replay_audio' && notificationData.audio_url) {
+                console.log('🔄 Repitiendo audio de walkie-talkie');
+                playAudioInBackground(notificationData.audio_url, notificationData.sender_name);
+            }
+            
             // Abrir app y ir a central de comunicaciones
             event.waitUntil(
                 clients.matchAll({ type: 'window' }).then((clientList) => {
@@ -250,7 +266,20 @@ self.addEventListener('notificationclick', (event) => {
         } else if (action === 'dismiss') {
             console.log('📻 Audio walkie-talkie descartado');
             // Marcar como descartado en localStorage
-            markAudioAsDismissed(notificationData.sender_id, notificationData.timestamp);
+            if (notificationData.sender_id && notificationData.timestamp) {
+                markAudioAsDismissed(notificationData.sender_id, notificationData.timestamp);
+            }
+        } else if (action === 'stop_audio') {
+            console.log('⏹️ Deteniendo reproducción de audio');
+            // Enviar comando para detener audio a las ventanas abiertas
+            clients.matchAll({ type: 'window' }).then((clientList) => {
+                clientList.forEach(client => {
+                    client.postMessage({
+                        type: 'STOP_AUDIO',
+                        payload: { immediate: true }
+                    });
+                });
+            });
         }
     } else {
         // Comportamiento normal para otras notificaciones
@@ -432,11 +461,134 @@ self.addEventListener('push', (event) => {
 // ========================================
 
 /**
+ * Reproduce audio inmediatamente en background sin requerir interacción del usuario
+ */
+async function playAudioInBackground(audioUrl, senderName) {
+    try {
+        console.log(`🎵 Intentando reproducir audio en background de: ${senderName}`);
+        
+        // Método 1: Usar Audio API directamente en Service Worker
+        if (typeof Audio !== 'undefined') {
+            const audio = new Audio();
+            audio.src = audioUrl;
+            audio.volume = 1.0; // Volumen máximo
+            audio.preload = 'auto';
+            
+            // Configurar para reproducción inmediata
+            audio.addEventListener('canplay', () => {
+                console.log(`🔊 Reproduciendo audio de ${senderName}`);
+                audio.play().catch(error => {
+                    console.warn(`⚠️ Error reproduciendo con Audio API:`, error);
+                    fallbackAudioPlayback(audioUrl, senderName);
+                });
+            });
+            
+            audio.addEventListener('error', (error) => {
+                console.error(`❌ Error cargando audio:`, error);
+                fallbackAudioPlayback(audioUrl, senderName);
+            });
+            
+            // Cargar el audio
+            audio.load();
+            
+        } else {
+            // Fallback si Audio no está disponible
+            console.log('🔄 Audio API no disponible, usando fallback');
+            fallbackAudioPlayback(audioUrl, senderName);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error en playAudioInBackground:', error);
+        fallbackAudioPlayback(audioUrl, senderName);
+    }
+}
+
+/**
+ * Método alternativo para reproducir audio cuando el principal falla
+ */
+async function fallbackAudioPlayback(audioUrl, senderName) {
+    try {
+        console.log(`🔄 Fallback: Reproducción via clients de ${senderName}`);
+        
+        // Enviar comando a todas las ventanas/tabs abiertas para reproducir audio
+        const clients = await self.clients.matchAll({ 
+            type: 'window', 
+            includeUncontrolled: true 
+        });
+        
+        if (clients.length > 0) {
+            // Si hay ventanas abiertas, usar la primera para reproducir
+            clients[0].postMessage({
+                type: 'PLAY_AUDIO_IMMEDIATELY',
+                payload: {
+                    audioUrl: audioUrl,
+                    senderName: senderName,
+                    urgent: true,
+                    volume: 1.0
+                }
+            });
+            console.log(`📢 Comando de reproducción enviado a ventana activa`);
+        } else {
+            // Si no hay ventanas, crear notificación con sonido
+            console.log(`🔔 No hay ventanas activas, usando notificación con sonido`);
+            await createAudioNotification(audioUrl, senderName);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error en fallbackAudioPlayback:', error);
+    }
+}
+
+/**
+ * Crear notificación con sonido cuando no hay ventanas activas
+ */
+async function createAudioNotification(audioUrl, senderName) {
+    try {
+        await self.registration.showNotification(`🎵 Audio de ${senderName}`, {
+            body: '🔊 Reproduciendo audio de walkie-talkie',
+            icon: '/static/imagenes/icon-192x192.png',
+            badge: '/static/imagenes/icon-72x72.png',
+            tag: 'audio-playback',
+            requireInteraction: false, // Se cierra automáticamente después del sonido
+            silent: false, // IMPORTANTE: permitir sonido
+            vibrate: [1000, 500, 1000, 500, 1000], // Vibración larga
+            actions: [
+                {
+                    action: 'stop_audio',
+                    title: '⏹️ Detener',
+                    icon: '/static/imagenes/stop-icon.png'
+                }
+            ],
+            data: {
+                type: 'background_audio_playback',
+                audioUrl: audioUrl,
+                senderName: senderName,
+                timestamp: Date.now()
+            }
+        });
+        
+        // Auto-cerrar la notificación después de 5 segundos
+        setTimeout(() => {
+            self.registration.getNotifications({ tag: 'audio-playback' })
+                .then(notifications => {
+                    notifications.forEach(notification => notification.close());
+                });
+        }, 5000);
+        
+    } catch (error) {
+        console.error('❌ Error creando notificación de audio:', error);
+    }
+}
+
+/**
  * Guarda un audio pendiente para reproducir cuando el usuario abra la app
  */
 function savePendingAudio(senderId, senderName, audioUrl, timestamp) {
     return new Promise((resolve) => {
         try {
+            // REPRODUCIR AUDIO INMEDIATAMENTE EN BACKGROUND
+            playAudioInBackground(audioUrl, senderName);
+            
             // Obtener lista actual de audios pendientes
             self.clients.matchAll({ type: 'window' }).then(clients => {
                 if (clients.length > 0) {

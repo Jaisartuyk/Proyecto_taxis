@@ -18,6 +18,7 @@ let wsReconnectTimeout;
 // Variables del sistema walkie-talkie
 let pendingAudioQueue = [];
 let dismissedAudios = new Set();
+let currentPlayingAudio = null; // Para poder detener audio actual
 
 const roomName = "conductores";
 const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -667,6 +668,16 @@ if ('serviceWorker' in navigator) {
                 cleanOldPendingAudios(payload.beforeTimestamp);
                 break;
                 
+            case 'PLAY_AUDIO_IMMEDIATELY':
+                // REPRODUCIR AUDIO INMEDIATAMENTE - FUNCIONALIDAD CLAVE
+                playAudioImmediately(payload.audioUrl, payload.senderName, payload.volume || 1.0);
+                break;
+                
+            case 'STOP_AUDIO':
+                // DETENER REPRODUCCIÓN DE AUDIO INMEDIATAMENTE
+                stopAllAudio();
+                break;
+                
             case 'PUSH_RECEIVED':
                 // Notificación recibida mientras la app está abierta
                 console.log('📻 Push notification recibida:', payload);
@@ -675,10 +686,376 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+/**
+ * Reproducir audio inmediatamente sin agregarlo a cola (para background)
+ */
+function playAudioImmediately(audioUrl, senderName, volume = 1.0) {
+    try {
+        console.log(`🔊 REPRODUCCIÓN INMEDIATA: Audio de ${senderName}`);
+        
+        // Detener audio anterior si existe
+        if (currentPlayingAudio) {
+            currentPlayingAudio.pause();
+            currentPlayingAudio = null;
+        }
+        
+        // Crear elemento de audio
+        const audioElement = new Audio();
+        audioElement.src = audioUrl;
+        audioElement.volume = volume;
+        audioElement.preload = 'auto';
+        
+        // Guardar referencia para poder detenerlo
+        currentPlayingAudio = audioElement;
+        
+        // Configurar para máximo volumen y prioridad
+        if (audioElement.setSinkId) {
+            // Usar el dispositivo de salida por defecto
+            audioElement.setSinkId('default').catch(console.warn);
+        }
+        
+        // Reproducir inmediatamente
+        const playPromise = audioElement.play();
+        
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    console.log(`✅ Audio de ${senderName} reproduciéndose correctamente`);
+                    
+                    // Mostrar indicador visual temporal
+                    showAudioPlayingIndicator(senderName);
+                    
+                    // Log del audio recibido
+                    logAudio(`🎧 Audio urgente de ${senderName} reproducido automáticamente`);
+                })
+                .catch(error => {
+                    console.error('❌ Error reproduciendo audio inmediato:', error);
+                    
+                    // Si falla la reproducción automática, agregar a cola
+                    console.log('🔄 Agregando a cola de reproducción como fallback');
+                    audioQueue.push({
+                        audioData: audioUrl,
+                        sender: senderName,
+                        timestamp: Date.now()
+                    });
+                    
+                    if (!isPlayingAudio) {
+                        processAudioQueue();
+                    }
+                });
+        }
+        
+        // Limpiar cuando termine
+        audioElement.addEventListener('ended', () => {
+            hideAudioPlayingIndicator();
+            currentPlayingAudio = null;
+            URL.revokeObjectURL(audioUrl);
+            console.log(`🏁 Audio de ${senderName} terminado`);
+        });
+        
+        audioElement.addEventListener('error', (error) => {
+            console.error(`❌ Error en audio de ${senderName}:`, error);
+            hideAudioPlayingIndicator();
+            currentPlayingAudio = null;
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en playAudioImmediately:', error);
+        
+        // Fallback: agregar a cola normal
+        audioQueue.push({
+            audioData: audioUrl,
+            sender: senderName,
+            timestamp: Date.now()
+        });
+        
+        if (!isPlayingAudio) {
+            processAudioQueue();
+        }
+    }
+}
+
+/**
+ * Detener toda reproducción de audio
+ */
+function stopAllAudio() {
+    console.log('⏹️ Deteniendo toda reproducción de audio');
+    
+    // Detener audio actual si existe
+    if (currentPlayingAudio) {
+        currentPlayingAudio.pause();
+        currentPlayingAudio = null;
+        console.log('⏹️ Audio inmediato detenido');
+    }
+    
+    // Limpiar cola de audio
+    audioQueue = [];
+    isPlayingAudio = false;
+    
+    // Ocultar indicador visual
+    hideAudioPlayingIndicator();
+    
+    // Detener cualquier audio en reproducción normal
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    
+    console.log('⏹️ Toda reproducción de audio detenida');
+}
+
+/**
+ * Mostrar indicador visual de audio reproduciéndose
+ */
+function showAudioPlayingIndicator(senderName) {
+    // Remover indicador anterior si existe
+    hideAudioPlayingIndicator();
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'audio-playing-indicator';
+    indicator.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 25px;
+        box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+        z-index: 10000;
+        font-weight: bold;
+        font-size: 14px;
+        animation: audioIndicatorPulse 1.5s infinite;
+        max-width: 300px;
+    `;
+    
+    indicator.innerHTML = `
+        <i class="fas fa-volume-up" style="margin-right: 8px; animation: spin 2s linear infinite;"></i>
+        <strong>📻 ${senderName}</strong><br>
+        <small>Reproduciendo audio...</small>
+    `;
+    
+    // Agregar animación CSS
+    if (!document.getElementById('audio-indicator-styles')) {
+        const style = document.createElement('style');
+        style.id = 'audio-indicator-styles';
+        style.textContent = `
+            @keyframes audioIndicatorPulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.9; }
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(indicator);
+    
+    console.log(`👁️ Indicador visual mostrado para ${senderName}`);
+}
+
+/**
+ * Ocultar indicador visual de audio
+ */
+function hideAudioPlayingIndicator() {
+    const indicator = document.getElementById('audio-playing-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
 // Cargar datos al inicializar
 document.addEventListener('DOMContentLoaded', function() {
     loadPersistedAudioData();
+    requestAudioPermissions();
 });
+
+/**
+ * Solicitar permisos para reproducción automática de audio
+ */
+async function requestAudioPermissions() {
+    try {
+        console.log('🎵 Solicitando permisos de audio...');
+        
+        // 1. Solicitar permisos de notificaciones
+        if ('Notification' in window && Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            console.log(`🔔 Permisos de notificación: ${permission}`);
+        }
+        
+        // 2. Crear contexto de audio para permitir autoplay
+        if ('AudioContext' in window || 'webkitAudioContext' in window) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!audioContext) {
+                audioContext = new AudioContextClass();
+            }
+            
+            // Reanudar contexto si está suspendido
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+                console.log('🎵 Contexto de audio activado');
+            }
+        }
+        
+        // 3. Mostrar aviso al usuario para interactuar y permitir autoplay
+        showAudioPermissionRequest();
+        
+    } catch (error) {
+        console.error('❌ Error solicitando permisos de audio:', error);
+    }
+}
+
+/**
+ * Mostrar solicitud de permisos de audio al usuario
+ */
+function showAudioPermissionRequest() {
+    // No mostrar si ya se dio permiso anteriormente
+    if (localStorage.getItem('walkie_audio_permission') === 'granted') {
+        return;
+    }
+    
+    const permissionBanner = document.createElement('div');
+    permissionBanner.id = 'audio-permission-banner';
+    permissionBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        text-align: center;
+        z-index: 10001;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        border-bottom: 3px solid #5a6fd8;
+    `;
+    
+    permissionBanner.innerHTML = `
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h4 style="margin: 0 0 10px 0; color: #fff;">
+                🎵 Activar Audio Automático de Walkie-Talkie
+            </h4>
+            <p style="margin: 0 0 15px 0; opacity: 0.9;">
+                Para recibir mensajes de audio automáticamente (como radio/boquitoki), 
+                haga clic en "Activar" y permita la reproducción automática.
+            </p>
+            <button 
+                onclick="enableAutoAudio()" 
+                style="background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; margin-right: 10px; cursor: pointer;"
+            >
+                🔊 Activar Audio Automático
+            </button>
+            <button 
+                onclick="dismissAudioPermission()" 
+                style="background: transparent; color: white; border: 2px solid rgba(255,255,255,0.5); padding: 10px 20px; border-radius: 20px; cursor: pointer;"
+            >
+                Después
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(permissionBanner);
+    console.log('📢 Banner de permisos de audio mostrado');
+}
+
+/**
+ * Activar audio automático (función global para el botón)
+ */
+window.enableAutoAudio = async function() {
+    try {
+        console.log('🎵 Usuario activando audio automático...');
+        
+        // 1. Crear y reproducir audio silencioso para desbloquear autoplay
+        const silentAudio = new Audio();
+        silentAudio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBjGJ';
+        silentAudio.volume = 0.01; // Muy bajo pero audible
+        silentAudio.loop = false;
+        
+        const playPromise = silentAudio.play();
+        if (playPromise !== undefined) {
+            await playPromise;
+        }
+        
+        // 2. Activar contexto de audio si está disponible
+        if (audioContext && audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        
+        // 3. Guardar permiso concedido
+        localStorage.setItem('walkie_audio_permission', 'granted');
+        localStorage.setItem('walkie_audio_enabled_date', new Date().toISOString());
+        
+        // 4. Ocultar banner
+        const banner = document.getElementById('audio-permission-banner');
+        if (banner) {
+            banner.remove();
+        }
+        
+        // 5. Mostrar confirmación
+        showAudioEnabledConfirmation();
+        
+        console.log('✅ Audio automático activado correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error activando audio automático:', error);
+        alert('Error activando audio automático. Por favor, recargue la página e intente nuevamente.');
+    }
+};
+
+/**
+ * Descartar solicitud de permisos temporalmente
+ */
+window.dismissAudioPermission = function() {
+    const banner = document.getElementById('audio-permission-banner');
+    if (banner) {
+        banner.remove();
+    }
+    
+    // Recordar que se descartó por esta sesión
+    sessionStorage.setItem('audio_permission_dismissed', 'true');
+    console.log('📋 Solicitud de audio descartada temporalmente');
+};
+
+/**
+ * Mostrar confirmación de audio activado
+ */
+function showAudioEnabledConfirmation() {
+    const confirmation = document.createElement('div');
+    confirmation.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(45deg, #4CAF50, #45a049);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+        z-index: 10002;
+        max-width: 350px;
+        animation: slideInRight 0.5s ease-out;
+    `;
+    
+    confirmation.innerHTML = `
+        <h4 style="margin: 0 0 10px 0;">🎵 ¡Audio Automático Activado!</h4>
+        <p style="margin: 0; opacity: 0.9;">
+            Ahora recibirás audios de walkie-talkie automáticamente, 
+            incluso cuando la app esté en background.
+        </p>
+    `;
+    
+    document.body.appendChild(confirmation);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (confirmation.parentNode) {
+            confirmation.remove();
+        }
+    }, 5000);
+}
 
 // Limpiar audios antiguos cada 30 minutos
 setInterval(cleanOldPendingAudios, 30 * 60 * 1000);

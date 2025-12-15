@@ -5,6 +5,22 @@
 
 {% block content %}
 <style>
+    /* === ANIMACIONES PARA SISTEMA DE AUDIO === */
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes audioIndicatorPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.9; }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
     /* === DISEÑO PROFESIONAL CENTRO DE COMANDO === */
     body {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;

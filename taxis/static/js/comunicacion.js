@@ -364,6 +364,7 @@ function playAudioFromBase64(base64String) {
 function processAudioQueue() {
     if (audioQueue.length === 0) {
         isPlayingAudio = false;
+        clearMediaSession(); // Limpiar Media Session cuando no hay audio
         return;
     }
 
@@ -375,9 +376,13 @@ function processAudioQueue() {
     const audioUrl = URL.createObjectURL(audioBlob);
 
     audioPlayer.src = audioUrl;
+    
+    // Configurar Media Session ANTES de reproducir
+    setupMediaSession(audioPlayer, 'Central de Taxis');
+    
     audioPlayer.play()
         .then(() => {
-            console.log('Reproduciendo audio...');
+            console.log('✅ Reproduciendo audio con Media Session activa');
         })
         .catch(error => {
             console.error('Error al reproducir audio:', error);
@@ -718,6 +723,9 @@ function playAudioImmediately(audioUrl, senderName, volume = 1.0) {
             // Usar el dispositivo de salida por defecto
             audioElement.setSinkId('default').catch(console.warn);
         }
+        
+        // Configurar Media Session para reproducción en segundo plano
+        setupMediaSession(audioElement, senderName);
         
         // Reproducir inmediatamente
         const playPromise = audioElement.play();
@@ -1060,6 +1068,109 @@ function showAudioEnabledConfirmation() {
             confirmation.remove();
         }
     }, 5000);
+}
+
+// ========================================
+// MEDIA SESSION API - REPRODUCCIÓN EN SEGUNDO PLANO
+// ========================================
+
+/**
+ * Configurar Media Session API para permitir reproducción en segundo plano
+ * Esto permite que el audio continúe cuando:
+ * - El usuario cambia de app
+ * - El usuario bloquea la pantalla
+ * - El usuario cambia de pestaña
+ */
+function setupMediaSession(audioElement, senderName = 'Central de Taxis') {
+    // Verificar si Media Session API está disponible
+    if (!('mediaSession' in navigator)) {
+        console.log('⚠️ Media Session API no disponible en este navegador');
+        return;
+    }
+
+    try {
+        // Configurar metadata del audio actual
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: '🎤 Audio de Comunicación',
+            artist: senderName,
+            album: 'De Aquí Pa\'llá - Walkie Talkie',
+            artwork: [
+                { 
+                    src: '/static/imagenes/icon-192x192.png', 
+                    sizes: '192x192', 
+                    type: 'image/png' 
+                },
+                { 
+                    src: '/static/imagenes/icon-512x512.png', 
+                    sizes: '512x512', 
+                    type: 'image/png' 
+                }
+            ]
+        });
+
+        // Configurar handlers para controles de reproducción
+        // Estos aparecerán en la barra de notificaciones y pantalla de bloqueo
+        
+        navigator.mediaSession.setActionHandler('play', () => {
+            console.log('▶️ Media Session: Play solicitado');
+            audioElement.play()
+                .then(() => console.log('✅ Reproducción iniciada desde Media Session'))
+                .catch(err => console.error('❌ Error al reproducir:', err));
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+            console.log('⏸️ Media Session: Pause solicitado');
+            audioElement.pause();
+        });
+
+        // Algunos navegadores soportan estos controles adicionales
+        try {
+            navigator.mediaSession.setActionHandler('stop', () => {
+                console.log('⏹️ Media Session: Stop solicitado');
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                clearMediaSession();
+            });
+        } catch (error) {
+            console.log('⚠️ Action "stop" no soportada');
+        }
+
+        // Actualizar estado de reproducción
+        navigator.mediaSession.playbackState = 'playing';
+        
+        console.log('✅ Media Session configurada correctamente para:', senderName);
+        
+    } catch (error) {
+        console.error('❌ Error configurando Media Session:', error);
+    }
+}
+
+/**
+ * Limpiar Media Session cuando no hay audio reproduciéndose
+ */
+function clearMediaSession() {
+    if (!('mediaSession' in navigator)) {
+        return;
+    }
+
+    try {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.metadata = null;
+        
+        // Limpiar handlers
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        
+        try {
+            navigator.mediaSession.setActionHandler('stop', null);
+        } catch (error) {
+            // Ignorar si no está soportado
+        }
+        
+        console.log('🧹 Media Session limpiada');
+    } catch (error) {
+        console.error('❌ Error limpiando Media Session:', error);
+    }
 }
 
 // Limpiar audios antiguos cada 30 minutos

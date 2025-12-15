@@ -28,9 +28,9 @@ if __name__ == "__main__":
     print("🚀 INICIANDO DESPLIEGUE EN RAILWAY")
     print("="*60 + "\n")
     
-    # 1. Collectstatic (sin --clear para ser más rápido)
+    # 1. Collectstatic (con --clear para forzar actualización)
     run_command(
-        "python manage.py collectstatic --noinput --verbosity 1",
+        "python manage.py collectstatic --noinput --clear --verbosity 1",
         "Recopilando archivos estáticos (collectstatic)"
     )
     

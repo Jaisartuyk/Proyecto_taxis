@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import api_views
 from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
 from .views import get_google_maps_key
 

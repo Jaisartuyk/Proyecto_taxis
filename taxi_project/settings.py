@@ -304,3 +304,14 @@ if not locals().get('CHANNEL_LAYERS'):
             },
         }
         print(f"🔧 [LOCAL] CHANNEL_LAYERS: InMemory para desarrollo")
+
+
+# =====================================================
+# FIREBASE CLOUD MESSAGING (FCM)
+# =====================================================
+
+# Ruta al archivo de credenciales de Firebase (desarrollo local)
+FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase-credentials.json')
+
+# La variable FIREBASE_CREDENTIALS_JSON se usa en producción (Railway)
+# Se configura como variable de entorno con el contenido completo del JSON

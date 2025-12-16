@@ -39,6 +39,10 @@ generate_vapid_keys.py
 fix_vapid_keys.py
 generate_simple_vapid.py
 
+# Firebase credentials (sensitive)
+firebase-credentials.json
+*firebase-adminsdk*.json
+
 # Testing
 .coverage
 htmlcov/

@@ -608,12 +608,19 @@ function setupWebSocket() {
     };
 
     socket.onmessage = (e) => {
-        console.log('🔊 Audio recibido:', e.data);
+        console.log('🔊 Audio WebSocket recibió mensaje RAW:', e.data.substring(0, 200));
         try {
             const data = JSON.parse(e.data);
+            console.log('🔊 Audio WebSocket mensaje parseado:', {
+                type: data.type,
+                hasAudioData: !!data.audio_data,
+                hasAudio: !!data.audio,
+                senderId: data.senderId || data.sender_id,
+                senderRole: data.senderRole || data.sender_role
+            });
             handleWebSocketMessage(data);
         } catch (error) {
-            console.warn('⚠️ Error procesando mensaje de audio:', error);
+            console.error('⚠️ Error procesando mensaje de audio:', error);
         }
     };
 
@@ -684,7 +691,10 @@ function handleAudioMessage(data) {
     console.log('🎵 Mensaje de audio recibido', data);
     
     try {
-        if (data.audio_data) {
+        // Obtener audio_data de diferentes formatos posibles
+        const audioData = data.audio_data || data.audio;
+        
+        if (audioData) {
             // Determinar el origen del audio
             let sender = 'Desconocido';
             let senderId = 'unknown';
@@ -693,16 +703,16 @@ function handleAudioMessage(data) {
                 // Audio de la central (no debería llegar aquí, pero por si acaso)
                 sender = 'Central';
                 senderId = 'central';
-            } else if (data.senderId || data.driver_id) {
+            } else if (data.senderId || data.sender_id || data.driver_id) {
                 // Audio de un conductor
-                senderId = data.senderId || data.driver_id;
-                sender = data.senderName || `Conductor #${senderId}`;
+                senderId = data.senderId || data.sender_id || data.driver_id;
+                sender = data.senderName || data.sender_name || `Conductor #${senderId}`;
             }
             
-            console.log(`🎵 Reproduciendo audio de: ${sender}`);
+            console.log(`🎵 Reproduciendo audio de: ${sender} (${audioData.length} bytes)`);
             
             // Reproducir audio inmediatamente usando el mismo método del conductor
-            const audioBlob = base64ToBlob(data.audio_data, 'audio/webm');
+            const audioBlob = base64ToBlob(audioData, 'audio/webm');
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
             
@@ -717,7 +727,7 @@ function handleAudioMessage(data) {
                 });
             
         } else {
-            console.warn('⚠️ Mensaje de audio sin datos');
+            console.warn('⚠️ Mensaje de audio sin datos. Keys disponibles:', Object.keys(data));
         }
     } catch (error) {
         console.error('❌ Error procesando audio:', error);

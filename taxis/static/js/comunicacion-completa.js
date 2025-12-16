@@ -953,25 +953,37 @@ async function playNextAudio() {
 // Actualizar log de audio
 function updateAudioLog(message) {
     try {
-        const audioLog = safeGetElement('audio-log');
-        if (audioLog) {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = `[${timestamp}] ${message}\n`;
-            
-            if (audioLog.tagName === 'TEXTAREA') {
-                audioLog.value = logEntry + audioLog.value;
-            } else {
-                audioLog.textContent = logEntry + audioLog.textContent;
-            }
-            
-            // Mantener solo las últimas 50 líneas
-            const lines = audioLog.textContent.split('\n');
-            if (lines.length > 50) {
-                audioLog.textContent = lines.slice(0, 50).join('\n');
-            }
+        const audioLog = document.getElementById('audio-log');
+        if (!audioLog) {
+            console.warn('⚠️ audio-log no encontrado');
+            return;
         }
+        
+        // Eliminar placeholder si existe
+        const placeholder = audioLog.querySelector('.audio-log-empty');
+        if (placeholder) {
+            placeholder.remove();
+        }
+        
+        // Crear entrada de log
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const logEntry = document.createElement('div');
+        logEntry.className = 'audio-log-entry';
+        logEntry.style.cssText = 'padding: 8px 12px; margin-bottom: 5px; background: rgba(255,255,255,0.05); border-left: 3px solid #4CAF50; border-radius: 4px; font-size: 0.9rem;';
+        logEntry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> ${message}`;
+        
+        // Agregar al inicio del log
+        audioLog.insertBefore(logEntry, audioLog.firstChild);
+        
+        // Mantener solo las últimas 50 entradas
+        const entries = audioLog.querySelectorAll('.audio-log-entry');
+        if (entries.length > 50) {
+            entries[entries.length - 1].remove();
+        }
+        
+        console.log('✅ Log de audio actualizado:', message);
     } catch (error) {
-        console.warn('⚠️ Error actualizando log:', error);
+        console.error('❌ Error actualizando log:', error);
     }
 }
 

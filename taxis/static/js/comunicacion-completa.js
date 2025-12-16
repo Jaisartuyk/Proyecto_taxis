@@ -433,14 +433,16 @@ async function loadChatHistory(driverId) {
     try {
         console.log(`📜 Cargando historial de chat con conductor ${driverId}...`);
         
-        const response = await fetch(`/api/chat-history/${driverId}/`);
+        // Backend expone /api/chat_history/<id>/ (con guion bajo)
+        const response = await fetch(`/api/chat_history/${driverId}/`);
         if (!response.ok) {
             console.warn('⚠️ No se pudo cargar el historial');
             return;
         }
         
-        const messages = await response.json();
-        console.log(`✅ Historial cargado: ${messages.length} mensajes`);
+        const payload = await response.json();
+        const messages = payload.messages || payload; // compat: algunos endpoints devuelven array directo
+        console.log(`✅ Historial cargado: ${messages.length || 0} mensajes`);
         
         const chatLog = document.getElementById('chat-log');
         if (!chatLog) return;
@@ -450,8 +452,11 @@ async function loadChatHistory(driverId) {
         
         // Agregar mensajes al chat
         messages.forEach(msg => {
-            const isSent = msg.sender_id == 1; // 1 es el admin
-            const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // El endpoint devuelve timestamp como "HH:MM" (string). Si viene Date, también lo soportamos.
+            const isSent = msg.is_sent === true || msg.sender_id == 1; // fallback si backend no envía is_sent
+            const timestamp = typeof msg.timestamp === 'string'
+                ? msg.timestamp
+                : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
             const messageHtml = `
                 <div class="message ${isSent ? 'outgoing' : 'incoming'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">

@@ -1173,12 +1173,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- SCRIPT INLINE DESACTIVADO - Todo el código está en comunicacion.js -->
-<!--
 <script>
-    // Variables globales para el mapa
-    let map;
-    let markers = {};
+    // Variables globales para el mapa (renombradas para evitar conflictos)
+    let centralMap;
+    let centralMarkers = {};
 
     document.addEventListener('DOMContentLoaded', function () {
         const currentUser = {
@@ -1809,17 +1807,14 @@
             }
         });
     }
-</script>
--->
-<!-- FIN SCRIPT INLINE DESACTIVADO -->
 
-<!-- Google Maps API se carga desde comunicacion-completa.js para evitar duplicación -->
+    // DEBUGGING: Verificar archivo que se está cargando
+    console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-completa.js con timestamp:', '{{ timestamp }}');
+    console.log('📍 URL completa:', "{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}");
+    console.log('⏰ Timestamp actual:', new Date().toISOString());
 
-<!-- DEBUGGING: Verificar archivo que se está cargando -->
-<script>
-console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-completa.js con timestamp:', '{{ timestamp }}');
-console.log('📍 URL completa:', "{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}");
-console.log('⏰ Timestamp actual:', new Date().toISOString());
+    // Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA CORREGIDA
+    //script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
 </script>
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA CORREGIDA -->

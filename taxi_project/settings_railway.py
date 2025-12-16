@@ -233,6 +233,8 @@ if RAILWAY_ENVIRONMENT:
     
     # Configuración de Google Maps para Railway
     GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+    # Alias usado por el endpoint /api/maps-key/
+    GOOGLE_MAPS_API_KEY = GOOGLE_API_KEY
     
     # Configuración de Telegram para Railway
     TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')

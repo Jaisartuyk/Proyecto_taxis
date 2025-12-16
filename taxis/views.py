@@ -1536,7 +1536,9 @@ def ubicaciones_taxis(request):
                 'nombre': taxi.user.get_full_name(),
                 'lat': taxi.latitude,
                 'lng': taxi.longitude,
-                'foto': taxi.user.profile_picture.url if taxi.user.profile_picture else '/media/default.jpg',
+                # En Railway normalmente no se sirve /media/ (no hay storage persistente).
+                # Usar una imagen estática por defecto para evitar 404.
+                'foto': taxi.user.profile_picture.url if taxi.user.profile_picture else '/static/imagenes/logo1.png',
                 'placa': taxi.plate_number,
                 'descripcion': taxi.vehicle_description,
             })

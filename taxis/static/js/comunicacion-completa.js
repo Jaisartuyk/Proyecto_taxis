@@ -670,6 +670,7 @@ function handleWebSocketMessage(data) {
     switch (data.type) {
         case 'audio_message':
         case 'central_audio':  // Audio de la central a conductores
+        case 'audio_broadcast':  // Audio broadcast desde el servidor
             handleAudioMessage(data);
             break;
         case 'chat_message':

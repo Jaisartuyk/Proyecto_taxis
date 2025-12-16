@@ -534,20 +534,39 @@ function handleWebSocketMessage(data) {
 
 // Manejar mensaje de audio
 function handleAudioMessage(data) {
-    console.log('🎵 Mensaje de audio recibido');
+    console.log('🎵 Mensaje de audio recibido', data);
     
     try {
-        if (data.audio_data && data.driver_id) {
+        if (data.audio_data) {
+            // Determinar el origen del audio
+            let sender = 'Desconocido';
+            let senderId = 'unknown';
+            
+            if (data.type === 'central_audio') {
+                // Audio de la central
+                sender = 'Central';
+                senderId = 'central';
+            } else if (data.driver_id) {
+                // Audio de un conductor
+                sender = `Conductor #${data.driver_id}`;
+                senderId = data.driver_id;
+            }
+            
+            console.log(`🎵 Audio de: ${sender}`);
+            
             // Agregar a la cola de audio
             addAudioToQueue({
                 audioData: data.audio_data,
-                driverId: data.driver_id,
+                driverId: senderId,
+                sender: sender,
                 timestamp: new Date().toISOString(),
                 id: Date.now()
             });
             
             // Actualizar log de audio
-            updateAudioLog(`Audio de Conductor #${data.driver_id}`);
+            updateAudioLog(`Audio de ${sender}`);
+        } else {
+            console.warn('⚠️ Mensaje de audio sin datos');
         }
     } catch (error) {
         console.error('❌ Error procesando audio:', error);

@@ -1054,8 +1054,10 @@
                 <div class="user-list-header">Conductores</div>
                 {% for driver in drivers %}
                 <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
-                    <img src="{{ driver.profile_picture.url|default:'/static/imagenes/logo1.png' }}"
-                        onerror="this.onerror=null;this.src='{% static 'imagenes/default.jpg' %}';"
+                    {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
+                    <img
+                        src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
+                        onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
                         alt="{{ driver.get_full_name }}">
                     <span>{{ driver.get_full_name }}</span>
                 </div>

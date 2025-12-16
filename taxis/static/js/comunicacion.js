@@ -31,71 +31,137 @@ let stopCentralMicBtn = null;
 let systemInitialized = false;
 let domReady = false;
 
-// Función de verificación global para elementos DOM críticos
+// SISTEMA ULTRA-SEGURO DE VERIFICACIÓN DOM
 function ensureDOMReady() {
-    if (!domReady) {
-        console.warn('⚠️ DOM no está listo, creando elementos básicos...');
-        ensureRequiredElements();
-        domReady = true;
-    }
-    return domReady;
+    return new Promise((resolve) => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                domReady = true;
+                resolve(true);
+            });
+        } else {
+            domReady = true;
+            resolve(true);
+        }
+    });
 }
 
-// Wrapper seguro para acceder a elementos DOM
-function safeGetElement(id, createIfMissing = false) {
-    ensureDOMReady();
-    const element = document.getElementById(id);
-    if (!element && createIfMissing) {
-        console.warn(`⚠️ Creando elemento faltante: ${id}`);
-        const div = document.createElement('div');
-        div.id = id;
-        document.body.appendChild(div);
-        return div;
+// Función súper segura para obtener elementos
+function safeGetElement(id, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const element = document.getElementById(id);
+            if (element) {
+                console.log(`✅ Elemento encontrado: ${id}`);
+                return element;
+            }
+        } catch (error) {
+            console.warn(`⚠️ Error buscando elemento ${id}, intento ${i + 1}:`, error);
+        }
+        
+        // Si es el último intento, crear elemento placeholder
+        if (i === retries - 1) {
+            console.warn(`⚠️ Creando placeholder para: ${id}`);
+            const placeholder = document.createElement('div');
+            placeholder.id = id;
+            placeholder.style.display = 'none';
+            document.body.appendChild(placeholder);
+            return placeholder;
+        }
     }
-    return element;
+    return null;
 }
 
-// Inicialización
+// Función para verificar elementos críticos existen
+function verifyDOMElements() {
+    const requiredElements = [
+        'record-audio-btn',
+        'connection-status', 
+        'audio-log',
+        'audio-player'
+    ];
+    
+    const elementStatus = {};
+    let allFound = true;
+    
+    requiredElements.forEach(id => {
+        const element = document.getElementById(id);
+        elementStatus[id] = !!element;
+        if (!element) {
+            console.warn(`❌ Elemento faltante: ${id}`);
+            allFound = false;
+        } else {
+            console.log(`✅ Elemento verificado: ${id}`);
+        }
+    });
+    
+    console.log('🔍 Estado de elementos DOM:', elementStatus);
+    return allFound;
+}
+
+// Inicialización súper segura
 async function init() {
     try {
-        // Crear elementos DOM faltantes PRIMERO
-        ensureRequiredElements();
+        console.log('🚀 Iniciando sistema súper seguro...');
         
-        console.log('🚀 Iniciando sistema...');
+        // Esperar a que el DOM esté completamente listo
+        await ensureDOMReady();
+        
+        // Verificar elementos críticos
+        const elementsOK = verifyDOMElements();
+        if (!elementsOK) {
+            console.warn('⚠️ Algunos elementos DOM faltantes, pero continuando...');
+        }
         
         // Obtener API key de Google Maps de forma segura
-        const response = await fetch('/api/maps-key/');
-        const data = await response.json();
-        Maps_API_KEY = data.maps_api_key;
-        
-        // Cargar Google Maps solo si tenemos la API key
-        if (Maps_API_KEY) {
-            loadGoogleMapsAPI();
-        } else {
-            console.error('❌ No se pudo obtener la API key de Google Maps');
-        }
-    } catch (error) {
-        console.error('Error obteniendo API key:', error);
-        updateStatus("Error de configuración", "disconnected");
-        
-        // Intentar inicializar solo el WebSocket sin el mapa
-        setTimeout(() => {
-            console.log('🔄 Intentando inicialización básica sin mapa...');
+        try {
+            const response = await fetch('/api/maps-key/');
+            const data = await response.json();
+            Maps_API_KEY = data.maps_api_key;
+            
+            if (Maps_API_KEY) {
+                loadGoogleMapsAPI();
+            } else {
+                console.warn('⚠️ API key no disponible, iniciando sin mapa');
+                initBasicSystem();
+            }
+        } catch (mapError) {
+            console.warn('⚠️ Error con Google Maps, iniciando sistema básico:', mapError);
             initBasicSystem();
-        }, 2000);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error en inicialización:', error);
+        // Fallback: inicializar sistema mínimo
+        initMinimalSystem();
     }
 }
 
-// Función de inicialización básica sin mapa
+// Sistema básico sin mapa
 function initBasicSystem() {
     try {
-        ensureRequiredElements();
+        console.log('🔧 Inicializando sistema básico...');
         initializeDOMElements();
         setupWebSocket();
         setupCentralAudioControls();
         updateStatus("Sistema básico activo", "connected");
+        systemInitialized = true;
     } catch (error) {
-        console.error('❌ Error en inicialización básica:', error);
+        console.error('❌ Error en sistema básico:', error);
+        initMinimalSystem();
+    }
+}
+
+// Sistema mínimo de emergencia
+function initMinimalSystem() {
+    console.log('⚠️ Iniciando sistema mínimo de emergencia...');
+    try {
+        // Solo websocket básico
+        setupWebSocket();
+        systemInitialized = true;
+        console.log('✅ Sistema mínimo activo');
+    } catch (error) {
+        console.error('❌ Incluso el sistema mínimo falló:', error);
     }
 }
 
@@ -479,128 +545,238 @@ function logAudio(msg) {
 
 function updateStatus(message, className) {
     try {
-        const statusDiv = safeGetElement('status', true);
-        if (!statusDiv) {
-            console.warn('❌ No se pudo crear elemento status');
-            return;
+        console.log(`🔄 Actualizando estado: ${message} (${className || 'sin clase'})`);
+        
+        // Buscar múltiples posibles elementos de estado
+        const possibleIds = ['connection-status', 'system-status', 'status'];
+        let statusElement = null;
+        
+        for (const id of possibleIds) {
+            const element = document.getElementById(id);
+            if (element) {
+                statusElement = element;
+                console.log(`✅ Usando elemento de estado: ${id}`);
+                break;
+            }
         }
-        statusDiv.textContent = message;
-        statusDiv.className = `status ${className}`;
+        
+        if (!statusElement) {
+            // Crear elemento temporal si no existe ninguno
+            console.warn('⚠️ Creando elemento de estado temporal');
+            statusElement = document.createElement('div');
+            statusElement.id = 'status';
+            statusElement.style.cssText = 'position:fixed;top:10px;right:10px;background:#007bff;color:white;padding:5px 10px;border-radius:5px;font-size:12px;z-index:9999;';
+            document.body.appendChild(statusElement);
+        }
+        
+        if (statusElement.textContent !== undefined) {
+            statusElement.textContent = message;
+        }
+        
+        if (className && statusElement.className !== undefined) {
+            statusElement.className = `status ${className}`;
+        }
         
         // Actualizar color según estado
         if (className === 'connected') {
-            statusDiv.style.background = '#28a745';
+            statusElement.style.background = '#28a745';
         } else if (className === 'disconnected') {
-            statusDiv.style.background = '#dc3545';
+            statusElement.style.background = '#dc3545';
         } else if (className === 'error') {
-            statusDiv.style.background = '#fd7e14';
+            statusElement.style.background = '#fd7e14';
         }
+        
+        console.log(`✅ Estado actualizado correctamente: ${message}`);
+        
     } catch (error) {
-        console.error('❌ Error en updateStatus:', error);
+        console.warn('⚠️ Error en updateStatus pero continuando:', error);
     }
 }
 
-// Funciones para grabar y enviar audio desde la Central
+// Funciones para grabar y enviar audio desde la Central - ULTRA SEGURA
 function setupCentralAudioControls() {
-    console.log('🎤 Configurando controles de audio central...');
+    console.log('🎤 Configurando controles de audio central (ultra seguro)...');
     
     try {
-        // Asegurar que el DOM esté listo
-        ensureDOMReady();
+        // Esperar un momento extra para asegurar DOM completamente listo
+        setTimeout(() => setupAudioControlsAsync(), 100);
+    } catch (error) {
+        console.warn('⚠️ Error inicial configurando audio:', error);
+    }
+}
+
+async function setupAudioControlsAsync() {
+    try {
+        console.log('🔍 Buscando botón de grabación...');
         
-        // Re-obtener el elemento para asegurar que existe
-        let micBtn = document.getElementById('record-audio-btn');
+        // Intentar múltiples estrategias para encontrar el botón
+        let micBtn = null;
+        const attempts = [
+            () => document.getElementById('record-audio-btn'),
+            () => document.querySelector('#record-audio-btn'),
+            () => document.querySelector('[id="record-audio-btn"]'),
+            () => document.querySelector('.central-mic-section button'),
+            () => document.querySelector('button[id*="record"]')
+        ];
+        
+        for (const attempt of attempts) {
+            try {
+                micBtn = attempt();
+                if (micBtn && typeof micBtn.addEventListener === 'function') {
+                    console.log('✅ Botón encontrado exitosamente');
+                    break;
+                }
+            } catch (e) {
+                console.warn('⚠️ Intento de búsqueda falló:', e);
+            }
+        }
         
         if (!micBtn) {
-            console.warn('❌ Botón de grabación central no encontrado - creando interfaz alternativa');
+            console.warn('⚠️ No se encontró botón válido, creando interfaz alternativa...');
             createFallbackAudioInterface();
             micBtn = document.getElementById('fallback-record-btn');
         }
         
         if (!micBtn || typeof micBtn.addEventListener !== 'function') {
-            console.error('❌ No se pudo obtener un botón de micrófono válido');
+            console.error('❌ No se pudo obtener un botón válido, abortando configuración de audio');
             return;
         }
         
         startCentralMicBtn = micBtn; // Asignar a variable global
-        console.log('✅ Botón de micrófono configurado correctamente');
+        
+        // Configurar micrófono de forma segura
+        await setupMicrophoneAccess(micBtn);
+        
     } catch (error) {
-        console.error('❌ Error configurando botón de micrófono:', error);
-        return;
+        console.error('❌ Error en setupAudioControlsAsync:', error);
     }
-    
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            centralAudioStream = stream;
-            mediaRecorderCentral = new MediaRecorder(stream);
-            let audioChunks = [];
+}
 
-            mediaRecorderCentral.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
+async function setupMicrophoneAccess(micBtn) {
+    try {
+        console.log('🎙️ Solicitando acceso al micrófono...');
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        centralAudioStream = stream;
+        mediaRecorderCentral = new MediaRecorder(stream);
+        let audioChunks = [];
 
-            mediaRecorderCentral.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                audioChunks = [];
+        mediaRecorderCentral.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
 
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64Audio = reader.result.split(',')[1];
-                    if (socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({
-                            type: 'audio_message',
-                            audio: base64Audio,
-                            senderId: 'Central',
-                            senderRole: 'Central'
-                        }));
-                        logAudio('🎤 Audio enviado a todos los conductores.');
-                    } else {
-                        logAudio('⚠️ No se pudo enviar el audio. WebSocket no está conectado.');
-                    }
-                };
-                reader.readAsDataURL(audioBlob);
-            };
+        mediaRecorderCentral.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            audioChunks = [];
 
-            // Verificar que el elemento sigue siendo válido antes de cada addEventListener
-            if (!startCentralMicBtn || typeof startCentralMicBtn.addEventListener !== 'function') {
-                console.error('❌ Elemento startCentralMicBtn inválido al configurar eventos');
-                return;
-            }
-
-            startCentralMicBtn.addEventListener('mousedown', () => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Audio = reader.result.split(',')[1];
                 if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'audio_message',
+                        audio: base64Audio,
+                        senderId: 'Central',
+                        senderRole: 'Central'
+                    }));
+                    logAudio('Central', 'sent');
+                } else {
+                    logMessage('⚠️ No se pudo enviar el audio. WebSocket no está conectado.', 'warning');
+                }
+            };
+            reader.readAsDataURL(audioBlob);
+        };
+
+        // Configurar eventos del botón de forma ultra-segura
+        setupButtonEvents(micBtn);
+        
+        // Habilitar el botón después de configurar el micrófono
+        try {
+            if (micBtn && 'disabled' in micBtn) {
+                micBtn.disabled = false;
+                micBtn.style.opacity = '1';
+                console.log('✅ Botón de micrófono habilitado');
+            }
+        } catch (enableError) {
+            console.warn('⚠️ Error habilitando botón:', enableError);
+        }
+        
+        console.log('✅ Micrófono configurado exitosamente');
+        
+    } catch (error) {
+        console.error('❌ Error al acceder al micrófono:', error);
+        logMessage('⚠️ No se pudo acceder al micrófono.', 'error');
+        
+        try {
+            if (micBtn && 'disabled' in micBtn) {
+                micBtn.disabled = true;
+                micBtn.style.opacity = '0.5';
+            }
+        } catch (disableError) {
+            console.warn('⚠️ Error deshabilitando botón:', disableError);
+        }
+    }
+}
+
+function setupButtonEvents(micBtn) {
+    try {
+        console.log('🔘 Configurando eventos del botón...');
+        
+        if (!micBtn || typeof micBtn.addEventListener !== 'function') {
+            console.error('❌ Botón inválido para eventos');
+            return;
+        }
+
+        // Evento mousedown con validación
+        const handleMouseDown = () => {
+            try {
+                if (socket && socket.readyState === WebSocket.OPEN && mediaRecorderCentral) {
                     mediaRecorderCentral.start();
-                    logAudio('🎤 Grabando audio...');
-                    startCentralMicBtn.style.backgroundColor = '#FF5722';
+                    logMessage('🎤 Grabando audio...', 'info');
+                    micBtn.style.backgroundColor = '#FF5722';
+                    micBtn.style.transform = 'scale(0.95)';
                 }
-            });
-
-            startCentralMicBtn.addEventListener('mouseup', () => {
-                if (mediaRecorderCentral.state === 'recording') {
-                    mediaRecorderCentral.stop();
-                    startCentralMicBtn.style.backgroundColor = '#007bff';
-                }
-            });
-
-            startCentralMicBtn.addEventListener('mouseleave', () => {
-                if (mediaRecorderCentral.state === 'recording') {
-                    mediaRecorderCentral.stop();
-                    startCentralMicBtn.style.backgroundColor = '#007bff';
-                }
-            });
-            
-            // Habilitar el botón después de configurar el micrófono
-            if (startCentralMicBtn) {
-                startCentralMicBtn.disabled = false;
+            } catch (error) {
+                console.warn('⚠️ Error en mousedown:', error);
             }
-        })
-        .catch(error => {
-            console.error('Error al acceder al micrófono:', error);
-            logAudio('⚠️ No se pudo acceder al micrófono.');
-            if (startCentralMicBtn) {
-                startCentralMicBtn.disabled = true;
+        };
+
+        // Evento mouseup con validación
+        const handleMouseUp = () => {
+            try {
+                if (mediaRecorderCentral && mediaRecorderCentral.state === 'recording') {
+                    mediaRecorderCentral.stop();
+                    micBtn.style.backgroundColor = '';
+                    micBtn.style.transform = 'scale(1)';
+                }
+            } catch (error) {
+                console.warn('⚠️ Error en mouseup:', error);
             }
-        });
+        };
+
+        // Evento mouseleave con validación
+        const handleMouseLeave = () => {
+            try {
+                if (mediaRecorderCentral && mediaRecorderCentral.state === 'recording') {
+                    mediaRecorderCentral.stop();
+                    micBtn.style.backgroundColor = '';
+                    micBtn.style.transform = 'scale(1)';
+                }
+            } catch (error) {
+                console.warn('⚠️ Error en mouseleave:', error);
+            }
+        };
+
+        // Agregar eventos de forma segura
+        micBtn.addEventListener('mousedown', handleMouseDown);
+        micBtn.addEventListener('mouseup', handleMouseUp);
+        micBtn.addEventListener('mouseleave', handleMouseLeave);
+        
+        console.log('✅ Eventos del botón configurados');
+        
+    } catch (error) {
+        console.error('❌ Error configurando eventos del botón:', error);
+    }
 }
 
 // Función para crear interfaz alternativa de audio si no existe el botón

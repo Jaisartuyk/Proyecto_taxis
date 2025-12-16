@@ -128,6 +128,41 @@ function updateStatus(message, className = 'connected') {
     }
 }
 
+// Actualizar estado de conexión basado en ambos WebSockets
+function updateConnectionStatus() {
+    const audioConnected = socket && socket.readyState === WebSocket.OPEN;
+    const chatConnected = chatSocket && chatSocket.readyState === WebSocket.OPEN;
+    
+    console.log('🔍 Estado WebSockets - Audio:', audioConnected, 'Chat:', chatConnected);
+    
+    // Actualizar indicador visual en el header
+    const statusIndicator = document.querySelector('.status-indicator span');
+    const statusDot = document.querySelector('.status-dot');
+    
+    if (audioConnected && chatConnected) {
+        if (statusIndicator) statusIndicator.textContent = 'Conectado a Central';
+        if (statusDot) {
+            statusDot.style.background = '#4CAF50';
+            statusDot.style.animation = 'pulse 2s infinite';
+        }
+        console.log('✅ Sistema completamente conectado');
+    } else if (audioConnected || chatConnected) {
+        if (statusIndicator) statusIndicator.textContent = 'Conexión Parcial';
+        if (statusDot) {
+            statusDot.style.background = '#FFC107';
+            statusDot.style.animation = 'pulse 1s infinite';
+        }
+        console.log('⚠️ Conexión parcial');
+    } else {
+        if (statusIndicator) statusIndicator.textContent = 'Desconectado';
+        if (statusDot) {
+            statusDot.style.background = '#F44336';
+            statusDot.style.animation = 'none';
+        }
+        console.log('❌ Sistema desconectado');
+    }
+}
+
 // Configurar Google Maps con carga de conductores
 async function loadGoogleMapsAPI() {
     try {
@@ -461,81 +496,81 @@ function sendChatMessage(driverId) {
     sendMessageToDriver(driverId);
 }
 
-// Configurar WebSocket
+// Configurar WebSocket - CÓDIGO FUNCIONAL DEL CONDUCTOR
 function setupWebSocket() {
-    try {
-        // 1. WebSocket de Audio
-        const audioWsPath = wsProtocol + window.location.host + '/ws/audio/conductores/';
-        console.log('🔗 Conectando Audio WebSocket:', audioWsPath);
+    console.log('🔌 Iniciando WebSockets (Audio + Chat)...');
+    
+    const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    const host = window.location.host;
+
+    // 1. Audio WebSocket
+    console.log('🔊 Conectando Audio WebSocket...');
+    const audioWsUrl = `${wsProtocol}${host}/ws/audio/conductores/`;
+    console.log('🔊 URL del Audio WS:', audioWsUrl);
+    socket = new WebSocket(audioWsUrl);
+
+    socket.onopen = () => {
+        console.log('✅ Audio WS Conectado exitosamente');
+        updateConnectionStatus();
+        wsReconnectAttempts = 0;
+    };
+
+    socket.onclose = () => {
+        console.log('🔊 Audio WS Desconectado');
+        updateConnectionStatus();
         
-        socket = new WebSocket(audioWsPath);
-        
-        socket.onopen = function(e) {
-            console.log('✅ Audio WebSocket conectado');
-            updateStatus('Conectado al sistema', 'connected');
-            wsReconnectAttempts = 0;
-        };
-        
-        socket.onmessage = function(e) {
-            console.log('📨 Audio mensaje recibido');
-            try {
-                const data = JSON.parse(e.data);
-                handleWebSocketMessage(data);
-            } catch (error) {
-                console.warn('⚠️ Error procesando mensaje de audio:', error);
-            }
-        };
-        
-        socket.onclose = function(e) {
-            console.log('❌ Audio WebSocket desconectado, código:', e.code);
-            updateStatus('Desconectado', 'disconnected');
-            
-            // Intentar reconexión automática
-            if (wsReconnectAttempts < wsMaxReconnectAttempts) {
-                wsReconnectAttempts++;
-                console.log(`🔄 Reintentando conexión (${wsReconnectAttempts}/${wsMaxReconnectAttempts})...`);
-                wsReconnectTimeout = setTimeout(() => {
-                    setupWebSocket();
-                }, wsReconnectInterval * wsReconnectAttempts);
-            }
-        };
-        
-        socket.onerror = function(error) {
-            console.warn('⚠️ Error Audio WebSocket:', error);
-        };
-        
-        // 2. WebSocket de Chat
-        const chatWsPath = wsProtocol + window.location.host + '/ws/chat/';
-        console.log('💬 Conectando Chat WebSocket:', chatWsPath);
-        
-        chatSocket = new WebSocket(chatWsPath);
-        
-        chatSocket.onopen = function(e) {
-            console.log('✅ Chat WebSocket conectado');
-        };
-        
-        chatSocket.onmessage = function(e) {
-            console.log('💬 Chat mensaje recibido:', e.data);
-            try {
-                const data = JSON.parse(e.data);
-                handleChatMessage(data);
-            } catch (error) {
-                console.warn('⚠️ Error procesando mensaje de chat:', error);
-            }
-        };
-        
-        chatSocket.onclose = function(e) {
-            console.log('💬 Chat WebSocket desconectado, código:', e.code);
-            setTimeout(setupWebSocket, 5000);
-        };
-        
-        chatSocket.onerror = function(error) {
-            console.warn('⚠️ Error Chat WebSocket:', error);
-        };
-        
-    } catch (error) {
-        console.error('❌ Error configurando WebSockets:', error);
-    }
+        // Intentar reconexión automática
+        if (wsReconnectAttempts < wsMaxReconnectAttempts) {
+            wsReconnectAttempts++;
+            console.log(`🔄 Reintentando conexión (${wsReconnectAttempts}/${wsMaxReconnectAttempts})...`);
+            setTimeout(setupWebSocket, wsReconnectInterval * wsReconnectAttempts);
+        }
+    };
+
+    socket.onerror = (error) => {
+        console.error('🔊 Audio WS Error:', error);
+    };
+
+    socket.onmessage = (e) => {
+        console.log('🔊 Audio recibido:', e.data);
+        try {
+            const data = JSON.parse(e.data);
+            handleWebSocketMessage(data);
+        } catch (error) {
+            console.warn('⚠️ Error procesando mensaje de audio:', error);
+        }
+    };
+
+    // 2. Chat WebSocket
+    console.log('💬 Conectando Chat WebSocket...');
+    const chatWsUrl = `${wsProtocol}${host}/ws/chat/`;
+    console.log('💬 URL del Chat WS:', chatWsUrl);
+    chatSocket = new WebSocket(chatWsUrl);
+
+    chatSocket.onopen = () => {
+        console.log('✅ Chat WS Conectado exitosamente');
+        updateConnectionStatus();
+    };
+
+    chatSocket.onclose = () => {
+        console.log('💬 Chat WS Desconectado');
+        updateConnectionStatus();
+        setTimeout(setupWebSocket, 5000);
+    };
+
+    chatSocket.onerror = (error) => {
+        console.error('💬 Chat WS Error:', error);
+    };
+
+    chatSocket.onmessage = (e) => {
+        console.log('💬 Mensaje recibido:', e.data);
+        try {
+            const data = JSON.parse(e.data);
+            handleChatMessage(data);
+        } catch (error) {
+            console.warn('⚠️ Error procesando mensaje de chat:', error);
+        }
+    };
 }
 
 // Manejar mensajes WebSocket

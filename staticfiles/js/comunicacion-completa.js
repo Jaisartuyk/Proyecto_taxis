@@ -839,7 +839,7 @@ async function initSystem() {
         return;
     }
     
-    console.log('🚀 Iniciando sistema completo...');
+    console.log('� Iniciando sistema completo...');
     
     try {
         // Asegurar elementos requeridos
@@ -857,6 +857,9 @@ async function initSystem() {
         // Configurar sistema de audio
         setupAudioSystem();
         
+        // Configurar eventos de la lista de conductores
+        setupDriverListEvents();
+        
         systemInitialized = true;
         updateStatus('Sistema listo', 'connected');
         console.log('✅ Sistema inicializado completamente');
@@ -864,6 +867,97 @@ async function initSystem() {
     } catch (error) {
         console.error('❌ Error inicializando sistema:', error);
         updateStatus('Error en inicialización', 'error');
+    }
+}
+
+// Función específica para abrir chat desde la lista lateral
+function openDriverChatFromList(driverId, driverName) {
+    console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
+    
+    try {
+        // Actualizar el header del chat
+        const chatHeader = document.getElementById('chat-header');
+        if (chatHeader) {
+            chatHeader.innerHTML = `
+                <span>💬 Chat con: ${driverName}</span>
+                <div class="header-controls">
+                    <button class="header-toggle-btn" id="toggle-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa (F11)">🔳</button>
+                    <button class="header-toggle-btn minimize" onclick="toggleChat()" title="Ocultar chat (Ctrl+H)">✕</button>
+                </div>
+            `;
+        }
+        
+        // Limpiar mensajes anteriores y mostrar el chat
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog) {
+            chatLog.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #7f8c8d; border-bottom: 1px solid #eee;">
+                    <strong>💬 Chat iniciado con ${driverName}</strong><br>
+                    <small>Los mensajes aparecerán aquí en tiempo real...</small>
+                </div>
+            `;
+        }
+        
+        // Mostrar el área de entrada de mensaje
+        const inputContainer = document.getElementById('chat-input-container');
+        if (inputContainer) {
+            inputContainer.style.display = 'flex';
+        }
+        
+        // Ocultar el mensaje de "no chat seleccionado"
+        const noChatSelected = document.getElementById('no-chat-selected');
+        if (noChatSelected) {
+            noChatSelected.style.display = 'none';
+        }
+        
+        // Configurar el input para este conductor
+        const messageInput = document.getElementById('chat-message-input');
+        if (messageInput) {
+            messageInput.setAttribute('data-driver-id', driverId);
+            messageInput.placeholder = `Escribe un mensaje a ${driverName}...`;
+            messageInput.focus();
+        }
+        
+        // Configurar el botón de envío - clonar para remover eventos anteriores
+        const submitButton = document.getElementById('chat-message-submit');
+        if (submitButton) {
+            const newSubmitButton = submitButton.cloneNode(true);
+            submitButton.parentNode.replaceChild(newSubmitButton, submitButton);
+            
+            newSubmitButton.addEventListener('click', function() {
+                sendMessageToDriver(driverId);
+            });
+        }
+        
+        // Configurar Enter en el input - clonar para remover eventos anteriores
+        if (messageInput) {
+            const newInput = messageInput.cloneNode(true);
+            messageInput.parentNode.replaceChild(newInput, messageInput);
+            
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessageToDriver(driverId);
+                }
+            });
+        }
+        
+        // Hacer visible el chat window si está oculto
+        const chatWindow = document.querySelector('.chat-window');
+        if (chatWindow) {
+            chatWindow.classList.remove('hidden');
+        }
+        
+        // Resaltar el elemento seleccionado
+        document.querySelectorAll('.user-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`[data-driver-id="${driverId}"]`)?.classList.add('active');
+        
+        console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
+        
+    } catch (error) {
+        console.error('❌ Error abriendo chat desde lista:', error);
+        alert('Error abriendo el chat. Por favor, intenta de nuevo.');
     }
 }
 

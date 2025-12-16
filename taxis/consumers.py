@@ -161,7 +161,14 @@ class AudioConsumer(AsyncWebsocketConsumer):
             # --- Mensajes desde la central ---
             elif message_type == 'central_audio_message' or message_type == 'central_audio':
                 audio_data_base64 = data.get('audio_data') or data.get('audio')
-                sender_id = data.get('senderId', 'Central')  # ID real del admin
+                
+                # Obtener ID real del usuario autenticado
+                sender_id = getattr(self.scope.get('user'), 'id', None)
+                if not sender_id:
+                    # Fallback si no hay usuario autenticado
+                    sender_id = data.get('senderId', 1)  # Usar ID 1 como fallback
+                    print(f"⚠️ Usuario no autenticado, usando sender_id fallback: {sender_id}")
+                
                 sender_role = data.get('senderRole', 'Central')
 
                 if audio_data_base64:

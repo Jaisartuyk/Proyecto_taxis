@@ -1414,11 +1414,14 @@ def taxis_ubicacion(request):
 
     data = [
         {
-            "name": taxi.user.get_full_name(),
+            "id": taxi.id,
+            "nombre_conductor": taxi.user.get_full_name(),
             "latitude": taxi.latitude,
             "longitude": taxi.longitude,
-            "plate": taxi.plate_number,
-            "vehicle": taxi.vehicle_description
+            "placa": taxi.plate_number,
+            "vehiculo": taxi.vehicle_description,
+            "disponible": taxi.is_available,
+            "telefono": getattr(taxi.user, 'phone_number', 'N/A')
         }
         for taxi in taxis
     ]

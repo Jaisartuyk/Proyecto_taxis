@@ -145,6 +145,9 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 audio_data_base64 = data.get('audio')
 
                 if sender_id and audio_data_base64:
+                    # Debug: Ver cuántos miembros hay en el grupo
+                    print(f"📊 Grupo: {self.room_group_name}, Enviando audio de {sender_id}")
+                    
                     # 🚫 NO enviar el audio de vuelta al mismo conductor
                     await self.channel_layer.group_send(
                         self.room_group_name,
@@ -212,6 +215,11 @@ class AudioConsumer(AsyncWebsocketConsumer):
     async def send_audio_to_clients(self, event):
         # 🚫 NO enviar el audio de vuelta al remitente
         sender_channel = event.get('sender_channel')
+        sender_id = event.get('senderId')
+        
+        print(f"🔍 send_audio_to_clients llamado en canal: {self.channel_name}")
+        print(f"   Remitente: {sender_id}, Canal remitente: {sender_channel}")
+        
         if sender_channel and sender_channel == self.channel_name:
             print(f"🔇 Audio NO enviado al remitente (canal: {self.channel_name})")
             return  # NO ENVIAR
@@ -223,7 +231,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
             "senderRole": event.get("senderRole", "Desconocido"),
             "audio": event["audio"],
         }))
-        print(f"✅ Audio enviado a canal: {self.channel_name}")
+        print(f"✅ Audio enviado a canal: {self.channel_name} (tipo: audio_broadcast)")
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

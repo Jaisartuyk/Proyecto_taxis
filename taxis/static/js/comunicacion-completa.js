@@ -515,6 +515,7 @@ function handleWebSocketMessage(data) {
     
     switch (data.type) {
         case 'audio_message':
+        case 'central_audio':  // Audio de la central a conductores
             handleAudioMessage(data);
             break;
         case 'chat_message':

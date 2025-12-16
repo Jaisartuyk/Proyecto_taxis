@@ -1,9 +1,6 @@
 from django.urls import re_path
-from taxis.consumers import AudioConsumer, ChatConsumer
-
+from taxis.consumers import AudioConsumer
 
 websocket_urlpatterns = [
-
-    re_path(r"ws/audio/(?P<room_name>\w+)/$", AudioConsumer.as_asgi()),  # Ruta para WebSocket de audio
-    re_path(r"ws/chat/$", ChatConsumer.as_asgi()),  # Ruta para WebSocket de chat privado
+    re_path(r"ws/audio/conductores/$", AudioConsumer.as_asgi()),  # Ruta directa
 ]

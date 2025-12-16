@@ -5,62 +5,10 @@ from channels.layers import get_channel_layer
 
 class AudioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'audio_{self.room_name}'
-        
-        # Extraer driver_id si está en el room_name (formato: conductor_123)
-        if self.room_name.startswith('conductor_'):
-            self.driver_id = self.room_name.replace('conductor_', '')
-            print(f"👤 Conductor conectado: ID={self.driver_id}")
-        else:
-            self.driver_id = None
-            print(f"🔌 Conexión sin ID de conductor: room={self.room_name}")
-
-        # FORCE channel_layer initialization si es None
-        if self.channel_layer is None:
-            print(f"❌ ERROR: channel_layer es None en AudioConsumer")
-            print(f"🔧 INTENTANDO forzar inicialización de channel_layer...")
-            
-            # DEBUG: Verificar configuración detallada
-            try:
-                from django.conf import settings
-                print(f"🔍 DEBUG Settings module: {settings.SETTINGS_MODULE}")
-                
-                # Verificar si CHANNEL_LAYERS existe
-                if hasattr(settings, 'CHANNEL_LAYERS'):
-                    channel_config = getattr(settings, 'CHANNEL_LAYERS', None)
-                    print(f"🔍 DEBUG CHANNEL_LAYERS: {channel_config}")
-                else:
-                    print(f"❌ DEBUG: CHANNEL_LAYERS NO EXISTE en settings")
-                
-                # Forzar obtención del channel layer
-                self.channel_layer = get_channel_layer()
-                print(f"🔍 DEBUG get_channel_layer() result: {self.channel_layer}")
-                
-                if self.channel_layer is not None:
-                    print(f"✅ Channel layer forzado exitosamente: {type(self.channel_layer)}")
-                else:
-                    print(f"❌ get_channel_layer() devolvió None")
-                    # Intentar creación manual
-                    from channels.layers import InMemoryChannelLayer
-                    self.channel_layer = InMemoryChannelLayer()
-                    print(f"🔧 EMERGENCY: Creado InMemoryChannelLayer manual")
-                    
-            except Exception as e:
-                print(f"❌ Error forzando channel_layer: {e}")
-                # EMERGENCY: Crear channel layer manual
-                try:
-                    from channels.layers import InMemoryChannelLayer
-                    self.channel_layer = InMemoryChannelLayer()
-                    print(f"🚨 EMERGENCY FALLBACK: InMemoryChannelLayer creado manualmente")
-                except Exception as e2:
-                    print(f"💀 FATAL: No se pudo crear ningún channel_layer: {e2}")
-                    await self.close()
-                    return
-
+        self.room_group_name = 'audio_conductores'
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        print(f"WebSocket conectado al grupo: {self.room_group_name}")
+        print(f"✅ WebSocket conectado: {self.channel_name}")
 
     @database_sync_to_async
     def send_audio_push_to_drivers(self, sender_id):

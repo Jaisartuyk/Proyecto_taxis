@@ -29,6 +29,31 @@ let stopCentralMicBtn = null;
 
 // Flag para asegurar que solo se inicialice una vez
 let systemInitialized = false;
+let domReady = false;
+
+// Función de verificación global para elementos DOM críticos
+function ensureDOMReady() {
+    if (!domReady) {
+        console.warn('⚠️ DOM no está listo, creando elementos básicos...');
+        ensureRequiredElements();
+        domReady = true;
+    }
+    return domReady;
+}
+
+// Wrapper seguro para acceder a elementos DOM
+function safeGetElement(id, createIfMissing = false) {
+    ensureDOMReady();
+    const element = document.getElementById(id);
+    if (!element && createIfMissing) {
+        console.warn(`⚠️ Creando elemento faltante: ${id}`);
+        const div = document.createElement('div');
+        div.id = id;
+        document.body.appendChild(div);
+        return div;
+    }
+    return element;
+}
 
 // Inicialización
 async function init() {
@@ -421,45 +446,57 @@ function updateDriverLocation(driverId, lat, lng, driverName = null) {
 
 // Funciones de utilidad
 function logMessage(msg) {
-    const logDiv = document.getElementById('log');
-    if (!logDiv) {
-        console.warn('Elemento #log no encontrado en el DOM');
-        return; // Verificar si el elemento existe
+    try {
+        const logDiv = safeGetElement('log', true);
+        if (!logDiv) {
+            console.warn('❌ No se pudo crear elemento log');
+            return;
+        }
+        const p = document.createElement('p');
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logDiv.appendChild(p);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    } catch (error) {
+        console.error('❌ Error en logMessage:', error);
     }
-    const p = document.createElement('p');
-    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    logDiv.appendChild(p);
-    logDiv.scrollTop = logDiv.scrollHeight;
 }
 
 function logAudio(msg) {
-    const audioLogDiv = document.getElementById('audioLog');
-    if (!audioLogDiv) {
-        console.warn('Elemento #audioLog no encontrado en el DOM');
-        return; // Verificar si el elemento existe
+    try {
+        const audioLogDiv = safeGetElement('audioLog', true);
+        if (!audioLogDiv) {
+            console.warn('❌ No se pudo crear elemento audioLog');
+            return;
+        }
+        const p = document.createElement('p');
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        audioLogDiv.appendChild(p);
+        audioLogDiv.scrollTop = audioLogDiv.scrollHeight;
+    } catch (error) {
+        console.error('❌ Error en logAudio:', error);
     }
-    const p = document.createElement('p');
-    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    audioLogDiv.appendChild(p);
-    audioLogDiv.scrollTop = audioLogDiv.scrollHeight;
 }
 
 function updateStatus(message, className) {
-    const statusDiv = document.getElementById('status');
-    if (!statusDiv) {
-        console.warn('Elemento #status no encontrado en el DOM');
-        return;
-    }
-    statusDiv.textContent = message;
-    statusDiv.className = `status ${className}`;
-    
-    // Actualizar color según estado
-    if (className === 'connected') {
-        statusDiv.style.background = '#28a745';
-    } else if (className === 'disconnected') {
-        statusDiv.style.background = '#dc3545';
-    } else if (className === 'error') {
-        statusDiv.style.background = '#fd7e14';
+    try {
+        const statusDiv = safeGetElement('status', true);
+        if (!statusDiv) {
+            console.warn('❌ No se pudo crear elemento status');
+            return;
+        }
+        statusDiv.textContent = message;
+        statusDiv.className = `status ${className}`;
+        
+        // Actualizar color según estado
+        if (className === 'connected') {
+            statusDiv.style.background = '#28a745';
+        } else if (className === 'disconnected') {
+            statusDiv.style.background = '#dc3545';
+        } else if (className === 'error') {
+            statusDiv.style.background = '#fd7e14';
+        }
+    } catch (error) {
+        console.error('❌ Error en updateStatus:', error);
     }
 }
 
@@ -467,20 +504,28 @@ function updateStatus(message, className) {
 function setupCentralAudioControls() {
     console.log('🎤 Configurando controles de audio central...');
     
-    // Re-obtener el elemento para asegurar que existe
-    const micBtn = document.getElementById('record-audio-btn');
-    
-    if (!micBtn) {
-        console.warn('❌ Botón de grabación central no encontrado - creando interfaz alternativa');
-        createFallbackAudioInterface();
-        return;
-    }
-    
-    startCentralMicBtn = micBtn; // Asignar a variable global
-    
-    // Verificar que el botón es válido
-    if (typeof startCentralMicBtn.addEventListener !== 'function') {
-        console.warn('❌ Elemento de botón no es válido');
+    try {
+        // Asegurar que el DOM esté listo
+        ensureDOMReady();
+        
+        // Re-obtener el elemento para asegurar que existe
+        let micBtn = document.getElementById('record-audio-btn');
+        
+        if (!micBtn) {
+            console.warn('❌ Botón de grabación central no encontrado - creando interfaz alternativa');
+            createFallbackAudioInterface();
+            micBtn = document.getElementById('fallback-record-btn');
+        }
+        
+        if (!micBtn || typeof micBtn.addEventListener !== 'function') {
+            console.error('❌ No se pudo obtener un botón de micrófono válido');
+            return;
+        }
+        
+        startCentralMicBtn = micBtn; // Asignar a variable global
+        console.log('✅ Botón de micrófono configurado correctamente');
+    } catch (error) {
+        console.error('❌ Error configurando botón de micrófono:', error);
         return;
     }
     

@@ -65,6 +65,9 @@ urlpatterns = [
     path('central-comunicacion/', views.chat_central, name='chat_central'),
     path('api/maps-key/', get_google_maps_key, name='get_maps_key'),
     
+    # FCM - Firebase Cloud Messaging
+    path('api/fcm/register/', api_views.register_fcm_token_view, name='register_fcm_token'),
+    
     # Panel de WhatsApp
     path('whatsapp/panel/', views.whatsapp_panel, name='whatsapp_panel'),
     path('whatsapp/conversation/<int:conversation_id>/', views.whatsapp_conversation_detail, name='whatsapp_conversation_detail'),

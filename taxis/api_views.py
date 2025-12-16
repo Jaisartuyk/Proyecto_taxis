@@ -178,3 +178,76 @@ def test_push_notification(request):
             'success': False,
             'message': f'Error al enviar la notificación: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 📱 Registrar token FCM
+@api_view(['POST'])
+def register_fcm_token_view(request):
+    """
+    Registrar token FCM para notificaciones push móviles
+    
+    Body:
+    {
+        "token": "fcm_token_here",
+        "user_id": "conductor_001",  # Opcional si está autenticado
+        "device_type": "android"     # android o ios
+    }
+    """
+    from .fcm_notifications import register_fcm_token
+    from .models import AppUser
+    
+    try:
+        token = request.data.get('token')
+        user_id = request.data.get('user_id')
+        device_type = request.data.get('device_type', 'android')
+        
+        if not token:
+            return Response({
+                'success': False,
+                'message': 'El token FCM es requerido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Si el usuario está autenticado, usar ese usuario
+        if request.user.is_authenticated:
+            user = request.user
+        elif user_id:
+            # Buscar usuario por username o ID
+            try:
+                if user_id.isdigit():
+                    user = AppUser.objects.get(id=int(user_id))
+                else:
+                    user = AppUser.objects.get(username=user_id)
+            except AppUser.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': f'Usuario {user_id} no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({
+                'success': False,
+                'message': 'Se requiere autenticación o user_id'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Registrar el token
+        fcm_token = register_fcm_token(
+            user=user,
+            token=token,
+            platform=device_type
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Token FCM registrado exitosamente',
+            'data': {
+                'user_id': user.id,
+                'username': user.username,
+                'device_type': device_type,
+                'token_id': fcm_token.id
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error al registrar token: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

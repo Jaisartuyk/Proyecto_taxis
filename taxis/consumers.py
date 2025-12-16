@@ -7,6 +7,14 @@ class AudioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'audio_{self.room_name}'
+        
+        # Extraer driver_id si está en el room_name (formato: conductor_123)
+        if self.room_name.startswith('conductor_'):
+            self.driver_id = self.room_name.replace('conductor_', '')
+            print(f"👤 Conductor conectado: ID={self.driver_id}")
+        else:
+            self.driver_id = None
+            print(f"🔌 Conexión sin ID de conductor: room={self.room_name}")
 
         # FORCE channel_layer initialization si es None
         if self.channel_layer is None:
@@ -141,12 +149,13 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     print(f"📍 Ubicación de {sender_id} retransmitida.")
 
             elif message_type == 'audio_message':
-                sender_id = data.get('senderId')
+                # Usar driver_id de la conexión si está disponible, sino usar el del mensaje
+                sender_id = getattr(self, 'driver_id', None) or data.get('senderId')
                 audio_data_base64 = data.get('audio')
 
                 if sender_id and audio_data_base64:
                     # Debug: Ver cuántos miembros hay en el grupo
-                    print(f"📊 Grupo: {self.room_group_name}, Enviando audio de {sender_id}")
+                    print(f"📊 Grupo: {self.room_group_name}, Enviando audio de conductor {sender_id}")
                     
                     # 🚫 NO enviar el audio de vuelta al mismo conductor
                     await self.channel_layer.group_send(
@@ -159,7 +168,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
                             'sender_channel': self.channel_name,  # 🔑 Canal del remitente
                         }
                     )
-                    print(f"🎤 Audio de {sender_id} retransmitido (Taxi). Canal remitente: {self.channel_name}")
+                    print(f"🎤 Audio de conductor {sender_id} retransmitido. Canal: {self.channel_name}")
 
             # --- Mensajes desde la central ---
             elif message_type == 'central_audio_message' or message_type == 'central_audio':

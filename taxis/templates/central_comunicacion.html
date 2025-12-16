@@ -1173,6 +1173,11 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- 
+NOTA: Todo el código JavaScript está en comunicacion-completa.js
+No usar script inline para evitar conflictos de WebSocket
+-->
+<!--
 <script>
     // Variables globales para el mapa (renombradas para evitar conflictos)
     let centralMap;
@@ -1816,6 +1821,8 @@
     // Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA CORREGIDA
     //script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
 </script>
+-->
+<!-- FIN SCRIPT INLINE COMENTADO -->
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA CORREGIDA -->
 <script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>

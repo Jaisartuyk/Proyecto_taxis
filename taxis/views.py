@@ -1410,23 +1410,39 @@ def admin_users(request):
     return render(request, 'admin_users.html', {'taxis': taxis})
 
 def taxis_ubicacion(request):
-    taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)
+    try:
+        taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)
 
-    data = [
-        {
-            "id": taxi.id,
-            "nombre_conductor": taxi.user.get_full_name(),
-            "latitude": taxi.latitude,
-            "longitude": taxi.longitude,
-            "placa": taxi.plate_number,
-            "vehiculo": taxi.vehicle_description,
-            "disponible": taxi.is_available,
-            "telefono": getattr(taxi.user, 'phone_number', 'N/A')
-        }
-        for taxi in taxis
-    ]
+        data = []
+        for taxi in taxis:
+            try:
+                # Obtener teléfono de manera segura
+                telefono = 'N/A'
+                if hasattr(taxi.user, 'phone_number'):
+                    telefono = taxi.user.phone_number or 'N/A'
+                elif hasattr(taxi.user, 'phone'):
+                    telefono = taxi.user.phone or 'N/A'
+                
+                taxi_data = {
+                    "id": taxi.id,
+                    "nombre_conductor": taxi.user.get_full_name() or taxi.user.username,
+                    "latitude": float(taxi.latitude) if taxi.latitude else 0.0,
+                    "longitude": float(taxi.longitude) if taxi.longitude else 0.0,
+                    "placa": taxi.plate_number or 'N/A',
+                    "vehiculo": taxi.vehicle_description or 'N/A',
+                    "disponible": getattr(taxi, 'is_available', True),
+                    "telefono": telefono
+                }
+                data.append(taxi_data)
+            except Exception as e:
+                print(f"Error procesando taxi {taxi.id}: {e}")
+                continue
 
-    return JsonResponse(data, safe=False)
+        return JsonResponse(data, safe=False)
+        
+    except Exception as e:
+        print(f"Error en taxis_ubicacion: {e}")
+        return JsonResponse([], safe=False)
 
 
 

@@ -832,6 +832,37 @@ function updateAudioLog(message) {
     }
 }
 
+// Configurar eventos de click en la lista de conductores
+function setupDriverListEvents() {
+    console.log('🔧 Configurando eventos de la lista de conductores...');
+    
+    const driverItems = document.querySelectorAll('.user-item[data-driver-id]');
+    console.log(`📋 Encontrados ${driverItems.length} elementos de conductor`);
+    
+    driverItems.forEach(item => {
+        const driverId = item.getAttribute('data-driver-id');
+        const driverName = item.getAttribute('data-driver-name') || 
+                           item.querySelector('span')?.textContent || 
+                           `Conductor #${driverId}`;
+        
+        // Remover eventos anteriores
+        item.replaceWith(item.cloneNode(true));
+        const newItem = document.querySelector(`[data-driver-id="${driverId}"]`);
+        
+        if (newItem) {
+            newItem.addEventListener('click', function() {
+                console.log(`💬 Click en conductor: ${driverName} (ID: ${driverId})`);
+                openDriverChatFromList(driverId, driverName);
+            });
+            
+            // Estilo cursor
+            newItem.style.cursor = 'pointer';
+            
+            console.log(`✅ Evento configurado para conductor: ${driverName}`);
+        }
+    });
+}
+
 // Inicialización principal
 async function initSystem() {
     if (systemInitialized) {

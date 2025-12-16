@@ -128,6 +128,22 @@ admin.site.register(RideDestination, RideDestinationAdmin)
 
 
 # ============================================
+# FIREBASE CLOUD MESSAGING (FCM)
+# ============================================
+
+@admin.register(models.FCMToken)
+class FCMTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'platform', 'token_preview', 'is_active', 'created_at')
+    list_filter = ('platform', 'is_active', 'created_at')
+    search_fields = ('user__username', 'user__email', 'token', 'device_id')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def token_preview(self, obj):
+        return f"{obj.token[:30]}..."
+    token_preview.short_description = 'Token'
+
+
+# ============================================
 # ADMIN DE WHATSAPP
 # ============================================
 

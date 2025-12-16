@@ -248,6 +248,56 @@ class WebPushSubscription(models.Model):
 
 
 # ============================================
+# FIREBASE CLOUD MESSAGING (FCM)
+# ============================================
+
+class FCMToken(models.Model):
+    """
+    Almacena tokens FCM de dispositivos móviles
+    Un usuario puede tener múltiples dispositivos
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='fcm_tokens'
+    )
+    token = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text="Token FCM del dispositivo"
+    )
+    device_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="ID único del dispositivo (opcional)"
+    )
+    platform = models.CharField(
+        max_length=20,
+        choices=[
+            ('android', 'Android'),
+            ('ios', 'iOS'),
+            ('web', 'Web'),
+        ],
+        default='android'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si el token está activo"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Token FCM"
+        verbose_name_plural = "Tokens FCM"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.platform} - {self.token[:20]}..."
+
+
+# ============================================
 # MODELOS DE WHATSAPP
 # ============================================
 

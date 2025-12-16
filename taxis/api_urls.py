@@ -11,6 +11,11 @@ from .api_viewsets import (
     ProfileViewSet, RegisterViewSet, DriverViewSet,
     RideViewSet, RatingViewSet
 )
+from .fcm_api_views import (
+    register_fcm_token_view,
+    unregister_fcm_token_view,
+    test_fcm_notification_view
+)
 
 # Router para ViewSets
 router = DefaultRouter()
@@ -50,6 +55,13 @@ urlpatterns = [
     path('mark-messages-read/', mark_messages_read, name='api_mark_messages_read'),
     path('save-subscription/', save_webpush_subscription, name='api_save_subscription'),
     path('test-push-notification/', test_push_notification, name='api_test_push_notification'),
+    
+    # =====================================================
+    # FIREBASE CLOUD MESSAGING (FCM)
+    # =====================================================
+    path('fcm/register/', register_fcm_token_view, name='api_fcm_register'),
+    path('fcm/unregister/', unregister_fcm_token_view, name='api_fcm_unregister'),
+    path('fcm/test/', test_fcm_notification_view, name='api_fcm_test'),
     
     # =====================================================
     # VIEWSETS (CRUD completo)

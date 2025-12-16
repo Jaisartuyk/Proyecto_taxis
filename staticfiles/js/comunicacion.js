@@ -1,3 +1,9 @@
+// =====================================================
+// SISTEMA WALKIE-TALKIE ULTRA-SEGURO - DEBUGGING ACTIVO
+// =====================================================
+console.log('🚀 LOADING comunicacion.js - VERSIÓN ULTRA-SEGURA');
+console.log('📅 Timestamp de carga:', new Date().toISOString());
+
 // Variables globales
 let map;
 let socket;
@@ -31,15 +37,23 @@ let stopCentralMicBtn = null;
 let systemInitialized = false;
 let domReady = false;
 
+// DEBUGGING INICIAL
+console.log('🔍 Estado inicial del DOM:', document.readyState);
+console.log('🔍 URL actual:', window.location.href);
+
 // SISTEMA ULTRA-SEGURO DE VERIFICACIÓN DOM
 function ensureDOMReady() {
+    console.log('🔄 ensureDOMReady llamado, estado DOM:', document.readyState);
     return new Promise((resolve) => {
         if (document.readyState === 'loading') {
+            console.log('⏳ DOM aún cargando, esperando DOMContentLoaded...');
             document.addEventListener('DOMContentLoaded', () => {
+                console.log('✅ DOM listo via DOMContentLoaded');
                 domReady = true;
                 resolve(true);
             });
         } else {
+            console.log('✅ DOM ya está listo');
             domReady = true;
             resolve(true);
         }
@@ -48,12 +62,15 @@ function ensureDOMReady() {
 
 // Función súper segura para obtener elementos
 function safeGetElement(id, retries = 3) {
+    console.log(`🔍 Buscando elemento: ${id} (${retries} reintentos)`);
     for (let i = 0; i < retries; i++) {
         try {
             const element = document.getElementById(id);
             if (element) {
-                console.log(`✅ Elemento encontrado: ${id}`);
+                console.log(`✅ Elemento encontrado: ${id} - Tipo:`, element.constructor.name);
                 return element;
+            } else {
+                console.warn(`❌ Elemento ${id} no encontrado en intento ${i + 1}`);
             }
         } catch (error) {
             console.warn(`⚠️ Error buscando elemento ${id}, intento ${i + 1}:`, error);
@@ -74,6 +91,8 @@ function safeGetElement(id, retries = 3) {
 
 // Función para verificar elementos críticos existen
 function verifyDOMElements() {
+    console.log('🔍 Verificando elementos DOM críticos...');
+    
     const requiredElements = [
         'record-audio-btn',
         'connection-status', 
@@ -90,49 +109,66 @@ function verifyDOMElements() {
         if (!element) {
             console.warn(`❌ Elemento faltante: ${id}`);
             allFound = false;
+            
+            // Buscar elementos similares
+            const similar = document.querySelector(`[id*="${id}"], [class*="${id}"]`);
+            if (similar) {
+                console.info(`💡 Elemento similar encontrado:`, similar.id || similar.className);
+            }
         } else {
-            console.log(`✅ Elemento verificado: ${id}`);
+            console.log(`✅ Elemento verificado: ${id} -`, element.constructor.name);
         }
     });
     
-    console.log('🔍 Estado de elementos DOM:', elementStatus);
+    console.log('� Resumen de elementos DOM:', elementStatus);
+    console.log('🔍 Total de elementos en página:', document.querySelectorAll('*').length);
+    
     return allFound;
 }
 
-// Inicialización súper segura
+// Inicialización súper segura con debugging intensivo
 async function init() {
+    console.log('🚀 ===== INICIANDO SISTEMA ULTRA-SEGURO =====');
+    console.log('� Hora de inicio:', new Date().toISOString());
+    
     try {
-        console.log('🚀 Iniciando sistema súper seguro...');
-        
-        // Esperar a que el DOM esté completamente listo
+        console.log('🔄 Paso 1: Esperando DOM listo...');
         await ensureDOMReady();
+        console.log('✅ DOM confirmado como listo');
         
-        // Verificar elementos críticos
+        console.log('🔄 Paso 2: Verificando elementos críticos...');
         const elementsOK = verifyDOMElements();
         if (!elementsOK) {
             console.warn('⚠️ Algunos elementos DOM faltantes, pero continuando...');
+        } else {
+            console.log('✅ Todos los elementos DOM encontrados');
         }
         
-        // Obtener API key de Google Maps de forma segura
+        console.log('🔄 Paso 3: Obteniendo API key de Google Maps...');
         try {
             const response = await fetch('/api/maps-key/');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             const data = await response.json();
             Maps_API_KEY = data.maps_api_key;
             
             if (Maps_API_KEY) {
+                console.log('✅ API key obtenida, cargando Google Maps...');
                 loadGoogleMapsAPI();
             } else {
-                console.warn('⚠️ API key no disponible, iniciando sin mapa');
+                console.warn('⚠️ API key vacía, iniciando sin mapa');
                 initBasicSystem();
             }
         } catch (mapError) {
-            console.warn('⚠️ Error con Google Maps, iniciando sistema básico:', mapError);
+            console.warn('⚠️ Error con Google Maps API:', mapError.message);
+            console.warn('🔄 Iniciando sistema básico...');
             initBasicSystem();
         }
         
     } catch (error) {
-        console.error('❌ Error en inicialización:', error);
-        // Fallback: inicializar sistema mínimo
+        console.error('❌ Error crítico en inicialización:', error);
+        console.error('🔄 Intentando sistema mínimo de emergencia...');
         initMinimalSystem();
     }
 }
@@ -140,28 +176,56 @@ async function init() {
 // Sistema básico sin mapa
 function initBasicSystem() {
     try {
-        console.log('🔧 Inicializando sistema básico...');
+        console.log('🔧 ===== INICIALIZANDO SISTEMA BÁSICO =====');
+        
+        console.log('🔄 Inicializando elementos DOM...');
         initializeDOMElements();
+        
+        console.log('🔄 Configurando WebSocket...');
         setupWebSocket();
+        
+        console.log('🔄 Configurando controles de audio...');
         setupCentralAudioControls();
+        
+        console.log('🔄 Actualizando estado del sistema...');
         updateStatus("Sistema básico activo", "connected");
+        
         systemInitialized = true;
+        console.log('✅ Sistema básico completamente inicializado');
+        
     } catch (error) {
         console.error('❌ Error en sistema básico:', error);
+        console.error('🔄 Fallback a sistema mínimo...');
         initMinimalSystem();
     }
 }
 
 // Sistema mínimo de emergencia
 function initMinimalSystem() {
-    console.log('⚠️ Iniciando sistema mínimo de emergencia...');
+    console.log('⚠️ ===== INICIANDO SISTEMA MÍNIMO DE EMERGENCIA =====');
     try {
         // Solo websocket básico
         setupWebSocket();
         systemInitialized = true;
-        console.log('✅ Sistema mínimo activo');
+        console.log('✅ Sistema mínimo activo (solo WebSocket)');
+        
+        // Crear notificación visual de estado mínimo
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed; top: 10px; right: 10px; 
+            background: #ff9800; color: white; padding: 10px; 
+            border-radius: 5px; z-index: 9999;
+            font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
+        notification.textContent = '⚠️ Sistema en modo mínimo';
+        document.body.appendChild(notification);
+        
     } catch (error) {
         console.error('❌ Incluso el sistema mínimo falló:', error);
+        console.error('💀 Sistema completamente inoperable');
+        
+        // Última notificación de error
+        alert('Error crítico: Sistema de comunicación no disponible. Recarga la página.');
     }
 }
 

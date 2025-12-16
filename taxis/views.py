@@ -1639,11 +1639,12 @@ def chat_central(request):
     admin_user = AppUser.objects.filter(is_superuser=True).first()
 
     import time
+    import random
     context = {
         'drivers': drivers,
         'admin_user_id': admin_user.id if admin_user else None,
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,  # Para el mapa
-        'timestamp': int(time.time())  # Para evitar caché del JS
+        'timestamp': f"{int(time.time())}{random.randint(1000,9999)}"  # Timestamp único para forzar recarga
     }
     return render(request, 'central_comunicacion.html', context)
 

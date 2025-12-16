@@ -30,8 +30,10 @@ if __name__ == "__main__":
     
     # 1. Collectstatic (con verbosidad para debug)
     run_command(
-        "python manage.py collectstatic --noinput --verbosity 1",
-        "Recopilando archivos estáticos (collectstatic)"
+        # IMPORTANTE (Railway): verbosity alta puede disparar el rate limit de logs (500 logs/s)
+        # porque collectstatic imprime miles de líneas (Copying/Deleting/Post-processed).
+        "python manage.py collectstatic --noinput --verbosity 0",
+        "Recopilando archivos estáticos (collectstatic, silencioso)"
     )
     
     # 2. Migraciones

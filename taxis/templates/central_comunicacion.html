@@ -1820,9 +1820,135 @@
 console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-debug.js con timestamp:', '{{ timestamp }}');
 console.log('📍 URL completa:', "{% static 'js/comunicacion-debug.js' %}?v={{ timestamp }}");
 console.log('⏰ Timestamp actual:', new Date().toISOString());
+
+// =====================================================
+// JAVASCRIPT INCRUSTADO PARA BYPASS RAILWAY CACHE
+// =====================================================
+console.log('🚀 SISTEMA INCRUSTADO - BYPASS COMPLETO DE CACHE');
+console.log('📅 Timestamp de carga:', new Date().toISOString());
+
+// Función súper segura para actualizar estado - VERSIÓN INCRUSTADA
+function updateStatusInline(message, className = 'connected') {
+    try {
+        console.log('🔄 updateStatusInline llamado:', message, className);
+        
+        // Buscar múltiples posibles elementos de estado
+        const possibleIds = ['connection-status', 'system-status', 'status'];
+        let statusElement = null;
+        
+        for (const id of possibleIds) {
+            const element = document.getElementById(id);
+            if (element) {
+                statusElement = element;
+                console.log('✅ Usando elemento de estado:', id);
+                break;
+            }
+        }
+        
+        if (!statusElement) {
+            console.warn('⚠️ Creando elemento de estado temporal');
+            statusElement = document.createElement('div');
+            statusElement.id = 'status-temp';
+            statusElement.style.cssText = 'position:fixed;top:10px;right:10px;background:#007bff;color:white;padding:10px;border-radius:5px;font-size:14px;z-index:9999;';
+            document.body.appendChild(statusElement);
+        }
+        
+        if (statusElement.textContent !== undefined) {
+            statusElement.textContent = message;
+        }
+        
+        console.log('✅ Estado actualizado correctamente:', message);
+        
+    } catch (error) {
+        console.warn('⚠️ Error en updateStatusInline:', error);
+    }
+}
+
+// Función para verificar elementos DOM críticos - VERSIÓN INCRUSTADA
+function verifyDOMElementsInline() {
+    console.log('🔍 Verificando elementos DOM críticos (versión incrustada)...');
+    
+    const requiredElements = [
+        'record-audio-btn',
+        'connection-status', 
+        'audio-log',
+        'audio-player'
+    ];
+    
+    const elementStatus = {};
+    let allFound = true;
+    
+    requiredElements.forEach(id => {
+        const element = document.getElementById(id);
+        elementStatus[id] = !!element;
+        if (!element) {
+            console.warn('❌ Elemento faltante:', id);
+            allFound = false;
+            
+            // Buscar elementos similares
+            const similar = document.querySelector(`[id*="${id}"], [class*="${id}"]`);
+            if (similar) {
+                console.info('💡 Elemento similar encontrado:', similar.id || similar.className);
+            }
+        } else {
+            console.log('✅ Elemento verificado:', id, '-', element.constructor.name);
+        }
+    });
+    
+    console.log('📊 Resumen de elementos DOM:', elementStatus);
+    console.log('🔍 Total de elementos en página:', document.querySelectorAll('*').length);
+    
+    return allFound;
+}
+
+// Inicialización inmediata - VERSIÓN INCRUSTADA
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM LISTO - Iniciando sistema incrustado...');
+    
+    // Actualizar estado inmediatamente
+    updateStatusInline('Sistema incrustado cargado', 'connected');
+    
+    // Verificar elementos
+    const elementsOK = verifyDOMElementsInline();
+    console.log('📋 Verificación DOM completa. Elementos OK:', elementsOK);
+    
+    // Configurar botón de grabación si existe
+    const recordBtn = document.getElementById('record-audio-btn');
+    if (recordBtn) {
+        console.log('✅ Botón de grabación encontrado:', recordBtn);
+        
+        // Verificar si tiene addEventListener
+        if (typeof recordBtn.addEventListener === 'function') {
+            console.log('✅ addEventListener disponible en botón');
+            
+            recordBtn.addEventListener('mousedown', function() {
+                console.log('🎤 Botón presionado - mousedown');
+                updateStatusInline('Grabando...', 'recording');
+                this.style.backgroundColor = '#FF5722';
+            });
+            
+            recordBtn.addEventListener('mouseup', function() {
+                console.log('🎤 Botón liberado - mouseup');
+                updateStatusInline('Grabación terminada', 'connected');
+                this.style.backgroundColor = '';
+            });
+            
+            console.log('✅ Eventos configurados correctamente en botón');
+        } else {
+            console.error('❌ addEventListener NO disponible en botón');
+        }
+    } else {
+        console.error('❌ Botón record-audio-btn NO encontrado');
+        console.log('🔍 Todos los botones en página:', document.querySelectorAll('button'));
+    }
+    
+    console.log('🎉 SISTEMA INCRUSTADO COMPLETAMENTE INICIALIZADO');
+});
+
+console.log('📝 Script incrustado cargado completamente');
 </script>
 
-<!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN DEBUG -->
-<script src="{% static 'js/comunicacion-debug.js' %}?v={{ timestamp }}"></script>
+<!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN DEBUG (comentado mientras probamos versión incrustada) -->
+<!-- <script src="{% static 'js/comunicacion-debug.js' %}?v={{ timestamp }}"></script> -->
 
 {% endblock %}

@@ -1813,18 +1813,16 @@
 -->
 <!-- FIN SCRIPT INLINE DESACTIVADO -->
 
-<!-- Google Maps API se carga desde comunicacion-debug.js para evitar duplicación -->
-
-<!-- Google Maps API se carga desde comunicacion-simple.js para evitar duplicación -->
+<!-- Google Maps API se carga desde comunicacion-completa.js para evitar duplicación -->
 
 <!-- DEBUGGING: Verificar archivo que se está cargando -->
 <script>
-console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-simple.js con timestamp:', '{{ timestamp }}');
-console.log('📍 URL completa:', "{% static 'js/comunicacion-simple.js' %}?v={{ timestamp }}");
+console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-completa.js con timestamp:', '{{ timestamp }}');
+console.log('📍 URL completa:', "{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}");
 console.log('⏰ Timestamp actual:', new Date().toISOString());
 </script>
 
-<!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN SIMPLIFICADA SIN ERRORES -->
-<script src="{% static 'js/comunicacion-simple.js' %}?v={{ timestamp }}"></script>
+<!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA CORREGIDA -->
+<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
 
 {% endblock %}

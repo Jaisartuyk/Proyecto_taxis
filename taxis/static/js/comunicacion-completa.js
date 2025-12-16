@@ -652,28 +652,32 @@ function handleAudioMessage(data) {
             let senderId = 'unknown';
             
             if (data.type === 'central_audio') {
-                // Audio de la central
+                // Audio de la central (no debería llegar aquí, pero por si acaso)
                 sender = 'Central';
                 senderId = 'central';
-            } else if (data.driver_id) {
+            } else if (data.senderId || data.driver_id) {
                 // Audio de un conductor
-                sender = `Conductor #${data.driver_id}`;
-                senderId = data.driver_id;
+                senderId = data.senderId || data.driver_id;
+                sender = data.senderName || `Conductor #${senderId}`;
             }
             
-            console.log(`🎵 Audio de: ${sender}`);
+            console.log(`🎵 Reproduciendo audio de: ${sender}`);
             
-            // Agregar a la cola de audio
-            addAudioToQueue({
-                audioData: data.audio_data,
-                driverId: senderId,
-                sender: sender,
-                timestamp: new Date().toISOString(),
-                id: Date.now()
-            });
+            // Reproducir audio inmediatamente usando el mismo método del conductor
+            const audioBlob = base64ToBlob(data.audio_data, 'audio/webm');
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
             
-            // Actualizar log de audio
-            updateAudioLog(`Audio de ${sender}`);
+            audio.play()
+                .then(() => {
+                    console.log('✅ Audio reproducido correctamente');
+                    updateAudioLog(`🔊 Audio de ${sender}`);
+                })
+                .catch(err => {
+                    console.error('❌ Error reproduciendo audio:', err);
+                    updateAudioLog(`❌ Error reproduciendo audio de ${sender}`);
+                });
+            
         } else {
             console.warn('⚠️ Mensaje de audio sin datos');
         }
@@ -682,50 +686,60 @@ function handleAudioMessage(data) {
     }
 }
 
+// Función helper para convertir base64 a Blob
+function base64ToBlob(base64, mimeType) {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+}
+
 // Manejar mensaje de chat
 function handleChatMessage(data) {
-    console.log('💬 Mensaje de chat recibido de conductor:', data.driver_id);
+    console.log('💬 Mensaje de chat recibido:', data);
     
     try {
         const chatLog = document.getElementById('chat-log');
-        if (chatLog && data.message && data.driver_id) {
-            // Verificar si tenemos el nombre del conductor
-            const driverElement = document.querySelector(`[data-driver-id="${data.driver_id}"]`);
-            let driverName = `Conductor #${data.driver_id}`;
-            
-            if (driverElement) {
-                const nameElement = driverElement.querySelector('span');
-                if (nameElement) {
-                    driverName = nameElement.textContent;
-                }
-            }
-            
-            const timestamp = new Date().toLocaleTimeString();
-            const messageHtml = `
-                <div class="message incoming" style="margin-bottom: 10px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; max-width: 70%;">
-                    <strong>${driverName}:</strong> ${data.message}
-                    <div style="font-size: 0.8em; color: #6c757d;">${timestamp}</div>
-                </div>
-            `;
-            chatLog.insertAdjacentHTML('beforeend', messageHtml);
-            chatLog.scrollTop = chatLog.scrollHeight;
-            
-            // Si el chat está oculto, mostrar notificación visual
-            const chatWindow = document.querySelector('.chat-window');
-            if (chatWindow && chatWindow.classList.contains('hidden')) {
-                // Parpadeo del botón flotante de chat
-                const floatingChatBtn = document.getElementById('floating-chat-btn');
-                if (floatingChatBtn) {
-                    floatingChatBtn.style.animation = 'pulse 1s infinite';
-                    setTimeout(() => {
-                        floatingChatBtn.style.animation = '';
-                    }, 3000);
-                }
-                
-                // Notificación opcional
-                console.log(`💬 Nuevo mensaje de ${driverName}: ${data.message}`);
-            }
+        if (!chatLog) {
+            console.warn('⚠️ chat-log no encontrado');
+            return;
         }
+        
+        // Extraer datos del mensaje (compatible con ambos formatos)
+        const message = data.message;
+        const senderId = data.sender_id || data.driver_id;
+        const senderName = data.sender_name || `Conductor #${senderId}`;
+        
+        if (!message || !senderId) {
+            console.warn('⚠️ Mensaje incompleto:', data);
+            return;
+        }
+        
+        // Solo mostrar mensajes de conductores (no los míos)
+        if (senderId == 1) {
+            console.log('⏭️ Ignorando mensaje propio');
+            return;
+        }
+        
+        console.log(`✅ Mostrando mensaje de ${senderName}: ${message}`);
+        
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageHtml = `
+            <div class="message incoming" style="margin-bottom: 10px; padding: 8px 12px; background: #e9ecef; color: black; border-radius: 8px; max-width: 70%; margin-right: auto;">
+                <strong>${senderName}:</strong> ${message}
+                <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
+            </div>
+        `;
+        chatLog.insertAdjacentHTML('beforeend', messageHtml);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        
+        // Remover placeholder si existe
+        const placeholder = chatLog.querySelector('div[style*="text-align: center"]');
+        if (placeholder) placeholder.remove();
+        
     } catch (error) {
         console.error('❌ Error procesando mensaje de chat:', error);
     }

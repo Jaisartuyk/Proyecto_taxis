@@ -110,11 +110,12 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
             logger.info(f"📱 Notificación push enviada a {user.username}")
             
         except WebPushException as e:
-            logger.error(f"❌ Error al enviar notificación push: {e}")
-            
             # If subscription is expired or invalid, mark for deletion
             if e.response and e.response.status_code in [404, 410]:
+                logger.warning(f"⚠️ Suscripción expirada para {user.username} - será eliminada")
                 expired_subscriptions.append(subscription.id)
+            else:
+                logger.error(f"❌ Error al enviar notificación push: {e}")
         except Exception as e:
             logger.error(f"❌ Error inesperado al enviar notificación push: {e}")
             logger.error(f"Debug - payload: {payload}")

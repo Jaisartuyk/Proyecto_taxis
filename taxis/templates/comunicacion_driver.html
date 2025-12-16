@@ -350,20 +350,61 @@
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
+        // --- HELPER FUNCTIONS ---
+        function base64ToBlob(base64, mimeType) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray], { type: mimeType });
+        }
+
         // --- WEBSOCKETS SETUP ---
         function setupWebSockets() {
-            console.log('🔌 Iniciando WebSockets (Chat)...');
+            console.log('🔌 Iniciando WebSockets (Audio + Chat)...');
             console.log('👤 MY_ID:', MY_ID, 'ADMIN_ID:', ADMIN_ID);
 
             const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             const host = window.location.host;
 
-            // 1. Audio WebSocket: AHORA ES GLOBAL (ver base.html)
-            // Escuchar eventos del audio global para actualizar UI
-            window.addEventListener('global-audio-received', (e) => {
-                const data = e.detail;
-                document.getElementById('audioStatus').textContent = `🔊 Audio de ${data.senderId}`;
-            });
+            // 1. Audio WebSocket
+            console.log('🔊 Conectando Audio WebSocket...');
+            const audioWsUrl = `${wsProtocol}${host}/ws/audio/conductores/`;
+            console.log('🔊 URL del Audio WS:', audioWsUrl);
+            window.globalAudioSocket = new WebSocket(audioWsUrl);
+
+            window.globalAudioSocket.onopen = () => {
+                console.log('✅ Audio WS Conectado exitosamente');
+                updateStatus();
+            };
+
+            window.globalAudioSocket.onclose = () => {
+                console.log('🔊 Audio WS Desconectado');
+                updateStatus();
+                setTimeout(setupWebSockets, 5000);
+            };
+
+            window.globalAudioSocket.onerror = (error) => {
+                console.error('🔊 Audio WS Error:', error);
+            };
+
+            window.globalAudioSocket.onmessage = (e) => {
+                console.log('🔊 Audio recibido:', e.data);
+                const data = JSON.parse(e.data);
+                
+                if (data.type === 'central_audio' && data.audio_data) {
+                    console.log('🎵 Reproduciendo audio de la central');
+                    document.getElementById('audioStatus').textContent = '🔊 Audio de Central';
+                    
+                    // Reproducir audio
+                    const audioBlob = base64ToBlob(data.audio_data, 'audio/webm');
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play().catch(err => console.error('Error reproduciendo audio:', err));
+                }
+            };
 
             // 2. Chat WebSocket
             console.log('💬 Conectando Chat WebSocket...');

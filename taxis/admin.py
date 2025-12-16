@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
     AppUser, Taxi, TaxiRoute, Ride, RideDestination,
-    WhatsAppConversation, WhatsAppMessage, WhatsAppStats, WebPushSubscription
+    WhatsAppConversation, WhatsAppMessage, WhatsAppStats, WebPushSubscription,
+    FCMToken
 )
 
 
@@ -131,7 +132,7 @@ admin.site.register(RideDestination, RideDestinationAdmin)
 # FIREBASE CLOUD MESSAGING (FCM)
 # ============================================
 
-@admin.register(models.FCMToken)
+@admin.register(FCMToken)
 class FCMTokenAdmin(admin.ModelAdmin):
     list_display = ('user', 'platform', 'token_preview', 'is_active', 'created_at')
     list_filter = ('platform', 'is_active', 'created_at')

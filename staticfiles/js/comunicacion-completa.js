@@ -515,6 +515,8 @@ function handleWebSocketMessage(data) {
     
     switch (data.type) {
         case 'audio_message':
+        case 'central_audio':  // Audio de la central a conductores
+        case 'audio_broadcast':  // Audio broadcast desde el servidor
             handleAudioMessage(data);
             break;
         case 'chat_message':
@@ -533,21 +535,25 @@ function handleWebSocketMessage(data) {
 
 // Manejar mensaje de audio
 function handleAudioMessage(data) {
-    console.log('🎵 Mensaje de audio recibido');
+    console.log('🎵 Mensaje de audio recibido', data);
     
     try {
-        if (data.audio_data && data.driver_id) {
-            // Agregar a la cola de audio
-            addAudioToQueue({
-                audioData: data.audio_data,
-                driverId: data.driver_id,
-                timestamp: new Date().toISOString(),
-                id: Date.now()
-            });
-            
-            // Actualizar log de audio
-            updateAudioLog(`Audio de Conductor #${data.driver_id}`);
-        }
+        // Aceptar ambos formatos: audio_data (legacy) o audio (broadcast)
+        const audioData = data.audio_data || data.audio;
+        const senderId = data.driver_id || data.senderId || data.sender_id || 'unknown';
+
+        if (!audioData) return;
+
+        // Agregar a la cola de audio
+        addAudioToQueue({
+            audioData: audioData,
+            driverId: senderId,
+            timestamp: new Date().toISOString(),
+            id: Date.now()
+        });
+
+        // Actualizar log de audio
+        updateAudioLog(`Audio de ${senderId === 'central' ? 'Central' : `Conductor #${senderId}`}`);
     } catch (error) {
         console.error('❌ Error procesando audio:', error);
     }

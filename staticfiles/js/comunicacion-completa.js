@@ -328,6 +328,9 @@ function openDriverChat(driverId) {
                 </div>
             `;
         }
+
+        // Cargar historial de chat (admin)
+        loadChatHistory(driverId);
         
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');
@@ -384,6 +387,45 @@ function openDriverChat(driverId) {
     } catch (error) {
         console.error('❌ Error abriendo chat:', error);
         alert('Error abriendo el chat. Por favor, intenta de nuevo.');
+    }
+}
+
+// Cargar historial de chat con un conductor (admin)
+async function loadChatHistory(driverId) {
+    try {
+        console.log(`📜 Cargando historial de chat con conductor ${driverId}...`);
+        const response = await fetch(`/api/chat_history/${driverId}/`);
+        if (!response.ok) {
+            console.warn('⚠️ No se pudo cargar el historial', response.status);
+            return;
+        }
+
+        const payload = await response.json();
+        const messages = payload.messages || payload;
+        console.log(`✅ Historial cargado: ${messages.length || 0} mensajes`);
+
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) return;
+        chatLog.innerHTML = '';
+
+        messages.forEach(msg => {
+            const isSent = msg.is_sent === true;
+            const timestamp = typeof msg.timestamp === 'string'
+                ? msg.timestamp
+                : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const messageHtml = `
+                <div class="message ${isSent ? 'outgoing' : 'incoming'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
+                    <strong>${isSent ? 'Central' : (msg.sender_name || 'Conductor')}:</strong> ${msg.message}
+                    <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
+                </div>
+            `;
+            chatLog.insertAdjacentHTML('beforeend', messageHtml);
+        });
+
+        chatLog.scrollTop = chatLog.scrollHeight;
+    } catch (error) {
+        console.error('❌ Error cargando historial:', error);
     }
 }
 

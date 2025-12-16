@@ -1815,6 +1815,13 @@
 
 <!-- Google Maps API se carga desde comunicacion-debug.js para evitar duplicación -->
 
+<!-- DEBUGGING: Verificar archivo que se está cargando -->
+<script>
+console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-debug.js con timestamp:', '{{ timestamp }}');
+console.log('📍 URL completa:', "{% static 'js/comunicacion-debug.js' %}?v={{ timestamp }}");
+console.log('⏰ Timestamp actual:', new Date().toISOString());
+</script>
+
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN DEBUG -->
 <script src="{% static 'js/comunicacion-debug.js' %}?v={{ timestamp }}"></script>
 

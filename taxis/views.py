@@ -1640,11 +1640,16 @@ def chat_central(request):
 
     import time
     import random
+    import datetime
+    
+    # Timestamp súper único con múltiples componentes para forzar recarga
+    unique_timestamp = f"{int(time.time())}{random.randint(10000,99999)}{datetime.datetime.now().microsecond}"
+    
     context = {
         'drivers': drivers,
         'admin_user_id': admin_user.id if admin_user else None,
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,  # Para el mapa
-        'timestamp': f"{int(time.time())}{random.randint(1000,9999)}"  # Timestamp único para forzar recarga
+        'timestamp': unique_timestamp  # Timestamp súper único
     }
     return render(request, 'central_comunicacion.html', context)
 

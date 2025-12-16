@@ -361,8 +361,35 @@
             return new Blob([byteArray], { type: mimeType });
         }
 
+        // Banderas para evitar múltiples instancias
+        let isConnecting = false;
+        let reconnectTimeout = null;
+
         // --- WEBSOCKETS SETUP ---
         function setupWebSockets() {
+            // Evitar múltiples llamadas simultáneas
+            if (isConnecting) {
+                console.log('⚠️ Ya hay una conexión en progreso, ignorando...');
+                return;
+            }
+
+            // Limpiar timeout de reconexión anterior
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+
+            // Cerrar conexiones anteriores si existen
+            if (window.globalAudioSocket && window.globalAudioSocket.readyState !== WebSocket.CLOSED) {
+                console.log('🔌 Cerrando Audio WebSocket anterior...');
+                window.globalAudioSocket.close();
+            }
+            if (chatSocket && chatSocket.readyState !== WebSocket.CLOSED) {
+                console.log('🔌 Cerrando Chat WebSocket anterior...');
+                chatSocket.close();
+            }
+
+            isConnecting = true;
             console.log('🔌 Iniciando WebSockets (Audio + Chat)...');
             console.log('👤 MY_ID:', MY_ID, 'ADMIN_ID:', ADMIN_ID);
 
@@ -377,17 +404,27 @@
 
             window.globalAudioSocket.onopen = () => {
                 console.log('✅ Audio WS Conectado exitosamente');
+                isConnecting = false;
                 updateStatus();
             };
 
             window.globalAudioSocket.onclose = () => {
                 console.log('🔊 Audio WS Desconectado');
+                isConnecting = false;
                 updateStatus();
-                setTimeout(setupWebSockets, 5000);
+                
+                // Reconectar solo si no hay otro timeout pendiente
+                if (!reconnectTimeout) {
+                    reconnectTimeout = setTimeout(() => {
+                        reconnectTimeout = null;
+                        setupWebSockets();
+                    }, 5000);
+                }
             };
 
             window.globalAudioSocket.onerror = (error) => {
                 console.error('🔊 Audio WS Error:', error);
+                isConnecting = false;
             };
 
             window.globalAudioSocket.onmessage = (e) => {
@@ -420,7 +457,14 @@
             chatSocket.onclose = () => {
                 console.log('💬 Chat WS Desconectado');
                 updateStatus();
-                setTimeout(setupWebSockets, 5000);
+                
+                // Reconectar solo si no hay otro timeout pendiente
+                if (!reconnectTimeout) {
+                    reconnectTimeout = setTimeout(() => {
+                        reconnectTimeout = null;
+                        setupWebSockets();
+                    }, 5000);
+                }
             };
 
             chatSocket.onerror = (error) => {

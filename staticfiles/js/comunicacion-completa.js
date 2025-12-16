@@ -295,62 +295,91 @@ function openDriverChat(driverId) {
     console.log('💬 Abriendo chat con conductor:', driverId);
     
     try {
-        // Crear modal de chat
-        const modalHtml = `
-            <div class="modal fade" id="chatModal" tabindex="-1" role="dialog">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Chat con Conductor #${driverId}</h5>
-                            <button type="button" class="close" data-dismiss="modal">
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div id="chat-messages" style="height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px;">
-                                <p class="text-muted">Iniciando chat con conductor...</p>
-                            </div>
-                            <div class="input-group">
-                                <input type="text" id="chat-input" class="form-control" placeholder="Escribe tu mensaje...">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" onclick="sendChatMessage(${driverId})">Enviar</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        // Buscar el elemento del conductor en la lista
+        const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
+        let driverName = `Conductor #${driverId}`;
+        
+        if (driverElement) {
+            const nameElement = driverElement.querySelector('span');
+            if (nameElement) {
+                driverName = nameElement.textContent;
+            }
+        }
+        
+        // Actualizar el header del chat
+        const chatHeader = document.getElementById('chat-header');
+        if (chatHeader) {
+            chatHeader.innerHTML = `
+                <span>💬 Chat con: ${driverName}</span>
+                <div class="header-controls">
+                    <button class="header-toggle-btn" id="toggle-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa (F11)">🔳</button>
+                    <button class="header-toggle-btn minimize" onclick="toggleChat()" title="Ocultar chat (Ctrl+H)">✕</button>
                 </div>
-            </div>
-        `;
-        
-        // Remover modal anterior si existe
-        const existingModal = document.getElementById('chatModal');
-        if (existingModal) {
-            existingModal.remove();
+            `;
         }
         
-        // Agregar modal al DOM
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Mostrar modal usando Bootstrap
-        if (typeof $ !== 'undefined' && $.fn.modal) {
-            $('#chatModal').modal('show');
-        } else {
-            // Fallback sin jQuery
-            const modal = document.getElementById('chatModal');
-            modal.style.display = 'block';
-            modal.classList.add('show');
+        // Limpiar mensajes anteriores y mostrar el chat
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog) {
+            chatLog.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #7f8c8d; border-bottom: 1px solid #eee;">
+                    <strong>Iniciando chat con ${driverName}</strong><br>
+                    <small>Los mensajes aparecerán aquí...</small>
+                </div>
+            `;
         }
         
-        // Configurar Enter para enviar mensaje
-        const chatInput = document.getElementById('chat-input');
-        if (chatInput) {
-            chatInput.addEventListener('keypress', function(e) {
+        // Mostrar el área de entrada de mensaje
+        const inputContainer = document.getElementById('chat-input-container');
+        if (inputContainer) {
+            inputContainer.style.display = 'flex';
+        }
+        
+        // Ocultar el mensaje de "no chat seleccionado"
+        const noChatSelected = document.getElementById('no-chat-selected');
+        if (noChatSelected) {
+            noChatSelected.style.display = 'none';
+        }
+        
+        // Configurar el input para este conductor
+        const messageInput = document.getElementById('chat-message-input');
+        if (messageInput) {
+            messageInput.setAttribute('data-driver-id', driverId);
+            messageInput.placeholder = `Escribe un mensaje a ${driverName}...`;
+            messageInput.focus();
+        }
+        
+        // Configurar el botón de envío
+        const submitButton = document.getElementById('chat-message-submit');
+        if (submitButton) {
+            // Remover eventos anteriores
+            submitButton.replaceWith(submitButton.cloneNode(true));
+            const newSubmitButton = document.getElementById('chat-message-submit');
+            
+            newSubmitButton.addEventListener('click', function() {
+                sendMessageToDriver(driverId);
+            });
+        }
+        
+        // Configurar Enter en el input
+        if (messageInput) {
+            messageInput.replaceWith(messageInput.cloneNode(true));
+            const newInput = document.getElementById('chat-message-input');
+            
+            newInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    sendChatMessage(driverId);
+                    sendMessageToDriver(driverId);
                 }
             });
-            chatInput.focus();
         }
+        
+        // Hacer visible el chat window si está oculto
+        const chatWindow = document.querySelector('.chat-window');
+        if (chatWindow) {
+            chatWindow.classList.remove('hidden');
+        }
+        
+        console.log(`✅ Chat iniciado con ${driverName} (ID: ${driverId})`);
         
     } catch (error) {
         console.error('❌ Error abriendo chat:', error);
@@ -358,28 +387,29 @@ function openDriverChat(driverId) {
     }
 }
 
-// Función para enviar mensaje de chat
-function sendChatMessage(driverId) {
-    const input = document.getElementById('chat-input');
+// Función para enviar mensaje a conductor específico
+function sendMessageToDriver(driverId) {
+    const input = document.getElementById('chat-message-input');
     if (!input || !input.value.trim()) {
         return;
     }
     
     const message = input.value.trim();
-    console.log('📤 Enviando mensaje:', message);
+    console.log('📤 Enviando mensaje a conductor:', driverId, message);
     
     try {
-        // Agregar mensaje al chat
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
+        // Agregar mensaje al chat log inmediatamente
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog) {
+            const timestamp = new Date().toLocaleTimeString();
             const messageHtml = `
-                <div class="mb-2">
+                <div class="message outgoing" style="margin-bottom: 10px; padding: 8px 12px; background: #007bff; color: white; border-radius: 8px; max-width: 70%; margin-left: auto;">
                     <strong>Central:</strong> ${message}
-                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                    <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
                 </div>
             `;
-            chatMessages.insertAdjacentHTML('beforeend', messageHtml);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatLog.insertAdjacentHTML('beforeend', messageHtml);
+            chatLog.scrollTop = chatLog.scrollHeight;
         }
         
         // Enviar por WebSocket
@@ -388,8 +418,23 @@ function sendChatMessage(driverId) {
                 'type': 'chat_message',
                 'driver_id': driverId,
                 'message': message,
-                'sender': 'central'
+                'sender': 'central',
+                'timestamp': new Date().toISOString()
             }));
+            
+            console.log('✅ Mensaje enviado por WebSocket');
+        } else {
+            console.warn('⚠️ WebSocket no disponible - mensaje no enviado');
+            
+            // Mostrar error en el chat
+            if (chatLog) {
+                const errorHtml = `
+                    <div style="text-align: center; color: #e74c3c; padding: 10px; font-style: italic;">
+                        ⚠️ Error: Sin conexión. Mensaje no enviado.
+                    </div>
+                `;
+                chatLog.insertAdjacentHTML('beforeend', errorHtml);
+            }
         }
         
         // Limpiar input
@@ -397,7 +442,24 @@ function sendChatMessage(driverId) {
         
     } catch (error) {
         console.error('❌ Error enviando mensaje:', error);
+        
+        // Mostrar error en el chat
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog) {
+            const errorHtml = `
+                <div style="text-align: center; color: #e74c3c; padding: 10px; font-style: italic;">
+                    ❌ Error enviando mensaje: ${error.message}
+                </div>
+            `;
+            chatLog.insertAdjacentHTML('beforeend', errorHtml);
+        }
     }
+}
+
+// Función legacy para compatibilidad (mantener pero redirigir)
+function sendChatMessage(driverId) {
+    console.log('🔄 Redirigiendo sendChatMessage a sendMessageToDriver');
+    sendMessageToDriver(driverId);
 }
 
 // Configurar WebSocket
@@ -493,19 +555,47 @@ function handleAudioMessage(data) {
 
 // Manejar mensaje de chat
 function handleChatMessage(data) {
-    console.log('💬 Mensaje de chat recibido');
+    console.log('💬 Mensaje de chat recibido de conductor:', data.driver_id);
     
     try {
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages && data.message && data.driver_id) {
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog && data.message && data.driver_id) {
+            // Verificar si tenemos el nombre del conductor
+            const driverElement = document.querySelector(`[data-driver-id="${data.driver_id}"]`);
+            let driverName = `Conductor #${data.driver_id}`;
+            
+            if (driverElement) {
+                const nameElement = driverElement.querySelector('span');
+                if (nameElement) {
+                    driverName = nameElement.textContent;
+                }
+            }
+            
+            const timestamp = new Date().toLocaleTimeString();
             const messageHtml = `
-                <div class="mb-2">
-                    <strong>Conductor #${data.driver_id}:</strong> ${data.message}
-                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                <div class="message incoming" style="margin-bottom: 10px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; max-width: 70%;">
+                    <strong>${driverName}:</strong> ${data.message}
+                    <div style="font-size: 0.8em; color: #6c757d;">${timestamp}</div>
                 </div>
             `;
-            chatMessages.insertAdjacentHTML('beforeend', messageHtml);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatLog.insertAdjacentHTML('beforeend', messageHtml);
+            chatLog.scrollTop = chatLog.scrollHeight;
+            
+            // Si el chat está oculto, mostrar notificación visual
+            const chatWindow = document.querySelector('.chat-window');
+            if (chatWindow && chatWindow.classList.contains('hidden')) {
+                // Parpadeo del botón flotante de chat
+                const floatingChatBtn = document.getElementById('floating-chat-btn');
+                if (floatingChatBtn) {
+                    floatingChatBtn.style.animation = 'pulse 1s infinite';
+                    setTimeout(() => {
+                        floatingChatBtn.style.animation = '';
+                    }, 3000);
+                }
+                
+                // Notificación opcional
+                console.log(`💬 Nuevo mensaje de ${driverName}: ${data.message}`);
+            }
         }
     } catch (error) {
         console.error('❌ Error procesando mensaje de chat:', error);

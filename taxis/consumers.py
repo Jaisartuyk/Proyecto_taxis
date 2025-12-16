@@ -101,8 +101,29 @@ class AudioConsumer(AsyncWebsocketConsumer):
 
             print(f"Mensaje recibido en {self.room_group_name}: {data}")
 
+            # --- Mensajes de CHAT ---
+            if message_type == 'chat_message':
+                driver_id = data.get('driver_id')
+                message = data.get('message')
+                sender = data.get('sender', 'central')
+
+                if driver_id and message:
+                    # Enviar mensaje a todos en el grupo para que lo vean en tiempo real
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'send_chat_to_clients',
+                            'driver_id': driver_id,
+                            'message': message,
+                            'sender': sender,
+                            'timestamp': data.get('timestamp'),
+                            'sender_channel': self.channel_name,
+                        }
+                    )
+                    print(f"💬 Mensaje de chat de {sender} para conductor {driver_id}: {message}")
+
             # --- Mensajes desde los taxis ---
-            if message_type == 'location_update':
+            elif message_type == 'location_update':
                 sender_id = data.get('senderId')
                 latitude = data.get('latitude')
                 longitude = data.get('longitude')
@@ -138,8 +159,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     print(f"🎤 Audio de {sender_id} retransmitido (Taxi). Canal remitente: {self.channel_name}")
 
             # --- Mensajes desde la central ---
-            elif message_type == 'central_audio_message':
-                audio_data_base64 = data.get('audio')
+            elif message_type == 'central_audio_message' or message_type == 'central_audio':
+                audio_data_base64 = data.get('audio_data') or data.get('audio')
                 sender_id = data.get('senderId', 'Central')  # ID real del admin
                 sender_role = data.get('senderRole', 'Central')
 
@@ -169,6 +190,17 @@ class AudioConsumer(AsyncWebsocketConsumer):
             "latitude": event['latitude'],
             "longitude": event['longitude'],
         }))
+
+    async def send_chat_to_clients(self, event):
+        # Enviar mensaje de chat a todos los clientes
+        await self.send(text_data=json.dumps({
+            "type": "chat_message",
+            "driver_id": event['driver_id'],
+            "message": event['message'],
+            "sender": event['sender'],
+            "timestamp": event.get('timestamp'),
+        }))
+        print(f"💬 Mensaje de chat enviado a cliente: {event['message']}")
 
     async def send_audio_to_clients(self, event):
         # 🚫 NO enviar el audio de vuelta al remitente

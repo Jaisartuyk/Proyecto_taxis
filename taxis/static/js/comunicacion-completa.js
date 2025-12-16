@@ -21,6 +21,8 @@ let wsReconnectAttempts = 0;
 let wsMaxReconnectAttempts = 10;
 let wsReconnectInterval = 1000;
 let wsReconnectTimeout;
+let isConnecting = false;  // Bandera para evitar múltiples instancias
+let reconnectTimeout = null;  // Timeout de reconexión
 
 // Variables del sistema walkie-talkie
 let pendingAudioQueue = [];
@@ -543,6 +545,29 @@ function sendChatMessage(driverId) {
 
 // Configurar WebSocket - CÓDIGO FUNCIONAL DEL CONDUCTOR
 function setupWebSocket() {
+    // Evitar múltiples llamadas simultáneas
+    if (isConnecting) {
+        console.log('⚠️ Ya hay una conexión en progreso, ignorando...');
+        return;
+    }
+
+    // Limpiar timeout de reconexión anterior
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+
+    // Cerrar conexiones anteriores si existen
+    if (socket && socket.readyState !== WebSocket.CLOSED) {
+        console.log('🔌 Cerrando Audio WebSocket anterior...');
+        socket.close();
+    }
+    if (chatSocket && chatSocket.readyState !== WebSocket.CLOSED) {
+        console.log('🔌 Cerrando Chat WebSocket anterior...');
+        chatSocket.close();
+    }
+
+    isConnecting = true;
     console.log('🔌 Iniciando WebSockets (Audio + Chat)...');
     
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -556,24 +581,30 @@ function setupWebSocket() {
 
     socket.onopen = () => {
         console.log('✅ Audio WS Conectado exitosamente');
+        isConnecting = false;
         updateConnectionStatus();
         wsReconnectAttempts = 0;
     };
 
     socket.onclose = () => {
         console.log('🔊 Audio WS Desconectado');
+        isConnecting = false;
         updateConnectionStatus();
         
-        // Intentar reconexión automática
-        if (wsReconnectAttempts < wsMaxReconnectAttempts) {
+        // Reconectar solo si no hay otro timeout pendiente
+        if (wsReconnectAttempts < wsMaxReconnectAttempts && !reconnectTimeout) {
             wsReconnectAttempts++;
             console.log(`🔄 Reintentando conexión (${wsReconnectAttempts}/${wsMaxReconnectAttempts})...`);
-            setTimeout(setupWebSocket, wsReconnectInterval * wsReconnectAttempts);
+            reconnectTimeout = setTimeout(() => {
+                reconnectTimeout = null;
+                setupWebSocket();
+            }, wsReconnectInterval * wsReconnectAttempts);
         }
     };
 
     socket.onerror = (error) => {
         console.error('🔊 Audio WS Error:', error);
+        isConnecting = false;
     };
 
     socket.onmessage = (e) => {
@@ -600,7 +631,14 @@ function setupWebSocket() {
     chatSocket.onclose = () => {
         console.log('💬 Chat WS Desconectado');
         updateConnectionStatus();
-        setTimeout(setupWebSocket, 5000);
+        
+        // Reconectar solo si no hay otro timeout pendiente
+        if (!reconnectTimeout) {
+            reconnectTimeout = setTimeout(() => {
+                reconnectTimeout = null;
+                setupWebSocket();
+            }, 5000);
+        }
     };
 
     chatSocket.onerror = (error) => {

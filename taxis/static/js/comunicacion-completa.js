@@ -685,6 +685,7 @@ function handleWebSocketMessage(data) {
             handleDriverStatusUpdate(data);
             break;
         case 'location_update':
+        case 'driver_location_update':  // ✅ Agregar soporte para ubicaciones desde app móvil
             handleLocationUpdate(data);
             break;
         default:
@@ -749,6 +750,32 @@ function base64ToBlob(base64, mimeType) {
     }
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: mimeType });
+}
+
+// Manejar actualización de ubicación en tiempo real
+function handleLocationUpdate(data) {
+    console.log('📍 Actualización de ubicación recibida:', data);
+    
+    const driverId = data.driverId || data.driver_id;
+    const latitude = data.latitude;
+    const longitude = data.longitude;
+    
+    if (!driverId || !latitude || !longitude) {
+        console.warn('⚠️ Datos de ubicación incompletos:', data);
+        return;
+    }
+    
+    console.log(`📍 Ubicación actualizada: ${driverId} (${latitude}, ${longitude})`);
+    
+    // Actualizar marcador en el mapa
+    if (window.driverMarkers && window.driverMarkers[driverId]) {
+        const marker = window.driverMarkers[driverId];
+        const newPosition = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
+        marker.setPosition(newPosition);
+        console.log(`✅ Marcador de ${driverId} actualizado en el mapa`);
+    } else {
+        console.log(`ℹ️ Marcador de ${driverId} no encontrado, se creará en la próxima actualización`);
+    }
 }
 
 // Manejar mensaje de chat

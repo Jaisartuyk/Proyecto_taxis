@@ -251,3 +251,122 @@ def register_fcm_token_view(request):
             'success': False,
             'message': f'Error al registrar token: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 📊 Obtener estadísticas del conductor
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def driver_stats_view(request):
+    """
+    Obtener estadísticas del conductor autenticado
+    
+    Returns:
+    {
+        "total_rides": 12,
+        "total_earnings": "45.50",
+        "average_rating": 4.8,
+        "total_hours": 5
+    }
+    """
+    try:
+        user = request.user
+        
+        # TODO: Cuando tengas el modelo de Carreras, usar datos reales
+        # Por ahora, retornar datos de ejemplo
+        stats = {
+            'total_rides': 12,
+            'total_earnings': '45.50',
+            'average_rating': 4.8,
+            'total_hours': 5
+        }
+        
+        return Response(stats, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener estadísticas: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 📜 Obtener historial de carreras del conductor
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ride_history_view(request):
+    """
+    Obtener historial de carreras del conductor autenticado
+    
+    Returns:
+    [
+        {
+            "id": 1,
+            "origin": "Av. Principal 123",
+            "destination": "Centro Comercial",
+            "created_at": "2025-12-17T10:00:00Z",
+            "amount": "5.50",
+            "status": "completed",
+            "rating": 5
+        },
+        ...
+    ]
+    """
+    try:
+        user = request.user
+        
+        # TODO: Cuando tengas el modelo de Carreras, usar datos reales
+        # Por ahora, retornar datos de ejemplo
+        from datetime import datetime, timedelta
+        
+        rides = [
+            {
+                'id': 1,
+                'origin': 'Av. Principal 123',
+                'destination': 'Centro Comercial',
+                'created_at': (datetime.now() - timedelta(minutes=15)).isoformat(),
+                'amount': '5.50',
+                'status': 'completed',
+                'rating': 5,
+            },
+            {
+                'id': 2,
+                'origin': 'Plaza Mayor',
+                'destination': 'Aeropuerto Internacional',
+                'created_at': (datetime.now() - timedelta(hours=2)).isoformat(),
+                'amount': '15.00',
+                'status': 'completed',
+                'rating': 5,
+            },
+            {
+                'id': 3,
+                'origin': 'Hospital Central',
+                'destination': 'Universidad Nacional',
+                'created_at': (datetime.now() - timedelta(hours=4)).isoformat(),
+                'amount': '8.00',
+                'status': 'completed',
+                'rating': 4,
+            },
+            {
+                'id': 4,
+                'origin': 'Estación de Tren',
+                'destination': 'Hotel Marriott',
+                'created_at': (datetime.now() - timedelta(days=1)).isoformat(),
+                'amount': '12.00',
+                'status': 'completed',
+                'rating': 5,
+            },
+            {
+                'id': 5,
+                'origin': 'Parque Central',
+                'destination': 'Zona Industrial',
+                'created_at': (datetime.now() - timedelta(days=2)).isoformat(),
+                'amount': '10.00',
+                'status': 'cancelled',
+                'rating': 0,
+            },
+        ]
+        
+        return Response(rides, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener historial: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

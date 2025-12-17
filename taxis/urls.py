@@ -69,6 +69,10 @@ urlpatterns = [
     # FCM - Firebase Cloud Messaging
     path('api/fcm/register/', api_views.register_fcm_token_view, name='register_fcm_token'),
     
+    # API para App Móvil - Conductor
+    path('api/driver/stats/', api_views.driver_stats_view, name='driver_stats'),
+    path('api/rides/history/', api_views.ride_history_view, name='ride_history'),
+    
     # Panel de WhatsApp
     path('whatsapp/panel/', views.whatsapp_panel, name='whatsapp_panel'),
     path('whatsapp/conversation/<int:conversation_id>/', views.whatsapp_conversation_detail, name='whatsapp_conversation_detail'),

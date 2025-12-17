@@ -74,6 +74,7 @@ urlpatterns = [
     path('api/rides/history/', api_views.ride_history_view, name='ride_history'),
     path('api/rides/available/', api_views.available_rides_view, name='available_rides'),
     path('api/rides/active/', api_views.driver_active_rides_view, name='driver_active_rides'),
+    path('api/rides/<int:ride_id>/', api_views.ride_detail_api_view, name='ride_detail_api'),
     path('api/rides/<int:ride_id>/accept/', api_views.accept_ride_view, name='accept_ride'),
     path('api/rides/<int:ride_id>/start/', api_views.start_ride_view, name='start_ride'),
     path('api/rides/<int:ride_id>/complete/', api_views.complete_ride_view, name='complete_ride'),

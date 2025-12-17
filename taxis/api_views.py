@@ -823,3 +823,108 @@ def cancel_ride_view(request, ride_id):
         return Response({
             'error': f'Error al cancelar carrera: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 📋 Obtener detalles de una carrera específica
+@api_view(['GET'])
+def ride_detail_api_view(request, ride_id):
+    """
+    Obtener detalles completos de una carrera
+    
+    Permite ver si:
+    - Es el conductor asignado
+    - Es el cliente dueño
+    - Es un conductor y la carrera está disponible (requested)
+    - Es admin
+    
+    Returns:
+    {
+        "id": 1,
+        "customer": "Juan Pérez",
+        "customer_phone": "+51987654321",
+        "driver": "Carlos López" (si ya tiene),
+        "origin": "Av. Principal 123",
+        "origin_latitude": -12.0464,
+        "origin_longitude": -77.0428,
+        "destinations": [...],
+        "price": "15.00",
+        "status": "requested",
+        "created_at": "2025-12-17T10:00:00Z",
+        "start_time": null,
+        "end_time": null
+    }
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Obtener la carrera
+        try:
+            ride = Ride.objects.get(id=ride_id)
+        except Ride.DoesNotExist:
+            return Response({
+                'error': 'Carrera no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar permisos
+        is_involved = (
+            user.is_superuser or 
+            user == ride.driver or 
+            user == ride.customer
+        )
+        
+        # Permitir ver si es un conductor y la carrera está solicitada
+        if not is_involved and user.role == 'driver' and ride.status == 'requested':
+            pass  # Permitir acceso
+        elif not is_involved:
+            return Response({
+                'error': 'No tiene permiso para ver esta carrera'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Preparar destinos
+        destinations = []
+        for dest in ride.destinations.all().order_by('order'):
+            destinations.append({
+                'address': dest.destination,
+                'latitude': dest.destination_latitude,
+                'longitude': dest.destination_longitude,
+                'order': dest.order
+            })
+        
+        # Preparar respuesta
+        ride_data = {
+            'id': ride.id,
+            'customer': ride.customer.username,
+            'customer_phone': getattr(ride.customer, 'phone', 'N/A'),
+            'driver': ride.driver.username if ride.driver else None,
+            'origin': ride.origin,
+            'origin_latitude': ride.origin_latitude,
+            'origin_longitude': ride.origin_longitude,
+            'destinations': destinations,
+            'price': str(ride.price) if ride.price else '0.00',
+            'status': ride.status,
+            'created_at': ride.created_at.isoformat(),
+            'start_time': ride.start_time.isoformat() if ride.start_time else None,
+            'end_time': ride.end_time.isoformat() if ride.end_time else None,
+        }
+        
+        return Response(ride_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener detalles: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

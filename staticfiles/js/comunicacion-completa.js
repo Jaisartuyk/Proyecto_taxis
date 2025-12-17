@@ -7,6 +7,7 @@ console.log('📅 Timestamp de carga:', new Date().toISOString());
 // Variables globales
 let map;
 let socket;
+let chatSocket = null;  // WebSocket dedicado para chat
 let driverMarkers = {};
 let audioContext;
 let audioQueue = [];
@@ -454,19 +455,15 @@ function sendMessageToDriver(driverId) {
             chatLog.scrollTop = chatLog.scrollHeight;
         }
         
-        // Enviar por WebSocket
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-                'type': 'chat_message',
-                'driver_id': driverId,
+        // Enviar por Chat WebSocket (/ws/chat/) - es el que los conductores escuchan
+        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
                 'message': message,
-                'sender': 'central',
-                'timestamp': new Date().toISOString()
+                'recipient_id': parseInt(driverId, 10),
             }));
-            
-            console.log('✅ Mensaje enviado por WebSocket');
+            console.log('✅ Mensaje enviado por Chat WebSocket');
         } else {
-            console.warn('⚠️ WebSocket no disponible - mensaje no enviado');
+            console.warn('⚠️ Chat WebSocket no disponible - mensaje no enviado');
             
             // Mostrar error en el chat
             if (chatLog) {
@@ -545,9 +542,55 @@ function setupWebSocket() {
         socket.onerror = function(error) {
             console.warn('⚠️ Error WebSocket:', error);
         };
+
+        // También conectar el WebSocket de Chat
+        setupChatWebSocket();
         
     } catch (error) {
         console.error('❌ Error configurando WebSocket:', error);
+    }
+}
+
+// WebSocket de Chat (Django Channels ChatConsumer)
+function setupChatWebSocket() {
+    try {
+        const chatWsUrl = wsProtocol + window.location.host + '/ws/chat/';
+        console.log('💬 Conectando Chat WebSocket:', chatWsUrl);
+
+        chatSocket = new WebSocket(chatWsUrl);
+
+        chatSocket.onopen = function() {
+            console.log('✅ Chat WebSocket conectado');
+        };
+
+        chatSocket.onclose = function(e) {
+            console.warn('💬 Chat WebSocket cerrado:', e.code);
+            // reconectar suave
+            setTimeout(() => {
+                if (!chatSocket || chatSocket.readyState === WebSocket.CLOSED) {
+                    setupChatWebSocket();
+                }
+            }, 3000);
+        };
+
+        chatSocket.onerror = function(err) {
+            console.warn('💬 Chat WebSocket error:', err);
+        };
+
+        chatSocket.onmessage = function(e) {
+            try {
+                const data = JSON.parse(e.data);
+                // ChatConsumer envía {message, sender_id, sender_name, ...} (sin type)
+                if (data && data.message) {
+                    handleChatMessage(data);
+                }
+            } catch (err) {
+                console.warn('⚠️ Error parseando mensaje de chat:', err);
+            }
+        };
+
+    } catch (error) {
+        console.error('❌ Error configurando Chat WebSocket:', error);
     }
 }
 

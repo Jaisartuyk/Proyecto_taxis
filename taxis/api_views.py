@@ -457,6 +457,7 @@ def available_rides_view(request):
                 'origin_longitude': ride.origin_longitude,
                 'destinations': destinations,
                 'price': str(ride.price) if ride.price else '0.00',
+                'status': ride.status,  # ✅ Agregar status
                 'created_at': ride.created_at.isoformat(),
                 'distance': '-- km'  # TODO: Calcular distancia real
             })

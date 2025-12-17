@@ -759,20 +759,26 @@ function handleLocationUpdate(data) {
     const driverId = data.driverId || data.driver_id;
     const latitude = data.latitude;
     const longitude = data.longitude;
+    const source = data.source || 'web';  // 'mobile' o 'web'
+    const timestamp = data.timestamp || '';
     
     if (!driverId || !latitude || !longitude) {
         console.warn('⚠️ Datos de ubicación incompletos:', data);
         return;
     }
     
-    console.log(`📍 Ubicación actualizada: ${driverId} (${latitude}, ${longitude})`);
+    const sourceIcon = source === 'mobile' ? '📱' : '🌐';
+    console.log(`${sourceIcon} Ubicación actualizada: ${driverId} (${source}) - ${latitude}, ${longitude}`);
+    if (timestamp) {
+        console.log(`⏰ Timestamp: ${timestamp}`);
+    }
     
     // Actualizar marcador en el mapa
     if (window.driverMarkers && window.driverMarkers[driverId]) {
         const marker = window.driverMarkers[driverId];
         const newPosition = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
         marker.setPosition(newPosition);
-        console.log(`✅ Marcador de ${driverId} actualizado en el mapa`);
+        console.log(`✅ Marcador de ${driverId} actualizado en el mapa (origen: ${source})`);
     } else {
         console.log(`ℹ️ Marcador de ${driverId} no encontrado, se creará en la próxima actualización`);
     }

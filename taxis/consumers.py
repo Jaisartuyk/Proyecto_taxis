@@ -84,6 +84,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 sender_id = data.get('senderId') or data.get('driver_id')
                 latitude = data.get('latitude')
                 longitude = data.get('longitude')
+                source = data.get('source', 'web')  # 'mobile' o 'web'
+                timestamp = data.get('timestamp', '')
 
                 if sender_id and latitude is not None and longitude is not None:
                     await self.channel_layer.group_send(
@@ -93,9 +95,12 @@ class AudioConsumer(AsyncWebsocketConsumer):
                             'driverId': sender_id,
                             'latitude': latitude,
                             'longitude': longitude,
+                            'source': source,  # 📱 Agregar origen
+                            'timestamp': timestamp,
                         }
                     )
-                    print(f"📍 Ubicación de {sender_id} retransmitida a la central: {latitude}, {longitude}")
+                    source_icon = '📱' if source == 'mobile' else '🌐'
+                    print(f"{source_icon} Ubicación de {sender_id} ({source}) retransmitida: {latitude}, {longitude}")
 
             elif message_type == 'audio_message':
                 # Usar driver_id de la conexión si está disponible, sino usar el del mensaje

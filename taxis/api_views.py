@@ -286,13 +286,32 @@ def driver_stats_view(request):
                 'error': 'Token inválido'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        # TODO: Cuando tengas el modelo de Carreras, usar datos reales
-        # Por ahora, retornar datos de ejemplo
+        # Obtener estadísticas reales del conductor
+        from django.db.models import Sum, Avg, Count
+        from django.utils import timezone
+        
+        total_rides = Ride.objects.filter(driver=user).count()
+        completed_rides = Ride.objects.filter(driver=user, status='completed').count()
+        
+        # Ganancias totales
+        total_earnings = Ride.objects.filter(
+            driver=user,
+            status='completed',
+            price__isnull=False
+        ).aggregate(total=Sum('price'))['total'] or 0
+        
+        # Rating promedio (si existe el campo)
+        average_rating = 4.5  # Placeholder, ajustar si tienes campo de rating
+        
+        # Horas totales (estimado)
+        total_hours = completed_rides * 0.5  # Estimado: 30 min por carrera
+        
         stats = {
-            'total_rides': 12,
-            'total_earnings': '45.50',
-            'average_rating': 4.8,
-            'total_hours': 5
+            'total_rides': total_rides,
+            'completed_rides': completed_rides,
+            'total_earnings': str(total_earnings),
+            'average_rating': average_rating,
+            'total_hours': int(total_hours)
         }
         
         return Response(stats, status=status.HTTP_200_OK)
@@ -341,59 +360,30 @@ def ride_history_view(request):
                 'error': 'Token inválido'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        # TODO: Cuando tengas el modelo de Carreras, usar datos reales
-        # Por ahora, retornar datos de ejemplo
-        from datetime import datetime, timedelta
+        # Obtener carreras completadas y canceladas del conductor
+        rides = Ride.objects.filter(
+            driver=user,
+            status__in=['completed', 'cancelled']
+        ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
         
-        rides = [
-            {
-                'id': 1,
-                'origin': 'Av. Principal 123',
-                'destination': 'Centro Comercial',
-                'created_at': (datetime.now() - timedelta(minutes=15)).isoformat(),
-                'amount': '5.50',
-                'status': 'completed',
-                'rating': 5,
-            },
-            {
-                'id': 2,
-                'origin': 'Plaza Mayor',
-                'destination': 'Aeropuerto Internacional',
-                'created_at': (datetime.now() - timedelta(hours=2)).isoformat(),
-                'amount': '15.00',
-                'status': 'completed',
-                'rating': 5,
-            },
-            {
-                'id': 3,
-                'origin': 'Hospital Central',
-                'destination': 'Universidad Nacional',
-                'created_at': (datetime.now() - timedelta(hours=4)).isoformat(),
-                'amount': '8.00',
-                'status': 'completed',
-                'rating': 4,
-            },
-            {
-                'id': 4,
-                'origin': 'Estación de Tren',
-                'destination': 'Hotel Marriott',
-                'created_at': (datetime.now() - timedelta(days=1)).isoformat(),
-                'amount': '12.00',
-                'status': 'completed',
-                'rating': 5,
-            },
-            {
-                'id': 5,
-                'origin': 'Parque Central',
-                'destination': 'Zona Industrial',
-                'created_at': (datetime.now() - timedelta(days=2)).isoformat(),
-                'amount': '10.00',
-                'status': 'cancelled',
-                'rating': 0,
-            },
-        ]
+        rides_data = []
+        for ride in rides:
+            # Obtener primer destino
+            first_destination = ride.destinations.first()
+            destination_text = first_destination.destination if first_destination else 'Sin destino'
+            
+            rides_data.append({
+                'id': ride.id,
+                'origin': ride.origin,
+                'destination': destination_text,
+                'created_at': ride.created_at.isoformat(),
+                'amount': str(ride.price) if ride.price else '0.00',
+                'price': str(ride.price) if ride.price else '0.00',
+                'status': ride.status,
+                'rating': ride.rating if hasattr(ride, 'rating') and ride.rating else 0,
+            })
         
-        return Response(rides, status=status.HTTP_200_OK)
+        return Response(rides_data, status=status.HTTP_200_OK)
         
     except Exception as e:
         return Response({

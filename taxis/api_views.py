@@ -255,7 +255,6 @@ def register_fcm_token_view(request):
 
 # 📊 Obtener estadísticas del conductor
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def driver_stats_view(request):
     """
     Obtener estadísticas del conductor autenticado
@@ -269,7 +268,22 @@ def driver_stats_view(request):
     }
     """
     try:
-        user = request.user
+        # Validar token manualmente
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
         
         # TODO: Cuando tengas el modelo de Carreras, usar datos reales
         # Por ahora, retornar datos de ejemplo
@@ -290,7 +304,6 @@ def driver_stats_view(request):
 
 # 📜 Obtener historial de carreras del conductor
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def ride_history_view(request):
     """
     Obtener historial de carreras del conductor autenticado
@@ -310,7 +323,22 @@ def ride_history_view(request):
     ]
     """
     try:
-        user = request.user
+        # Validar token manualmente
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
         
         # TODO: Cuando tengas el modelo de Carreras, usar datos reales
         # Por ahora, retornar datos de ejemplo

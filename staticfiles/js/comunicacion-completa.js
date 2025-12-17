@@ -1,13 +1,14 @@
 // =====================================================
 // SISTEMA WALKIE-TALKIE COMPLETO - VERSIÓN CORREGIDA
+// ✅ CON SOPORTE PARA UBICACIONES EN TIEMPO REAL
 // =====================================================
-console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN COMPLETA CORREGIDA');
+console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN CON UBICACIONES EN TIEMPO REAL');
 console.log('📅 Timestamp de carga:', new Date().toISOString());
 
 // Variables globales
 let map;
 let socket;
-let chatSocket = null;  // WebSocket dedicado para chat
+let chatSocket;  // WebSocket para chat
 let driverMarkers = {};
 let audioContext;
 let audioQueue = [];
@@ -21,6 +22,8 @@ let wsReconnectAttempts = 0;
 let wsMaxReconnectAttempts = 10;
 let wsReconnectInterval = 1000;
 let wsReconnectTimeout;
+let isConnecting = false;  // Bandera para evitar múltiples instancias
+let reconnectTimeout = null;  // Timeout de reconexión
 
 // Variables del sistema walkie-talkie
 let pendingAudioQueue = [];
@@ -125,6 +128,41 @@ function updateStatus(message, className = 'connected') {
         }
     } catch (error) {
         console.warn('⚠️ Error en updateStatus (ignorado):', error.message);
+    }
+}
+
+// Actualizar estado de conexión basado en ambos WebSockets
+function updateConnectionStatus() {
+    const audioConnected = socket && socket.readyState === WebSocket.OPEN;
+    const chatConnected = chatSocket && chatSocket.readyState === WebSocket.OPEN;
+    
+    console.log('🔍 Estado WebSockets - Audio:', audioConnected, 'Chat:', chatConnected);
+    
+    // Actualizar indicador visual en el header
+    const statusIndicator = document.querySelector('.status-indicator span');
+    const statusDot = document.querySelector('.status-dot');
+    
+    if (audioConnected && chatConnected) {
+        if (statusIndicator) statusIndicator.textContent = 'Conectado a Central';
+        if (statusDot) {
+            statusDot.style.background = '#4CAF50';
+            statusDot.style.animation = 'pulse 2s infinite';
+        }
+        console.log('✅ Sistema completamente conectado');
+    } else if (audioConnected || chatConnected) {
+        if (statusIndicator) statusIndicator.textContent = 'Conexión Parcial';
+        if (statusDot) {
+            statusDot.style.background = '#FFC107';
+            statusDot.style.animation = 'pulse 1s infinite';
+        }
+        console.log('⚠️ Conexión parcial');
+    } else {
+        if (statusIndicator) statusIndicator.textContent = 'Desconectado';
+        if (statusDot) {
+            statusDot.style.background = '#F44336';
+            statusDot.style.animation = 'none';
+        }
+        console.log('❌ Sistema desconectado');
     }
 }
 
@@ -329,9 +367,6 @@ function openDriverChat(driverId) {
                 </div>
             `;
         }
-
-        // Cargar historial de chat (admin)
-        loadChatHistory(driverId);
         
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');
@@ -385,46 +420,57 @@ function openDriverChat(driverId) {
         
         console.log(`✅ Chat iniciado con ${driverName} (ID: ${driverId})`);
         
+        // Cargar historial de chat
+        loadChatHistory(driverId);
+        
     } catch (error) {
         console.error('❌ Error abriendo chat:', error);
         alert('Error abriendo el chat. Por favor, intenta de nuevo.');
     }
 }
 
-// Cargar historial de chat con un conductor (admin)
+// Cargar historial de chat con un conductor
 async function loadChatHistory(driverId) {
     try {
         console.log(`📜 Cargando historial de chat con conductor ${driverId}...`);
+        
+        // Backend expone /api/chat_history/<id>/ (con guion bajo)
         const response = await fetch(`/api/chat_history/${driverId}/`);
         if (!response.ok) {
-            console.warn('⚠️ No se pudo cargar el historial', response.status);
+            console.warn('⚠️ No se pudo cargar el historial');
             return;
         }
-
+        
         const payload = await response.json();
-        const messages = payload.messages || payload;
+        const messages = payload.messages || payload; // compat: algunos endpoints devuelven array directo
         console.log(`✅ Historial cargado: ${messages.length || 0} mensajes`);
-
+        
         const chatLog = document.getElementById('chat-log');
         if (!chatLog) return;
+        
+        // Limpiar chat log
         chatLog.innerHTML = '';
-
+        
+        // Agregar mensajes al chat
         messages.forEach(msg => {
-            const isSent = msg.is_sent === true;
+            // El endpoint devuelve timestamp como "HH:MM" (string). Si viene Date, también lo soportamos.
+            const isSent = msg.is_sent === true || msg.sender_id == 1; // fallback si backend no envía is_sent
             const timestamp = typeof msg.timestamp === 'string'
                 ? msg.timestamp
                 : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+            
             const messageHtml = `
                 <div class="message ${isSent ? 'outgoing' : 'incoming'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
-                    <strong>${isSent ? 'Central' : (msg.sender_name || 'Conductor')}:</strong> ${msg.message}
+                    <strong>${isSent ? 'Central' : msg.sender_name}:</strong> ${msg.message}
                     <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
                 </div>
             `;
             chatLog.insertAdjacentHTML('beforeend', messageHtml);
         });
-
+        
+        // Scroll al final
         chatLog.scrollTop = chatLog.scrollHeight;
+        
     } catch (error) {
         console.error('❌ Error cargando historial:', error);
     }
@@ -455,12 +501,14 @@ function sendMessageToDriver(driverId) {
             chatLog.scrollTop = chatLog.scrollHeight;
         }
         
-        // Enviar por Chat WebSocket (/ws/chat/) - es el que los conductores escuchan
+        // Enviar por WebSocket de Chat
         if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
             chatSocket.send(JSON.stringify({
                 'message': message,
-                'recipient_id': parseInt(driverId, 10),
+                'recipient_id': driverId,
+                'sender_id': 'admin'
             }));
+            
             console.log('✅ Mensaje enviado por Chat WebSocket');
         } else {
             console.warn('⚠️ Chat WebSocket no disponible - mensaje no enviado');
@@ -501,97 +549,124 @@ function sendChatMessage(driverId) {
     sendMessageToDriver(driverId);
 }
 
-// Configurar WebSocket
+// Configurar WebSocket - CÓDIGO FUNCIONAL DEL CONDUCTOR
 function setupWebSocket() {
-    try {
-        const wsPath = wsProtocol + window.location.host + '/ws/audio/conductores/';
-        console.log('🔗 Conectando WebSocket:', wsPath);
-        
-        socket = new WebSocket(wsPath);
-        
-        socket.onopen = function(e) {
-            console.log('✅ WebSocket conectado');
-            updateStatus('Conectado al sistema', 'connected');
-            wsReconnectAttempts = 0;
-        };
-        
-        socket.onmessage = function(e) {
-            console.log('📨 Mensaje WebSocket recibido');
-            try {
-                const data = JSON.parse(e.data);
-                handleWebSocketMessage(data);
-            } catch (error) {
-                console.warn('⚠️ Error procesando mensaje:', error);
-            }
-        };
-        
-        socket.onclose = function(e) {
-            console.log('❌ WebSocket desconectado, código:', e.code);
-            updateStatus('Desconectado', 'disconnected');
-            
-            // Intentar reconexión automática
-            if (wsReconnectAttempts < wsMaxReconnectAttempts) {
-                wsReconnectAttempts++;
-                console.log(`🔄 Reintentando conexión (${wsReconnectAttempts}/${wsMaxReconnectAttempts})...`);
-                wsReconnectTimeout = setTimeout(() => {
-                    setupWebSocket();
-                }, wsReconnectInterval * wsReconnectAttempts);
-            }
-        };
-        
-        socket.onerror = function(error) {
-            console.warn('⚠️ Error WebSocket:', error);
-        };
-
-        // También conectar el WebSocket de Chat
-        setupChatWebSocket();
-        
-    } catch (error) {
-        console.error('❌ Error configurando WebSocket:', error);
+    // Evitar múltiples llamadas simultáneas
+    if (isConnecting) {
+        console.log('⚠️ Ya hay una conexión en progreso, ignorando...');
+        return;
     }
-}
 
-// WebSocket de Chat (Django Channels ChatConsumer)
-function setupChatWebSocket() {
-    try {
-        const chatWsUrl = wsProtocol + window.location.host + '/ws/chat/';
-        console.log('💬 Conectando Chat WebSocket:', chatWsUrl);
-
-        chatSocket = new WebSocket(chatWsUrl);
-
-        chatSocket.onopen = function() {
-            console.log('✅ Chat WebSocket conectado');
-        };
-
-        chatSocket.onclose = function(e) {
-            console.warn('💬 Chat WebSocket cerrado:', e.code);
-            // reconectar suave
-            setTimeout(() => {
-                if (!chatSocket || chatSocket.readyState === WebSocket.CLOSED) {
-                    setupChatWebSocket();
-                }
-            }, 3000);
-        };
-
-        chatSocket.onerror = function(err) {
-            console.warn('💬 Chat WebSocket error:', err);
-        };
-
-        chatSocket.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-                // ChatConsumer envía {message, sender_id, sender_name, ...} (sin type)
-                if (data && data.message) {
-                    handleChatMessage(data);
-                }
-            } catch (err) {
-                console.warn('⚠️ Error parseando mensaje de chat:', err);
-            }
-        };
-
-    } catch (error) {
-        console.error('❌ Error configurando Chat WebSocket:', error);
+    // Limpiar timeout de reconexión anterior
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
     }
+
+    // Cerrar conexiones anteriores si existen
+    if (socket && socket.readyState !== WebSocket.CLOSED) {
+        console.log('🔌 Cerrando Audio WebSocket anterior...');
+        socket.close();
+    }
+    if (chatSocket && chatSocket.readyState !== WebSocket.CLOSED) {
+        console.log('🔌 Cerrando Chat WebSocket anterior...');
+        chatSocket.close();
+    }
+
+    isConnecting = true;
+    console.log('🔌 Iniciando WebSockets (Audio + Chat)...');
+    
+    const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    const host = window.location.host;
+
+    // 1. Audio WebSocket
+    console.log('🔊 Conectando Audio WebSocket...');
+    const audioWsUrl = `${wsProtocol}${host}/ws/audio/conductores/`;
+    console.log('🔊 URL del Audio WS:', audioWsUrl);
+    socket = new WebSocket(audioWsUrl);
+
+    socket.onopen = () => {
+        console.log('✅ Audio WS Conectado exitosamente');
+        isConnecting = false;
+        updateConnectionStatus();
+        wsReconnectAttempts = 0;
+    };
+
+    socket.onclose = () => {
+        console.log('🔊 Audio WS Desconectado');
+        isConnecting = false;
+        updateConnectionStatus();
+        
+        // Reconectar solo si no hay otro timeout pendiente
+        if (wsReconnectAttempts < wsMaxReconnectAttempts && !reconnectTimeout) {
+            wsReconnectAttempts++;
+            console.log(`🔄 Reintentando conexión (${wsReconnectAttempts}/${wsMaxReconnectAttempts})...`);
+            reconnectTimeout = setTimeout(() => {
+                reconnectTimeout = null;
+                setupWebSocket();
+            }, wsReconnectInterval * wsReconnectAttempts);
+        }
+    };
+
+    socket.onerror = (error) => {
+        console.error('🔊 Audio WS Error:', error);
+        isConnecting = false;
+    };
+
+    socket.onmessage = (e) => {
+        console.log('🔊 Audio WebSocket recibió mensaje RAW:', e.data.substring(0, 200));
+        try {
+            const data = JSON.parse(e.data);
+            console.log('🔊 Audio WebSocket mensaje parseado:', {
+                type: data.type,
+                hasAudioData: !!data.audio_data,
+                hasAudio: !!data.audio,
+                senderId: data.senderId || data.sender_id,
+                senderRole: data.senderRole || data.sender_role
+            });
+            handleWebSocketMessage(data);
+        } catch (error) {
+            console.error('⚠️ Error procesando mensaje de audio:', error);
+        }
+    };
+
+    // 2. Chat WebSocket
+    console.log('💬 Conectando Chat WebSocket...');
+    const chatWsUrl = `${wsProtocol}${host}/ws/chat/`;
+    console.log('💬 URL del Chat WS:', chatWsUrl);
+    chatSocket = new WebSocket(chatWsUrl);
+
+    chatSocket.onopen = () => {
+        console.log('✅ Chat WS Conectado exitosamente');
+        updateConnectionStatus();
+    };
+
+    chatSocket.onclose = () => {
+        console.log('💬 Chat WS Desconectado');
+        updateConnectionStatus();
+        
+        // Reconectar solo si no hay otro timeout pendiente
+        if (!reconnectTimeout) {
+            reconnectTimeout = setTimeout(() => {
+                reconnectTimeout = null;
+                setupWebSocket();
+            }, 5000);
+        }
+    };
+
+    chatSocket.onerror = (error) => {
+        console.error('💬 Chat WS Error:', error);
+    };
+
+    chatSocket.onmessage = (e) => {
+        console.log('💬 Mensaje recibido:', e.data);
+        try {
+            const data = JSON.parse(e.data);
+            handleChatMessage(data);
+        } catch (error) {
+            console.warn('⚠️ Error procesando mensaje de chat:', error);
+        }
+    };
 }
 
 // Manejar mensajes WebSocket
@@ -611,6 +686,7 @@ function handleWebSocketMessage(data) {
             handleDriverStatusUpdate(data);
             break;
         case 'location_update':
+        case 'driver_location_update':  // ✅ Agregar soporte para ubicaciones desde app móvil
             handleLocationUpdate(data);
             break;
         default:
@@ -623,71 +699,135 @@ function handleAudioMessage(data) {
     console.log('🎵 Mensaje de audio recibido', data);
     
     try {
-        // Aceptar ambos formatos: audio_data (legacy) o audio (broadcast)
+        // Obtener audio_data de diferentes formatos posibles
         const audioData = data.audio_data || data.audio;
-        const senderId = data.driver_id || data.senderId || data.sender_id || 'unknown';
-
-        if (!audioData) return;
-
-        // Agregar a la cola de audio
-        addAudioToQueue({
-            audioData: audioData,
-            driverId: senderId,
-            timestamp: new Date().toISOString(),
-            id: Date.now()
-        });
-
-        // Actualizar log de audio
-        updateAudioLog(`Audio de ${senderId === 'central' ? 'Central' : `Conductor #${senderId}`}`);
+        
+        if (audioData) {
+            // Determinar el origen del audio
+            let sender = 'Desconocido';
+            let senderId = 'unknown';
+            
+            if (data.type === 'central_audio') {
+                // Audio de la central (no debería llegar aquí, pero por si acaso)
+                sender = 'Central';
+                senderId = 'central';
+            } else if (data.senderId || data.sender_id || data.driver_id) {
+                // Audio de un conductor
+                senderId = data.senderId || data.sender_id || data.driver_id;
+                sender = data.senderName || data.sender_name || `Conductor #${senderId}`;
+            }
+            
+            console.log(`🎵 Reproduciendo audio de: ${sender} (${audioData.length} bytes)`);
+            
+            // Reproducir audio inmediatamente usando el mismo método del conductor
+            const audioBlob = base64ToBlob(audioData, 'audio/webm');
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            
+            audio.play()
+                .then(() => {
+                    console.log('✅ Audio reproducido correctamente');
+                    updateAudioLog(`🔊 Audio de ${sender}`);
+                })
+                .catch(err => {
+                    console.error('❌ Error reproduciendo audio:', err);
+                    updateAudioLog(`❌ Error reproduciendo audio de ${sender}`);
+                });
+            
+        } else {
+            console.warn('⚠️ Mensaje de audio sin datos. Keys disponibles:', Object.keys(data));
+        }
     } catch (error) {
         console.error('❌ Error procesando audio:', error);
     }
 }
 
+// Función helper para convertir base64 a Blob
+function base64ToBlob(base64, mimeType) {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+}
+
+// Manejar actualización de ubicación en tiempo real
+function handleLocationUpdate(data) {
+    console.log('📍 Actualización de ubicación recibida:', data);
+    
+    const driverId = data.driverId || data.driver_id;
+    const latitude = data.latitude;
+    const longitude = data.longitude;
+    const source = data.source || 'web';  // 'mobile' o 'web'
+    const timestamp = data.timestamp || '';
+    
+    if (!driverId || !latitude || !longitude) {
+        console.warn('⚠️ Datos de ubicación incompletos:', data);
+        return;
+    }
+    
+    const sourceIcon = source === 'mobile' ? '📱' : '🌐';
+    console.log(`${sourceIcon} Ubicación actualizada: ${driverId} (${source}) - ${latitude}, ${longitude}`);
+    if (timestamp) {
+        console.log(`⏰ Timestamp: ${timestamp}`);
+    }
+    
+    // Actualizar marcador en el mapa
+    if (window.driverMarkers && window.driverMarkers[driverId]) {
+        const marker = window.driverMarkers[driverId];
+        const newPosition = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
+        marker.setPosition(newPosition);
+        console.log(`✅ Marcador de ${driverId} actualizado en el mapa (origen: ${source})`);
+    } else {
+        console.log(`ℹ️ Marcador de ${driverId} no encontrado, se creará en la próxima actualización`);
+    }
+}
+
 // Manejar mensaje de chat
 function handleChatMessage(data) {
-    console.log('💬 Mensaje de chat recibido de conductor:', data.driver_id);
+    console.log('💬 Mensaje de chat recibido:', data);
     
     try {
         const chatLog = document.getElementById('chat-log');
-        if (chatLog && data.message && data.driver_id) {
-            // Verificar si tenemos el nombre del conductor
-            const driverElement = document.querySelector(`[data-driver-id="${data.driver_id}"]`);
-            let driverName = `Conductor #${data.driver_id}`;
-            
-            if (driverElement) {
-                const nameElement = driverElement.querySelector('span');
-                if (nameElement) {
-                    driverName = nameElement.textContent;
-                }
-            }
-            
-            const timestamp = new Date().toLocaleTimeString();
-            const messageHtml = `
-                <div class="message incoming" style="margin-bottom: 10px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; max-width: 70%;">
-                    <strong>${driverName}:</strong> ${data.message}
-                    <div style="font-size: 0.8em; color: #6c757d;">${timestamp}</div>
-                </div>
-            `;
-            chatLog.insertAdjacentHTML('beforeend', messageHtml);
-            chatLog.scrollTop = chatLog.scrollHeight;
-            
-            // Si el chat está oculto, mostrar notificación visual
-            const chatWindow = document.querySelector('.chat-window');
-            if (chatWindow && chatWindow.classList.contains('hidden')) {
-                // Parpadeo del botón flotante de chat
-                const floatingChatBtn = document.getElementById('floating-chat-btn');
-                if (floatingChatBtn) {
-                    floatingChatBtn.style.animation = 'pulse 1s infinite';
-                    setTimeout(() => {
-                        floatingChatBtn.style.animation = '';
-                    }, 3000);
-                }
-                
-                // Notificación opcional
-                console.log(`💬 Nuevo mensaje de ${driverName}: ${data.message}`);
-            }
+        if (!chatLog) {
+            console.warn('⚠️ chat-log no encontrado');
+            return;
         }
+        
+        // Extraer datos del mensaje (compatible con ambos formatos)
+        const message = data.message;
+        const senderId = data.sender_id || data.driver_id;
+        const senderName = data.sender_name || `Conductor #${senderId}`;
+        
+        if (!message || !senderId) {
+            console.warn('⚠️ Mensaje incompleto:', data);
+            return;
+        }
+        
+        // Solo mostrar mensajes de conductores (no los míos)
+        if (senderId == 1) {
+            console.log('⏭️ Ignorando mensaje propio');
+            return;
+        }
+        
+        console.log(`✅ Mostrando mensaje de ${senderName}: ${message}`);
+        
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageHtml = `
+            <div class="message incoming" style="margin-bottom: 10px; padding: 8px 12px; background: #e9ecef; color: black; border-radius: 8px; max-width: 70%; margin-right: auto;">
+                <strong>${senderName}:</strong> ${message}
+                <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
+            </div>
+        `;
+        chatLog.insertAdjacentHTML('beforeend', messageHtml);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        
+        // Remover placeholder si existe
+        const placeholder = chatLog.querySelector('div[style*="text-align: center"]');
+        if (placeholder) placeholder.remove();
+        
     } catch (error) {
         console.error('❌ Error procesando mensaje de chat:', error);
     }
@@ -901,25 +1041,37 @@ async function playNextAudio() {
 // Actualizar log de audio
 function updateAudioLog(message) {
     try {
-        const audioLog = safeGetElement('audio-log');
-        if (audioLog) {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = `[${timestamp}] ${message}\n`;
-            
-            if (audioLog.tagName === 'TEXTAREA') {
-                audioLog.value = logEntry + audioLog.value;
-            } else {
-                audioLog.textContent = logEntry + audioLog.textContent;
-            }
-            
-            // Mantener solo las últimas 50 líneas
-            const lines = audioLog.textContent.split('\n');
-            if (lines.length > 50) {
-                audioLog.textContent = lines.slice(0, 50).join('\n');
-            }
+        const audioLog = document.getElementById('audio-log');
+        if (!audioLog) {
+            console.warn('⚠️ audio-log no encontrado');
+            return;
         }
+        
+        // Eliminar placeholder si existe
+        const placeholder = audioLog.querySelector('.audio-log-empty');
+        if (placeholder) {
+            placeholder.remove();
+        }
+        
+        // Crear entrada de log
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const logEntry = document.createElement('div');
+        logEntry.className = 'audio-log-entry';
+        logEntry.style.cssText = 'padding: 8px 12px; margin-bottom: 5px; background: rgba(255,255,255,0.05); border-left: 3px solid #4CAF50; border-radius: 4px; font-size: 0.9rem;';
+        logEntry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> ${message}`;
+        
+        // Agregar al inicio del log
+        audioLog.insertBefore(logEntry, audioLog.firstChild);
+        
+        // Mantener solo las últimas 50 entradas
+        const entries = audioLog.querySelectorAll('.audio-log-entry');
+        if (entries.length > 50) {
+            entries[entries.length - 1].remove();
+        }
+        
+        console.log('✅ Log de audio actualizado:', message);
     } catch (error) {
-        console.warn('⚠️ Error actualizando log:', error);
+        console.error('❌ Error actualizando log:', error);
     }
 }
 
@@ -1019,9 +1171,6 @@ function openDriverChatFromList(driverId, driverName) {
                 </div>
             `;
         }
-
-        // Cargar historial de chat (admin)
-        loadChatHistory(driverId);
         
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');

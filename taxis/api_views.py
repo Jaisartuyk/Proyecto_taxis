@@ -452,11 +452,11 @@ def available_rides_view(request):
         rides_data = []
         for ride in rides:
             destinations = []
-            for dest in ride.destinations.all():
+            for dest in ride.destinations.all().order_by('order'):
                 destinations.append({
-                    'address': dest.address,
-                    'latitude': dest.latitude,
-                    'longitude': dest.longitude
+                    'address': dest.destination,  # Corregido: destination en lugar de address
+                    'latitude': dest.destination_latitude,  # Corregido
+                    'longitude': dest.destination_longitude  # Corregido
                 })
             
             rides_data.append({

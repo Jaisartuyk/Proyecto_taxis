@@ -774,14 +774,76 @@ function handleLocationUpdate(data) {
         console.log(`⏰ Timestamp: ${timestamp}`);
     }
     
-    // Actualizar marcador en el mapa
+    if (!map) {
+        console.warn('⚠️ Mapa no inicializado aún');
+        return;
+    }
+    
+    // Buscar marcador existente (por ID numérico o por username)
+    let marker = null;
+    let markerKey = null;
+    
+    // Primero intentar por ID directo
     if (window.driverMarkers && window.driverMarkers[driverId]) {
-        const marker = window.driverMarkers[driverId];
-        const newPosition = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
+        marker = window.driverMarkers[driverId];
+        markerKey = driverId;
+    } else {
+        // Si no existe, buscar por username en los marcadores existentes
+        // (Flutter puede enviar username en vez de ID)
+        for (const [key, existingMarker] of Object.entries(window.driverMarkers || {})) {
+            // Verificar si el marcador tiene info que coincida con el driverId
+            if (existingMarker && existingMarker.title && existingMarker.title.toLowerCase().includes(driverId.toLowerCase())) {
+                marker = existingMarker;
+                markerKey = key;
+                console.log(`🔍 Marcador encontrado por username: ${key}`);
+                break;
+            }
+        }
+    }
+    
+    const newPosition = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
+    
+    if (marker) {
+        // Actualizar marcador existente
         marker.setPosition(newPosition);
         console.log(`✅ Marcador de ${driverId} actualizado en el mapa (origen: ${source})`);
     } else {
-        console.log(`ℹ️ Marcador de ${driverId} no encontrado, se creará en la próxima actualización`);
+        // Crear nuevo marcador si no existe
+        console.log(`🆕 Creando nuevo marcador para ${driverId} (origen: ${source})`);
+        const newMarker = new google.maps.Marker({
+            position: newPosition,
+            map: map,
+            title: `Conductor: ${driverId}`,
+            icon: {
+                url: '/static/imagenes/logo1.png',
+                scaledSize: new google.maps.Size(24, 24),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(12, 12)
+            }
+        });
+        
+        // Guardar el marcador (usar driverId como key)
+        if (!window.driverMarkers) {
+            window.driverMarkers = {};
+        }
+        window.driverMarkers[driverId] = newMarker;
+        
+        // InfoWindow básico
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div>
+                    <h5>${driverId}</h5>
+                    <p><strong>Origen:</strong> ${source === 'mobile' ? '📱 App Móvil' : '🌐 Web'}</p>
+                    <p><strong>Ubicación:</strong> ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</p>
+                </div>
+            `
+        });
+        
+        newMarker.addListener('click', () => {
+            infoWindow.open(map, newMarker);
+        });
+        
+        console.log(`✅ Marcador creado y agregado al mapa para ${driverId}`);
     }
 }
 

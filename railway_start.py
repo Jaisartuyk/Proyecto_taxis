@@ -28,12 +28,13 @@ if __name__ == "__main__":
     print("🚀 INICIANDO DESPLIEGUE EN RAILWAY")
     print("="*60 + "\n")
     
-    # 1. Collectstatic (con verbosidad para debug)
+    # 1. Collectstatic (con --clear para asegurar archivos actualizados)
     run_command(
-        # IMPORTANTE (Railway): verbosity alta puede disparar el rate limit de logs (500 logs/s)
-        # porque collectstatic imprime miles de líneas (Copying/Deleting/Post-processed).
-        "python manage.py collectstatic --noinput --verbosity 0",
-        "Recopilando archivos estáticos (collectstatic, silencioso)"
+        # IMPORTANTE (Railway): verbosity 0 para evitar rate limit de logs (500 logs/s)
+        # --clear: limpia staticfiles antes de copiar (asegura archivos actualizados)
+        # --noinput: no pide confirmación
+        "python manage.py collectstatic --noinput --clear --verbosity 0",
+        "Recopilando archivos estáticos (collectstatic con --clear, silencioso)"
     )
     
     # 2. Migraciones

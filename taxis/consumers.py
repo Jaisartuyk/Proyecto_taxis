@@ -163,6 +163,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
             "driverId": event['driverId'],
             "latitude": event['latitude'],
             "longitude": event['longitude'],
+            "source": event.get('source', 'web'),  # 📱 Origen: mobile o web
+            "timestamp": event.get('timestamp', ''),  # ⏰ Timestamp
         }))
 
     async def send_chat_to_clients(self, event):

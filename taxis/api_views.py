@@ -6,8 +6,9 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
-from .models import Taxi
-  # Asegúrate que el import sea correcto
+from django.db.models import Q, Avg, Count, Sum
+from .models import Taxi, Ride, RideDestination
+from datetime import datetime, timedelta
 
 User = get_user_model()
 
@@ -397,4 +398,428 @@ def ride_history_view(request):
     except Exception as e:
         return Response({
             'error': f'Error al obtener historial: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 🚕 Obtener carreras disponibles para el conductor
+@api_view(['GET'])
+def available_rides_view(request):
+    """
+    Obtener carreras disponibles (status='requested') para que el conductor acepte
+    
+    Returns:
+    [
+        {
+            "id": 1,
+            "customer": "Juan Pérez",
+            "origin": "Av. Principal 123",
+            "origin_latitude": -12.0464,
+            "origin_longitude": -77.0428,
+            "destinations": [
+                {"address": "Centro Comercial", "latitude": -12.0500, "longitude": -77.0450}
+            ],
+            "price": "15.00",
+            "created_at": "2025-12-17T10:00:00Z",
+            "distance": "5.2 km"
+        },
+        ...
+    ]
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Obtener carreras solicitadas (sin conductor asignado)
+        rides = Ride.objects.filter(
+            status='requested',
+            driver__isnull=True
+        ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
+        
+        rides_data = []
+        for ride in rides:
+            destinations = []
+            for dest in ride.destinations.all():
+                destinations.append({
+                    'address': dest.address,
+                    'latitude': dest.latitude,
+                    'longitude': dest.longitude
+                })
+            
+            rides_data.append({
+                'id': ride.id,
+                'customer': ride.customer.username,
+                'origin': ride.origin,
+                'origin_latitude': ride.origin_latitude,
+                'origin_longitude': ride.origin_longitude,
+                'destinations': destinations,
+                'price': str(ride.price) if ride.price else '0.00',
+                'created_at': ride.created_at.isoformat(),
+                'distance': '-- km'  # TODO: Calcular distancia real
+            })
+        
+        return Response(rides_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener carreras disponibles: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 🚗 Obtener carreras en curso del conductor
+@api_view(['GET'])
+def driver_active_rides_view(request):
+    """
+    Obtener carreras activas del conductor (accepted, in_progress)
+    
+    Returns:
+    [
+        {
+            "id": 1,
+            "customer": "Juan Pérez",
+            "customer_phone": "+51987654321",
+            "origin": "Av. Principal 123",
+            "origin_latitude": -12.0464,
+            "origin_longitude": -77.0428,
+            "destinations": [...],
+            "price": "15.00",
+            "status": "in_progress",
+            "start_time": "2025-12-17T10:00:00Z",
+            "estimated_duration": "15 min"
+        }
+    ]
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Obtener carreras activas del conductor
+        rides = Ride.objects.filter(
+            driver=user,
+            status__in=['accepted', 'in_progress']
+        ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
+        
+        rides_data = []
+        for ride in rides:
+            destinations = []
+            for dest in ride.destinations.all():
+                destinations.append({
+                    'address': dest.address,
+                    'latitude': dest.latitude,
+                    'longitude': dest.longitude
+                })
+            
+            rides_data.append({
+                'id': ride.id,
+                'customer': ride.customer.username,
+                'customer_phone': getattr(ride.customer, 'phone', 'N/A'),
+                'origin': ride.origin,
+                'origin_latitude': ride.origin_latitude,
+                'origin_longitude': ride.origin_longitude,
+                'destinations': destinations,
+                'price': str(ride.price) if ride.price else '0.00',
+                'status': ride.status,
+                'start_time': ride.start_time.isoformat() if ride.start_time else None,
+                'estimated_duration': '-- min'  # TODO: Calcular duración estimada
+            })
+        
+        return Response(rides_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener carreras activas: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ✅ Aceptar una carrera
+@api_view(['POST'])
+def accept_ride_view(request, ride_id):
+    """
+    Aceptar una carrera disponible
+    
+    Body: {} (vacío)
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Carrera aceptada exitosamente",
+        "ride": {...}
+    }
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Verificar que el usuario sea conductor
+        if user.role != 'driver':
+            return Response({
+                'error': 'Solo conductores pueden aceptar carreras'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener la carrera
+        try:
+            ride = Ride.objects.get(id=ride_id, status='requested', driver__isnull=True)
+        except Ride.DoesNotExist:
+            return Response({
+                'error': 'Carrera no disponible'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Asignar conductor y cambiar estado
+        ride.driver = user
+        ride.status = 'accepted'
+        ride.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Carrera aceptada exitosamente',
+            'ride': {
+                'id': ride.id,
+                'customer': ride.customer.username,
+                'origin': ride.origin,
+                'price': str(ride.price) if ride.price else '0.00',
+                'status': ride.status
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al aceptar carrera: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 🏁 Iniciar carrera
+@api_view(['POST'])
+def start_ride_view(request, ride_id):
+    """
+    Iniciar una carrera aceptada
+    
+    Body: {} (vacío)
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Carrera iniciada",
+        "ride": {...}
+    }
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Obtener la carrera
+        try:
+            ride = Ride.objects.get(id=ride_id, driver=user, status='accepted')
+        except Ride.DoesNotExist:
+            return Response({
+                'error': 'Carrera no encontrada o no puede ser iniciada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Iniciar carrera
+        ride.status = 'in_progress'
+        ride.start_time = timezone.now()
+        ride.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Carrera iniciada',
+            'ride': {
+                'id': ride.id,
+                'status': ride.status,
+                'start_time': ride.start_time.isoformat()
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al iniciar carrera: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ✅ Completar carrera
+@api_view(['POST'])
+def complete_ride_view(request, ride_id):
+    """
+    Completar una carrera en progreso
+    
+    Body: {} (vacío)
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Carrera completada",
+        "ride": {...}
+    }
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Obtener la carrera
+        try:
+            ride = Ride.objects.get(id=ride_id, driver=user, status='in_progress')
+        except Ride.DoesNotExist:
+            return Response({
+                'error': 'Carrera no encontrada o no puede ser completada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Completar carrera
+        ride.status = 'completed'
+        ride.end_time = timezone.now()
+        ride.save()
+        
+        # Calcular duración
+        duration = None
+        if ride.start_time and ride.end_time:
+            duration_seconds = (ride.end_time - ride.start_time).total_seconds()
+            duration = f"{int(duration_seconds // 60)} min"
+        
+        return Response({
+            'success': True,
+            'message': 'Carrera completada',
+            'ride': {
+                'id': ride.id,
+                'status': ride.status,
+                'end_time': ride.end_time.isoformat(),
+                'duration': duration,
+                'price': str(ride.price) if ride.price else '0.00'
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al completar carrera: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ❌ Cancelar carrera
+@api_view(['POST'])
+def cancel_ride_view(request, ride_id):
+    """
+    Cancelar una carrera
+    
+    Body:
+    {
+        "reason": "Motivo de cancelación"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Carrera cancelada"
+    }
+    """
+    try:
+        # Validar token
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Token '):
+            return Response({
+                'error': 'Token de autenticación no proporcionado'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token_key = auth_header.replace('Token ', '')
+        
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return Response({
+                'error': 'Token inválido'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Obtener la carrera
+        try:
+            ride = Ride.objects.get(id=ride_id, driver=user)
+        except Ride.DoesNotExist:
+            return Response({
+                'error': 'Carrera no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar que la carrera no esté completada
+        if ride.status == 'completed':
+            return Response({
+                'error': 'No se puede cancelar una carrera completada'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cancelar carrera
+        ride.status = 'canceled'
+        ride.driver = None  # Liberar conductor
+        ride.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Carrera cancelada'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al cancelar carrera: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

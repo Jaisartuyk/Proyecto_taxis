@@ -1,7 +1,8 @@
 // =====================================================
 // SISTEMA WALKIE-TALKIE COMPLETO - VERSIÓN CORREGIDA
+// ✅ CON SOPORTE PARA UBICACIONES EN TIEMPO REAL
 // =====================================================
-console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN COMPLETA CORREGIDA');
+console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN CON UBICACIONES EN TIEMPO REAL');
 console.log('📅 Timestamp de carga:', new Date().toISOString());
 
 // Variables globales

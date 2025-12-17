@@ -976,6 +976,9 @@ function openDriverChatFromList(driverId, driverName) {
                 </div>
             `;
         }
+
+        // Cargar historial de chat (admin)
+        loadChatHistory(driverId);
         
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');

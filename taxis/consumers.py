@@ -102,9 +102,10 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     source_icon = '📱' if source == 'mobile' else '🌐'
                     print(f"{source_icon} Ubicación de {sender_id} ({source}) retransmitida: {latitude}, {longitude}")
 
-            elif message_type == 'audio_message':
+            elif message_type == 'audio_message' or message_type == 'driver_audio_message':
+                # Soportar formatos: audio_message (web) y driver_audio_message (Flutter)
                 # Usar driver_id de la conexión si está disponible, sino usar el del mensaje
-                sender_id = getattr(self, 'driver_id', None) or data.get('senderId')
+                sender_id = getattr(self, 'driver_id', None) or data.get('senderId') or data.get('driverId')
                 audio_data_base64 = data.get('audio')
 
                 if sender_id and audio_data_base64:

@@ -520,11 +520,11 @@ def driver_active_rides_view(request):
         rides_data = []
         for ride in rides:
             destinations = []
-            for dest in ride.destinations.all():
+            for dest in ride.destinations.all().order_by('order'):
                 destinations.append({
-                    'address': dest.address,
-                    'latitude': dest.latitude,
-                    'longitude': dest.longitude
+                    'address': dest.destination,  # ✅ Corregir: destination en lugar de address
+                    'latitude': dest.destination_latitude,  # ✅ Corregir: destination_latitude
+                    'longitude': dest.destination_longitude  # ✅ Corregir: destination_longitude
                 })
             
             rides_data.append({

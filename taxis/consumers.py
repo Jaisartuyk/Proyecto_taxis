@@ -79,9 +79,9 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     print(f"💬 Mensaje de chat de {sender} para conductor {driver_id}: {message}")
 
             # --- Mensajes desde los taxis ---
-            elif message_type == 'location_update' or message_type == 'location':
-                # Soportar ambos formatos: location_update (web) y location (app móvil)
-                sender_id = data.get('senderId') or data.get('driver_id')
+            elif message_type == 'location_update' or message_type == 'location' or message_type == 'driver_location_update':
+                # Soportar formatos: location_update (web), location (app móvil), driver_location_update (Flutter)
+                sender_id = data.get('senderId') or data.get('driver_id') or data.get('driverId')
                 latitude = data.get('latitude')
                 longitude = data.get('longitude')
                 source = data.get('source', 'web')  # 'mobile' o 'web'

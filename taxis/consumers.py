@@ -79,8 +79,9 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     print(f"💬 Mensaje de chat de {sender} para conductor {driver_id}: {message}")
 
             # --- Mensajes desde los taxis ---
-            elif message_type == 'location_update':
-                sender_id = data.get('senderId')
+            elif message_type == 'location_update' or message_type == 'location':
+                # Soportar ambos formatos: location_update (web) y location (app móvil)
+                sender_id = data.get('senderId') or data.get('driver_id')
                 latitude = data.get('latitude')
                 longitude = data.get('longitude')
 
@@ -94,7 +95,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
                             'longitude': longitude,
                         }
                     )
-                    print(f"📍 Ubicación de {sender_id} retransmitida.")
+                    print(f"📍 Ubicación de {sender_id} retransmitida a la central: {latitude}, {longitude}")
 
             elif message_type == 'audio_message':
                 # Usar driver_id de la conexión si está disponible, sino usar el del mensaje

@@ -429,22 +429,58 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def send_chat_push_notification(self, sender_id, recipient_id, message):
         """Enviar notificación push cuando llega un mensaje de chat"""
-        from .models import AppUser
+        from .models import AppUser, FCMToken
         from .push_notifications import send_chat_message_notification
         from .fcm_notifications import send_chat_message_notification_fcm
+        import firebase_admin
+        
         try:
             sender = AppUser.objects.get(id=sender_id)
             recipient = AppUser.objects.get(id=recipient_id)
             
+            print(f"📤 Intentando enviar notificaciones a {recipient.username}")
+            
             # Enviar notificación Web Push (para navegadores)
-            web_sent = send_chat_message_notification(sender, recipient, message)
+            try:
+                web_sent = send_chat_message_notification(sender, recipient, message)
+                print(f"  🌐 Web Push: {web_sent} notificaciones enviadas")
+            except Exception as e:
+                print(f"  ❌ Error en Web Push: {e}")
+                web_sent = 0
             
-            # Enviar notificación FCM (para Android/iOS)
-            fcm_sent = send_chat_message_notification_fcm(sender, recipient, message)
-            
-            if web_sent or fcm_sent:
-                print(f"📱 Notificación push enviada: {sender.username} -> {recipient.username} (Web: {web_sent}, FCM: {fcm_sent})")
+            # Verificar si Firebase está inicializado
+            if not firebase_admin._apps:
+                print(f"  ⚠️ Firebase NO está inicializado - notificaciones FCM deshabilitadas")
+                print(f"  💡 Configura FIREBASE_CREDENTIALS_JSON en Railway")
+                fcm_sent = {'success': False, 'sent': 0}
             else:
-                print(f"⚠️ No se pudo enviar notificación a {recipient.username} (sin tokens)")
+                # Verificar si el usuario tiene tokens FCM
+                token_count = FCMToken.objects.filter(user=recipient, is_active=True).count()
+                print(f"  📱 Tokens FCM activos para {recipient.username}: {token_count}")
+                
+                if token_count == 0:
+                    print(f"  ⚠️ Usuario {recipient.username} no tiene tokens FCM registrados")
+                    print(f"  💡 El usuario debe abrir la app Android y registrar su token")
+                    fcm_sent = {'success': False, 'sent': 0}
+                else:
+                    # Enviar notificación FCM (para Android/iOS)
+                    try:
+                        fcm_sent = send_chat_message_notification_fcm(sender, recipient, message)
+                        print(f"  📱 FCM: {fcm_sent.get('sent', 0)} notificaciones enviadas")
+                        if fcm_sent.get('errors'):
+                            print(f"  ⚠️ Errores FCM: {fcm_sent['errors']}")
+                    except Exception as e:
+                        print(f"  ❌ Error en FCM: {e}")
+                        fcm_sent = {'success': False, 'sent': 0}
+            
+            total_sent = web_sent + fcm_sent.get('sent', 0)
+            if total_sent > 0:
+                print(f"✅ Total notificaciones enviadas: {total_sent}")
+            else:
+                print(f"⚠️ No se enviaron notificaciones a {recipient.username}")
+                
         except Exception as e:
-            print(f"❌ Error al enviar notificación push: {e}")
+            print(f"❌ Error general al enviar notificación push: {e}")
+            import traceback
+            traceback.print_exc()
+

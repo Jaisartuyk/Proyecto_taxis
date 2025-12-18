@@ -1695,7 +1695,7 @@ def get_chat_history(request, user_id):
     
     data = [{
         'sender_id': msg.sender.id,
-        'sender_name': msg.sender.get_full_name(),
+        'sender_name': msg.sender.get_full_name() or msg.sender.username,
         'message': msg.message,
         'timestamp': msg.timestamp.strftime('%H:%M'),
         'is_sent': msg.sender.id == request.user.id

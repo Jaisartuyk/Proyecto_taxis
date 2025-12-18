@@ -756,6 +756,7 @@ function base64ToBlob(base64, mimeType) {
 // Manejar actualización de ubicación en tiempo real
 function handleLocationUpdate(data) {
     console.log('📍 Actualización de ubicación recibida:', data);
+    console.log('🔍 DEBUG: handleLocationUpdate - Versión con creación automática de marcadores');
     
     const driverId = data.driverId || data.driver_id;
     const latitude = data.latitude;
@@ -803,6 +804,10 @@ function handleLocationUpdate(data) {
     
     const newPosition = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
     
+    console.log(`🔍 DEBUG: marker encontrado?`, marker ? 'SÍ' : 'NO');
+    console.log(`🔍 DEBUG: window.driverMarkers existe?`, !!window.driverMarkers);
+    console.log(`🔍 DEBUG: driverId buscado:`, driverId);
+    
     if (marker) {
         // Actualizar marcador existente
         marker.setPosition(newPosition);
@@ -810,6 +815,7 @@ function handleLocationUpdate(data) {
     } else {
         // Crear nuevo marcador si no existe
         console.log(`🆕 Creando nuevo marcador para ${driverId} (origen: ${source})`);
+        console.log(`🔍 DEBUG: Entrando a bloque de creación de marcador`);
         const newMarker = new google.maps.Marker({
             position: newPosition,
             map: map,

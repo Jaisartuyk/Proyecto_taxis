@@ -1831,6 +1831,6 @@
 <!-- FIN SCRIPT INLINE COMENTADO -->
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA (archivo presente en staticfiles) -->
-<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}&cb={{ cache_bust }}"></script>
 
 {% endblock %}

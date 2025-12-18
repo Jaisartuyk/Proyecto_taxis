@@ -1893,3 +1893,135 @@ def debug_notifications(request):
     Página de debug para notificaciones push
     """
     return render(request, 'debug_notifications.html')
+@api_view(['POST'])
+def register_fcm_token_view(request):
+    """
+    API endpoint para registrar tokens FCM desde Android/iOS
+    
+    POST /api/register-fcm-token/
+    Body: {
+        "token": "fcm_token_string",
+        "platform": "android",  // opcional: android, ios, web
+        "device_id": "device_unique_id"  // opcional
+    }
+    """
+    from .fcm_notifications import register_fcm_token
+    from .models import AppUser
+    
+    try:
+        # Obtener datos del request
+        token = request.data.get('token')
+        platform = request.data.get('platform', 'android')
+        device_id = request.data.get('device_id')
+        user_id = request.data.get('user_id')  # ID del usuario
+        
+        if not token:
+            return JsonResponse({
+                'success': False,
+                'error': 'Token FCM requerido'
+            }, status=400)
+        
+        # Obtener usuario
+        if user_id:
+            try:
+                user = AppUser.objects.get(id=user_id)
+            except AppUser.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Usuario con ID {user_id} no encontrado'
+                }, status=404)
+        elif request.user.is_authenticated:
+            user = request.user
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Usuario no autenticado y no se proporcionó user_id'
+            }, status=401)
+        
+        # Registrar token
+        fcm_token = register_fcm_token(user, token, platform, device_id)
+        
+        print(f"✅ Token FCM registrado para {user.username}: {token[:20]}...")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Token FCM registrado correctamente',
+            'user_id': user.id,
+            'username': user.username,
+            'platform': platform
+        })
+        
+    except Exception as e:
+        print(f"❌ Error registrando token FCM: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+@api_view(['POST'])
+def register_fcm_token_view(request):
+    """
+    API endpoint para registrar tokens FCM desde Android/iOS
+    
+    POST /api/register-fcm-token/
+    Body: {
+        "token": "fcm_token_string",
+        "platform": "android",  // opcional: android, ios, web
+        "device_id": "device_unique_id"  // opcional
+    }
+    """
+    from .fcm_notifications import register_fcm_token
+    from .models import AppUser
+    
+    try:
+        # Obtener datos del request
+        token = request.data.get('token')
+        platform = request.data.get('platform', 'android')
+        device_id = request.data.get('device_id')
+        user_id = request.data.get('user_id')  # ID del usuario
+        
+        if not token:
+            return JsonResponse({
+                'success': False,
+                'error': 'Token FCM requerido'
+            }, status=400)
+        
+        # Obtener usuario
+        if user_id:
+            try:
+                user = AppUser.objects.get(id=user_id)
+            except AppUser.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Usuario con ID {user_id} no encontrado'
+                }, status=404)
+        elif request.user.is_authenticated:
+            user = request.user
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Usuario no autenticado y no se proporcionó user_id'
+            }, status=401)
+        
+        # Registrar token
+        fcm_token = register_fcm_token(user, token, platform, device_id)
+        
+        print(f"✅ Token FCM registrado para {user.username}: {token[:20]}...")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Token FCM registrado correctamente',
+            'user_id': user.id,
+            'username': user.username,
+            'platform': platform
+        })
+        
+    except Exception as e:
+        print(f"❌ Error registrando token FCM: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

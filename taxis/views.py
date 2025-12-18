@@ -1965,14 +1965,51 @@ def register_fcm_token_view(request):
     from .models import AppUser
     
     try:
-        # Obtener datos del request
-        token = request.data.get('token')
-        platform = request.data.get('platform', 'android')
-        device_id = request.data.get('device_id')
-        user_id = request.data.get('user_id')  # ID del usuario
+        import json
+        
+        # Obtener datos del request - SIEMPRE parsear JSON del body primero
+        data = {}
+        
+        # 1. Intentar parsear JSON del body (más confiable)
+        if request.body:
+            try:
+                body_str = request.body.decode('utf-8')
+                print(f"📱 [FCM Register] Raw body: {body_str[:200]}...")
+                data = json.loads(body_str)
+                print(f"📱 [FCM Register] JSON parseado correctamente: {data}")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ [FCM Register] Error parseando JSON: {e}")
+                print(f"   Body recibido: {request.body[:200] if request.body else 'vacío'}...")
+            except Exception as e:
+                print(f"⚠️ [FCM Register] Error decodificando body: {e}")
+        
+        # 2. Si no hay datos en el body, intentar request.data (Django REST Framework)
+        if not data and hasattr(request, 'data'):
+            try:
+                data = dict(request.data) if request.data else {}
+                print(f"📱 [FCM Register] Usando request.data: {data}")
+            except Exception as e:
+                print(f"⚠️ [FCM Register] Error con request.data: {e}")
+        
+        # 3. Si aún no hay datos, intentar request.POST (form-data)
+        if not data:
+            data = dict(request.POST) if request.POST else {}
+            print(f"📱 [FCM Register] Usando request.POST: {data}")
+        
+        token = data.get('token')
+        platform = data.get('platform', 'android')
+        device_id = data.get('device_id')
+        user_id = data.get('user_id')  # ID del usuario
         
         # Debug: Log de lo que se recibe
-        print(f"📱 [FCM Register] Token recibido: {token[:30] if token else 'None'}..., Platform: {platform}, User ID: {user_id}")
+        print(f"📱 [FCM Register] ===== DATOS EXTRAÍDOS =====")
+        print(f"   Token: {token[:30] if token else 'None'}...")
+        print(f"   Platform: {platform}")
+        print(f"   Device ID: {device_id}")
+        print(f"   User ID: {user_id} (tipo: {type(user_id)})")
+        print(f"   Request method: {request.method}")
+        print(f"   Content-Type: {request.META.get('CONTENT_TYPE', 'N/A')}")
+        print(f"   Data completo: {data}")
         
         if not token:
             print("❌ [FCM Register] Error: Token FCM requerido")

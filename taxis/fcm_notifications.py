@@ -327,6 +327,9 @@ def send_chat_message_notification_fcm(sender: User, recipient: User, message: s
     """
     Notificar sobre nuevo mensaje de chat
     
+    ⚠️ CRÍTICO: Esta función envía notificaciones FCM que funcionan incluso cuando la app está cerrada.
+    Requiere que el token FCM esté registrado correctamente.
+    
     Args:
         sender: Usuario que envía
         recipient: Usuario que recibe
@@ -334,6 +337,8 @@ def send_chat_message_notification_fcm(sender: User, recipient: User, message: s
     """
     title = f"💬 {sender.get_full_name() or sender.username}"
     body = message[:100]  # Limitar a 100 caracteres
+    
+    # Datos para el handler de background en Flutter
     data = {
         'type': 'chat_message',
         'sender_id': str(sender.id),
@@ -342,10 +347,36 @@ def send_chat_message_notification_fcm(sender: User, recipient: User, message: s
         'click_action': 'FLUTTER_NOTIFICATION_CLICK',  # Para que Flutter maneje el tap
     }
     
-    logger.info(f"📤 Enviando notificación FCM de chat: {sender.username} -> {recipient.username}")
+    logger.info(f"📤 [FCM CHAT] Enviando notificación FCM de chat")
+    logger.info(f"   De: {sender.username} (ID: {sender.id})")
+    logger.info(f"   Para: {recipient.username} (ID: {recipient.id})")
     logger.info(f"   Mensaje: {message[:50]}...")
     
-    return send_fcm_notification(recipient, title, body, data)
+    # Verificar si el usuario tiene tokens FCM registrados
+    FCMToken = get_fcm_token_model()
+    token_count = FCMToken.objects.filter(user=recipient, is_active=True).count()
+    logger.info(f"   Tokens FCM activos: {token_count}")
+    
+    if token_count == 0:
+        logger.warning(f"⚠️ [FCM CHAT] Usuario {recipient.username} no tiene tokens FCM registrados")
+        logger.warning(f"   💡 El usuario debe abrir la app y registrar su token FCM")
+        return {'success': False, 'error': 'No hay tokens FCM registrados'}
+    
+    # Enviar notificación usando la función base (ya tiene notification + data configurados)
+    result = send_fcm_notification(
+        user=recipient,
+        title=title,
+        body=body,
+        data=data,
+        sound='default'
+    )
+    
+    if result.get('sent', 0) > 0:
+        logger.info(f"✅ [FCM CHAT] Notificación enviada exitosamente a {recipient.username}")
+    else:
+        logger.error(f"❌ [FCM CHAT] Error enviando notificación a {recipient.username}: {result.get('error', 'Desconocido')}")
+    
+    return result
 
 
 def send_audio_message_notification_fcm(sender: User, recipient: User):

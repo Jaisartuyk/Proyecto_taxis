@@ -107,11 +107,13 @@ void main() async {
     RemoteMessage? initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       print('🚀 [INITIAL] App abierta desde notificación: ${initialMessage.notification?.title}');
+      print('   Data: ${initialMessage.data}');
       _handleNotificationTap(initialMessage);
       
-      // Si es un mensaje de chat, cargar los mensajes cuando se tenga el driverId
+      // Si es un mensaje de chat, guardar el driverId si está en los datos
       if (initialMessage.data['type'] == 'chat_message') {
         print('💬 Notificación de chat detectada, se cargarán mensajes al conectar');
+        // El driverId se obtendrá cuando el usuario ingrese su ID
       }
     }
     
@@ -501,9 +503,14 @@ class _DriverHomePageState extends State<DriverHomePage> {
     
     // Obtener token FCM
     String? token = await FirebaseMessaging.instance.getToken();
+    print('🔑 Token FCM obtenido: ${token != null ? "${token.substring(0, 30)}..." : "null"}');
     setState(() {
       _fcmToken = token;
     });
+    
+    if (token == null) {
+      print('⚠️ ADVERTENCIA: No se pudo obtener el token FCM. Las notificaciones push no funcionarán.');
+    }
     
     // NO registrar el token aquí porque el driverId aún no está disponible
     // El token se registrará cuando el usuario conecte el servicio
@@ -568,16 +575,36 @@ class _DriverHomePageState extends State<DriverHomePage> {
         return;
       }
       
-      // Registrar token FCM si está disponible
-      if (_fcmToken != null) {
-        await _registerFCMToken(_fcmToken!, _driverIdController.text);
+      final driverId = _driverIdController.text.trim();
+      
+      // IMPORTANTE: Registrar token FCM PRIMERO (antes de conectar)
+      print('🔍 [DEBUG] Verificando condiciones para registrar token FCM:');
+      print('   - Token FCM: ${_fcmToken != null ? "${_fcmToken!.substring(0, 30)}..." : "null"}');
+      print('   - driverId: "$driverId" (longitud: ${driverId.length})');
+      
+      if (_fcmToken != null && driverId.isNotEmpty) {
+        print('✅ [PASO 1] Condiciones OK - Registrando token FCM...');
+        await _registerFCMToken(_fcmToken!, driverId);
+        // Esperar un momento para que el token se registre en el servidor
+        await Future.delayed(const Duration(milliseconds: 500));
+      } else {
+        print('❌ [PASO 1] No se puede registrar token FCM:');
+        if (_fcmToken == null) {
+          print('   ⚠️ Token FCM: null - No se obtuvo el token de Firebase');
+          print('   💡 Solución: Verifica que Firebase esté correctamente configurado');
+        }
+        if (driverId.isEmpty) {
+          print('   ⚠️ driverId: vacío - El usuario no ingresó su ID');
+        }
       }
       
-      // Conectar WebSocket de chat
-      _connectChatWebSocket(_driverIdController.text);
+      // PASO 2: Cargar mensajes desde el servidor (los que llegaron mientras la app estaba cerrada)
+      print('📜 [PASO 2] Cargando mensajes que llegaron mientras la app estaba cerrada...');
+      await _loadChatMessages(driverId);
       
-      // Cargar mensajes desde el servidor
-      _loadChatMessages(_driverIdController.text);
+      // PASO 3: Conectar WebSocket de chat (para recibir mensajes en tiempo real)
+      print('💬 [PASO 3] Conectando WebSocket de chat...');
+      _connectChatWebSocket(driverId);
       
       // Iniciar servicio
       service.startService();
@@ -638,29 +665,44 @@ class _DriverHomePageState extends State<DriverHomePage> {
         body: jsonEncode(payload),
       );
       
+      print('📥 Respuesta del servidor: ${response.statusCode}');
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
-        print('✅ Token FCM registrado exitosamente: ${responseData['message']}');
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Token FCM registrado correctamente'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        print('❌ Error registrando token FCM: ${response.statusCode}');
-        print('📄 Respuesta: ${response.body}');
+        print('✅ Token FCM registrado exitosamente!');
+        print('   Usuario: ${responseData['username'] ?? driverId}');
+        print('   Mensaje: ${responseData['message'] ?? 'OK'}');
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('⚠️ Error registrando token: ${response.statusCode}'),
+              content: Text('✅ Token FCM registrado para ${responseData['username'] ?? driverId}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        final errorBody = response.body;
+        print('❌ Error registrando token FCM: ${response.statusCode}');
+        print('📄 Respuesta: $errorBody');
+        
+        // Intentar parsear el error para mostrar un mensaje más claro
+        String errorMessage = 'Error ${response.statusCode}';
+        try {
+          final errorData = jsonDecode(errorBody);
+          errorMessage = errorData['error'] ?? errorData['message'] ?? errorMessage;
+          print('   Error detallado: $errorMessage');
+        } catch (e) {
+          print('   Error (texto plano): $errorBody');
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('⚠️ $errorMessage'),
               backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 4),
             ),
           );
         }

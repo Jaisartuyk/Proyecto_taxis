@@ -1332,17 +1332,37 @@
                 chatLog.innerHTML = ''; // Limpiar chat anterior
                 if (noChatSelected) noChatSelected.style.display = 'none';
 
+                // Mostrar indicador de carga
+                chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Cargando historial...</div>';
+
                 // Cargar historial de chat
+                console.log(`📜 Cargando historial para usuario ${activeChatRecipientId}`);
                 fetch(`/api/chat_history/${activeChatRecipientId}/`)
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log(`📡 Respuesta recibida:`, response.status);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
-                        if (data.messages) {
+                        console.log(`📨 Datos del historial:`, data);
+                        chatLog.innerHTML = ''; // Limpiar indicador de carga
+                        
+                        if (data.messages && data.messages.length > 0) {
+                            console.log(`✅ Cargando ${data.messages.length} mensajes`);
                             data.messages.forEach(msg => {
                                 appendMessage(msg.message, msg.sender_id, msg.sender_name);
                             });
+                        } else {
+                            console.log('ℹ️ No hay mensajes en el historial');
+                            chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">No hay mensajes anteriores</div>';
                         }
                     })
-                    .catch(error => console.error('Error cargando historial:', error));
+                    .catch(error => {
+                        console.error('❌ Error cargando historial:', error);
+                        chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">Error cargando historial. Intenta de nuevo.</div>';
+                    });
             });
         });
     }

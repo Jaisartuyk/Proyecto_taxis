@@ -319,6 +319,12 @@ function updateTaxiMarkers(taxis) {
                 
                 marker.infoWindow = infoWindow;
                 driverMarkers[taxi.id] = marker;
+                
+                // También guardar por username si existe (para actualizaciones de ubicación)
+                if (taxi.username) {
+                    driverMarkers[taxi.username] = marker;
+                    console.log(`🔑 Marcador guardado con username: ${taxi.username}`);
+                }
             }
         });
         
@@ -816,7 +822,7 @@ function handleLocationUpdate(data) {
         console.log(`✅ Marcador de ${driverId} actualizado en el mapa (origen: ${source})`);
     } else {
         // Crear nuevo marcador si no existe
-        console.log(`🆕🆕🆕 CREANDO NUEVO MARCADOR PARA ${driverId} (origen: ${source}) - VERSIÓN ACTUALIZADA 🆕🆕🆕`);
+        console.log(`🆕 Creando nuevo marcador para ${driverId} (origen: ${source})`);
         console.log(`🔍 DEBUG: Entrando a bloque de creación de marcador`);
         const newMarker = new google.maps.Marker({
             position: newPosition,

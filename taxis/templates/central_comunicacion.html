@@ -1831,7 +1831,14 @@
 <!-- FIN SCRIPT INLINE COMENTADO -->
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA (archivo presente en staticfiles) -->
-<!-- FORZAR RECARGA: Cambio de nombre temporal para evitar cache -->
-<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}&cb={{ cache_bust }}&force={{ timestamp|slice:":10" }}"></script>
+<!-- FORZAR RECARGA: Versión con creación automática de marcadores -->
+<script>
+    // Forzar recarga sin cache
+    const script = document.createElement('script');
+    script.src = "{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}&cb={{ cache_bust }}&nocache=" + Date.now();
+    script.type = 'text/javascript';
+    script.async = false;
+    document.head.appendChild(script);
+</script>
 
 {% endblock %}

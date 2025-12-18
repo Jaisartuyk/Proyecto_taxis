@@ -8,6 +8,7 @@ from channels.layers import get_channel_layer
 import json
 import logging
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
 from django.db import models
 from django.db.models import Count, Q
 from .models import Taxi, TaxiRoute, Ride, RideDestination, AppUser, ConversacionTelegram, Rating

@@ -43,6 +43,32 @@ class AudioConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Error sending walkie-talkie push notification: {e}")
 
+    @database_sync_to_async
+    def save_driver_location(self, driver_id, latitude, longitude, source):
+        """Guardar ubicación del conductor en la base de datos"""
+        from taxis.models import Taxi, AppUser
+        try:
+            # Intentar encontrar el taxi por username (driver_id puede ser username)
+            user = AppUser.objects.filter(username=driver_id, role='driver').first()
+            
+            if user:
+                taxi = Taxi.objects.filter(user=user).first()
+                if taxi:
+                    taxi.latitude = latitude
+                    taxi.longitude = longitude
+                    taxi.save(update_fields=['latitude', 'longitude', 'updated_at'])
+                    source_icon = '📱' if source == 'mobile' else '🌐'
+                    print(f"{source_icon} 💾 Ubicación guardada en BD: {driver_id} -> ({latitude}, {longitude})")
+                    return True
+                else:
+                    print(f"⚠️ No se encontró Taxi para el usuario {driver_id}")
+            else:
+                print(f"⚠️ No se encontró usuario conductor con username: {driver_id}")
+            return False
+        except Exception as e:
+            print(f"❌ Error guardando ubicación en BD: {e}")
+            return False
+
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name') and self.channel_layer is not None:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -88,6 +114,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 timestamp = data.get('timestamp', '')
 
                 if sender_id and latitude is not None and longitude is not None:
+                    # Retransmitir por WebSocket
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
@@ -101,6 +128,9 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     )
                     source_icon = '📱' if source == 'mobile' else '🌐'
                     print(f"{source_icon} Ubicación de {sender_id} ({source}) retransmitida: {latitude}, {longitude}")
+                    
+                    # Guardar en base de datos
+                    await self.save_driver_location(sender_id, latitude, longitude, source)
 
             elif message_type == 'audio_message' or message_type == 'driver_audio_message':
                 # Soportar formatos: audio_message (web) y driver_audio_message (Flutter)

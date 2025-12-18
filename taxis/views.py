@@ -1425,6 +1425,7 @@ def taxis_ubicacion(request):
                 
                 taxi_data = {
                     "id": taxi.id,
+                    "username": taxi.user.username,  # 🔑 Agregar username para actualizaciones de ubicación
                     "nombre_conductor": taxi.user.get_full_name() or taxi.user.username,
                     "latitude": float(taxi.latitude) if taxi.latitude else 0.0,
                     "longitude": float(taxi.longitude) if taxi.longitude else 0.0,

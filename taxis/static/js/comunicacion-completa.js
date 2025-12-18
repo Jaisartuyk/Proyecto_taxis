@@ -319,6 +319,12 @@ function updateTaxiMarkers(taxis) {
                 
                 marker.infoWindow = infoWindow;
                 driverMarkers[taxi.id] = marker;
+                
+                // También guardar por username si existe (para actualizaciones de ubicación)
+                if (taxi.username) {
+                    driverMarkers[taxi.username] = marker;
+                    console.log(`🔑 Marcador guardado con username: ${taxi.username}`);
+                }
             }
         });
         

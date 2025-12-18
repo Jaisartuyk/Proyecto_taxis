@@ -816,7 +816,7 @@ function handleLocationUpdate(data) {
         console.log(`✅ Marcador de ${driverId} actualizado en el mapa (origen: ${source})`);
     } else {
         // Crear nuevo marcador si no existe
-        console.log(`🆕 Creando nuevo marcador para ${driverId} (origen: ${source})`);
+        console.log(`🆕🆕🆕 CREANDO NUEVO MARCADOR PARA ${driverId} (origen: ${source}) - VERSIÓN ACTUALIZADA 🆕🆕🆕`);
         console.log(`🔍 DEBUG: Entrando a bloque de creación de marcador`);
         const newMarker = new google.maps.Marker({
             position: newPosition,

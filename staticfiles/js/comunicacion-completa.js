@@ -2,8 +2,8 @@
 // SISTEMA WALKIE-TALKIE COMPLETO - VERSIÓN CORREGIDA
 // ✅ CON SOPORTE PARA UBICACIONES EN TIEMPO REAL
 // =====================================================
-console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN CON CREACIÓN AUTOMÁTICA DE MARCADORES v2.0
-console.log('✅✅✅ CÓDIGO NUEVO CARGADO - Versión con creación automática de marcadores ✅✅✅');');
+console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN CON CREACIÓN AUTOMÁTICA DE MARCADORES v2.1');
+console.log('✅✅✅ VERIFICACIÓN: Si ves este mensaje, el código NUEVO está cargado ✅✅✅');
 console.log('📅 Timestamp de carga:', new Date().toISOString());
 
 // Variables globales

@@ -431,12 +431,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Enviar notificación push cuando llega un mensaje de chat"""
         from .models import AppUser
         from .push_notifications import send_chat_message_notification
+        from .fcm_notifications import send_chat_message_notification_fcm
         try:
             sender = AppUser.objects.get(id=sender_id)
             recipient = AppUser.objects.get(id=recipient_id)
             
-            # Enviar notificación push
-            send_chat_message_notification(sender, recipient, message)
-            print(f"📱 Notificación push enviada: {sender.username} -> {recipient.username}")
+            # Enviar notificación Web Push (para navegadores)
+            web_sent = send_chat_message_notification(sender, recipient, message)
+            
+            # Enviar notificación FCM (para Android/iOS)
+            fcm_sent = send_chat_message_notification_fcm(sender, recipient, message)
+            
+            if web_sent or fcm_sent:
+                print(f"📱 Notificación push enviada: {sender.username} -> {recipient.username} (Web: {web_sent}, FCM: {fcm_sent})")
+            else:
+                print(f"⚠️ No se pudo enviar notificación a {recipient.username} (sin tokens)")
         except Exception as e:
             print(f"❌ Error al enviar notificación push: {e}")

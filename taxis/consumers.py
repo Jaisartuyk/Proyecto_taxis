@@ -307,11 +307,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        
+        # Ignorar mensajes que no sean de chat (ej: location, audio, etc.)
+        message_type = data.get('type')
+        if message_type and message_type != 'chat_message':
+            # Silenciosamente ignorar otros tipos de mensajes
+            return
+        
         message = data.get('message')
         recipient_id = data.get('recipient_id')
 
         if not message or not recipient_id:
-            print("Error: Faltan datos en el mensaje de chat")
+            # Solo mostrar error si parece ser un intento de mensaje de chat
+            if not message_type or message_type == 'chat_message':
+                print("Error: Faltan datos en el mensaje de chat")
             return
 
         # Guardar mensaje en la base de datos

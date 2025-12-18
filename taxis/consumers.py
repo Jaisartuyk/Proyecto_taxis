@@ -233,7 +233,21 @@ class AudioConsumer(AsyncWebsocketConsumer):
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-        if not self.user.is_authenticated:
+        
+        # Soportar user_id desde URL (para Android) o desde usuario autenticado (para Web)
+        url_user_id = self.scope.get('url_route', {}).get('kwargs', {}).get('user_id')
+        
+        if url_user_id:
+            # Conexión desde Android con user_id en URL
+            self.target_user_id = url_user_id
+            print(f"📱 Conexión Android - user_id desde URL: {url_user_id}")
+        elif self.user.is_authenticated:
+            # Conexión desde Web con usuario autenticado
+            self.target_user_id = str(self.user.id)
+            print(f"🌐 Conexión Web - user_id desde sesión: {self.user.id}")
+        else:
+            # Sin autenticación ni user_id
+            print(f"❌ Conexión rechazada: sin autenticación ni user_id")
             await self.close()
             return
 
@@ -279,10 +293,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     await self.close()
                     return
 
-        self.room_group_name = f'chat_{self.user.id}'
+        self.room_group_name = f'chat_{self.target_user_id}'
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        print(f"Usuario {self.user.username} conectado al grupo de chat {self.room_group_name}")
+        print(f"✅ Usuario conectado al grupo de chat {self.room_group_name}")
 
     async def disconnect(self, close_code):
         if self.user.is_authenticated and hasattr(self, 'room_group_name') and self.channel_layer is not None:

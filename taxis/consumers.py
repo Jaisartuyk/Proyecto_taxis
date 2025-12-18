@@ -366,6 +366,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         # Enviar el mensaje al cliente WebSocket con el conteo de badge
         await self.send(text_data=json.dumps({
+            'type': 'chat_message',  # ← Agregar tipo de mensaje
             'message': event['message'],
             'sender_id': event['sender_id'],
             'sender_name': event['sender_name'],

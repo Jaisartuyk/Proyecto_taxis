@@ -882,8 +882,8 @@ function handleChatMessage(data) {
             return;
         }
 
-        // Solo mostrar mensajes de conductores (no los míos)
-        if (senderId == 1) {
+        // Solo mostrar mensajes de otros usuarios (no los míos)
+        if (senderId == currentUser.id) {
             console.log('⏭️ Ignorando mensaje propio');
             return;
         }

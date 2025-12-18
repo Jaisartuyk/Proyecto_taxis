@@ -95,26 +95,33 @@ void main() async {
       _showLocalNotification(message);
     });
     
-    // Manejar cuando el usuario toca una notificación y abre la app
+    // Manejar cuando el usuario toca una notificación y abre la app (app en background)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('👆 [TAPPED] Usuario tocó la notificación: ${message.notification?.title}');
+      print('👆 [TAPPED] Usuario tocó la notificación (app en background): ${message.notification?.title}');
       print('   Data: ${message.data}');
-      // Aquí puedes navegar a una pantalla específica según el tipo de notificación
-      _handleNotificationTap(message);
+      // Esperar un momento para que la app esté lista antes de navegar
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _handleNotificationTap(message);
+      });
     });
     
     // Verificar si la app fue abierta desde una notificación (cuando estaba cerrada)
     RemoteMessage? initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
-      print('🚀 [INITIAL] App abierta desde notificación: ${initialMessage.notification?.title}');
+      print('🚀 [INITIAL] App abierta desde notificación (app estaba cerrada): ${initialMessage.notification?.title}');
       print('   Data: ${initialMessage.data}');
-      _handleNotificationTap(initialMessage);
       
       // Si es un mensaje de chat, guardar el driverId si está en los datos
       if (initialMessage.data['type'] == 'chat_message') {
         print('💬 Notificación de chat detectada, se cargarán mensajes al conectar');
         // El driverId se obtendrá cuando el usuario ingrese su ID
       }
+      
+      // Esperar a que la app esté completamente inicializada antes de navegar
+      // Esto evita la pantalla negra
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        _handleNotificationTap(initialMessage);
+      });
     }
     
   } catch (e) {
@@ -207,17 +214,38 @@ Future<void> _showLocalNotification(RemoteMessage message) async {
   );
 }
 
+// Global NavigatorKey para navegar desde cualquier lugar (incluyendo handlers de notificaciones)
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 // Manejar cuando el usuario toca una notificación
 void _handleNotificationTap(RemoteMessage message) {
   print('📱 Procesando tap en notificación...');
   print('   Tipo: ${message.data['type']}');
   print('   Sender: ${message.data['sender_name']}');
+  print('   Data completa: ${message.data}');
   
-  // Aquí puedes navegar a una pantalla específica según el tipo de notificación
-  // Por ejemplo:
-  // if (message.data['type'] == 'chat_message') {
-  //   Navigator.pushNamed(context, '/chat/${message.data['sender_id']}');
-  // }
+  // Esperar a que la app esté completamente inicializada antes de navegar
+  Future.delayed(const Duration(milliseconds: 500), () {
+    final navigator = navigatorKey.currentState;
+    if (navigator == null) {
+      print('⚠️ Navigator no está disponible aún, reintentando...');
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        _handleNotificationTap(message);
+      });
+      return;
+    }
+    
+    // Navegar según el tipo de notificación
+    if (message.data['type'] == 'chat_message') {
+      print('💬 Navegando a pantalla de chat...');
+      // Si tienes una pantalla de chat específica, navega allí
+      // Por ahora, solo mostramos un mensaje
+      // TODO: Implementar navegación a ChatScreen cuando esté disponible
+      print('   📝 Nota: La pantalla de chat se abrirá cuando el usuario conecte el servicio');
+    } else {
+      print('📱 Tipo de notificación no manejado: ${message.data['type']}');
+    }
+  });
 }
 
 // ============================================
@@ -461,6 +489,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Taxi De Aquí Pa'llá",
+      navigatorKey: navigatorKey, // IMPORTANTE: Para navegar desde handlers de notificaciones
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,

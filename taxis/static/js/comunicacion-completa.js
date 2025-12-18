@@ -18,6 +18,11 @@ let mediaRecorderCentral;
 let centralAudioStream;
 let Maps_API_KEY;
 
+// Almacenamiento persistente del historial de chat por conductor
+// Estructura: { driverId: [{ message, sender_name, timestamp, is_sent, ... }] }
+let chatHistoryStorage = {};
+let currentChatDriverId = null; // ID del conductor con el que estamos chateando actualmente
+
 // Variables de reconexión WebSocket
 let wsReconnectAttempts = 0;
 let wsMaxReconnectAttempts = 10;
@@ -424,10 +429,13 @@ function openDriverChat(driverId) {
         if (chatWindow) {
             chatWindow.classList.remove('hidden');
         }
+        
+        // Guardar el ID del conductor actual para guardar mensajes recibidos
+        currentChatDriverId = driverId;
 
         console.log(`✅ Chat iniciado con ${driverName} (ID: ${driverId})`);
 
-        // Cargar historial de chat
+        // Cargar historial de chat (ahora con persistencia en localStorage)
         loadChatHistory(driverId);
 
     } catch (error) {
@@ -494,6 +502,18 @@ function sendMessageToDriver(driverId) {
     console.log('📤 Enviando mensaje a conductor:', driverId, message);
 
     try {
+        // Crear objeto de mensaje para guardar en historial
+        const messageObj = {
+            message: message,
+            sender_name: 'Central',
+            sender_id: 1,
+            is_sent: true,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Guardar mensaje en historial
+        addMessageToHistory(driverId, messageObj);
+        
         // Agregar mensaje al chat log inmediatamente
         const chatLog = document.getElementById('chat-log');
         if (chatLog) {
@@ -889,6 +909,23 @@ function handleChatMessage(data) {
         }
 
         console.log(`✅ Mostrando mensaje de ${senderName}: ${message}`);
+        
+        // Crear objeto de mensaje para guardar en historial
+        const messageObj = {
+            message: message,
+            sender_name: senderName,
+            sender_id: parseInt(senderId),
+            is_sent: false,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Guardar mensaje en historial si hay un chat activo
+        if (currentChatDriverId && currentChatDriverId == senderId) {
+            addMessageToHistory(currentChatDriverId, messageObj);
+        } else {
+            // Si no hay chat activo pero recibimos un mensaje, guardarlo para cuando se abra el chat
+            addMessageToHistory(senderId, messageObj);
+        }
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const messageHtml = `
@@ -1296,6 +1333,9 @@ function openDriverChatFromList(driverId, driverName) {
         if (chatWindow) {
             chatWindow.classList.remove('hidden');
         }
+        
+        // Guardar el ID del conductor actual para guardar mensajes recibidos
+        currentChatDriverId = driverId;
 
         // Resaltar el elemento seleccionado
         document.querySelectorAll('.user-item').forEach(item => {
@@ -1304,6 +1344,9 @@ function openDriverChatFromList(driverId, driverName) {
         document.querySelector(`[data-driver-id="${driverId}"]`)?.classList.add('active');
 
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
+        
+        // Cargar historial de chat (ahora con persistencia en localStorage)
+        loadChatHistory(driverId);
 
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);

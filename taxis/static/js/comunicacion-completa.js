@@ -294,12 +294,12 @@ function updateTaxiMarkers(taxis) {
                 // Ventana de información
                 const infoWindow = new google.maps.InfoWindow({
                     content: `
-                        <div style="color: #333; background: white; padding: 10px; min-width: 200px;">
-                            <h5 style="color: #2c3e50; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">${taxi.nombre_conductor || 'Sin nombre'}</h5>
-                            <p style="color: #34495e; margin: 5px 0;"><strong>Placa:</strong> ${taxi.placa || 'N/A'}</p>
-                            <p style="color: #34495e; margin: 5px 0;"><strong>Estado:</strong> ${taxi.disponible ? '✅ Disponible' : '🚗 Ocupado'}</p>
-                            <p style="color: #34495e; margin: 5px 0;"><strong>Teléfono:</strong> ${taxi.telefono || 'N/A'}</p>
-                            <button onclick="openDriverChat(${taxi.id})" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold;">
+                        <div style="color: #333 !important; background: white !important; padding: 10px; min-width: 200px;">
+                            <h5 style="color: #2c3e50 !important; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">${taxi.nombre_conductor || 'Sin nombre'}</h5>
+                            <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Placa:</strong> ${taxi.placa || 'N/A'}</p>
+                            <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Estado:</strong> ${taxi.disponible ? '✅ Disponible' : '🚗 Ocupado'}</p>
+                            <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Teléfono:</strong> ${taxi.telefono || 'N/A'}</p>
+                            <button onclick="openDriverChat(${taxi.id})" style="background: #007bff !important; color: white !important; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold;">
                                 💬 Chat
                             </button>
                         </div>
@@ -845,10 +845,10 @@ function handleLocationUpdate(data) {
         // InfoWindow básico
         const infoWindow = new google.maps.InfoWindow({
             content: `
-                <div style="color: #333; background: white; padding: 10px; min-width: 180px;">
-                    <h5 style="color: #2c3e50; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">${driverId}</h5>
-                    <p style="color: #34495e; margin: 5px 0;"><strong>Origen:</strong> ${source === 'mobile' ? '📱 App Móvil' : '🌐 Web'}</p>
-                    <p style="color: #34495e; margin: 5px 0;"><strong>Ubicación:</strong> ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</p>
+                <div style="color: #333 !important; background: white !important; padding: 10px; min-width: 180px;">
+                    <h5 style="color: #2c3e50 !important; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">${driverId}</h5>
+                    <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Origen:</strong> ${source === 'mobile' ? '📱 App Móvil' : '🌐 Web'}</p>
+                    <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Ubicación:</strong> ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</p>
                 </div>
             `
         });

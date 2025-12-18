@@ -315,7 +315,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         # Guardar mensaje en la base de datos
-        await self.save_message(self.user.id, recipient_id, message)
+        # Determinar sender_id: usar self.user.id si está autenticado, sino usar target_user_id
+        if self.user.is_authenticated:
+            sender_id = self.user.id
+            sender_name = self.user.get_full_name() or self.user.username
+        else:
+            # Conexión desde Android sin autenticación
+            sender_id = int(self.target_user_id)
+            sender_name = f"Conductor {self.target_user_id}"
+        
+        await self.save_message(sender_id, recipient_id, message)
 
         # Grupo del destinatario
         recipient_group_name = f'chat_{recipient_id}'
@@ -324,23 +333,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat_payload = {
             'type': 'chat_message',
             'message': message,
-            'sender_id': self.user.id,
-            'sender_name': self.user.get_full_name(),
+            'sender_id': sender_id,
+            'sender_name': sender_name,
         }
 
         # Enviar mensaje al destinatario
         await self.channel_layer.group_send(recipient_group_name, chat_payload)
-        print(f"Mensaje de {self.user.id} enviado a {recipient_id}")
+        print(f"Mensaje de {sender_id} enviado a {recipient_id}")
         
         # Enviar notificación push
-        await self.send_chat_push_notification(self.user.id, recipient_id, message)
+        await self.send_chat_push_notification(sender_id, recipient_id, message)
 
         # Enviar mensaje de vuelta al remitente para actualizar su UI
         await self.channel_layer.group_send(self.room_group_name, chat_payload)
 
     async def chat_message(self, event):
         # Obtener el conteo de badge actualizado
-        badge_count = await self.get_badge_count(self.user.id)
+        # Solo obtener badge si el usuario está autenticado
+        if self.user.is_authenticated:
+            badge_count = await self.get_badge_count(self.user.id)
+        else:
+            badge_count = 0
         
         # Enviar el mensaje al cliente WebSocket con el conteo de badge
         await self.send(text_data=json.dumps({

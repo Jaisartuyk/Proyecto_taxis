@@ -1030,6 +1030,28 @@
         font-size: 4rem;
         opacity: 0.5;
     }
+
+    /* === GOOGLE MAPS INFOWINDOW TEXT VISIBILITY FIX === */
+    /* Force dark text in InfoWindows to override theme.css white text */
+    .gm-style-iw-c,
+    .gm-style-iw-d,
+    .gm-style .gm-style-iw-c,
+    .gm-style .gm-style-iw-d {
+        color: #333 !important;
+    }
+
+    .gm-style-iw-c div,
+    .gm-style-iw-d div,
+    .gm-style-iw-c p,
+    .gm-style-iw-d p,
+    .gm-style-iw-c h5,
+    .gm-style-iw-d h5,
+    .gm-style-iw-c strong,
+    .gm-style-iw-d strong,
+    .gm-style-iw-c span,
+    .gm-style-iw-d span {
+        color: #333 !important;
+    }
 </style>
 
 <!-- HEADER DEL CENTRO DE COMANDO -->
@@ -1055,8 +1077,7 @@
                 {% for driver in drivers %}
                 <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
                     {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
-                    <img
-                        src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
+                    <img src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
                         onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
                         alt="{{ driver.get_full_name }}">
                     <span>{{ driver.get_full_name }}</span>
@@ -1831,6 +1852,8 @@
 <!-- FIN SCRIPT INLINE COMENTADO -->
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA (archivo presente en staticfiles) -->
-<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}&cb={{ cache_bust }}&nocache={{ timestamp|slice:":10" }}"></script>
+<script
+    src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}&cb={{ cache_bust }}&nocache={{ timestamp|slice:"
+    :10" }}"></script>
 
 {% endblock %}

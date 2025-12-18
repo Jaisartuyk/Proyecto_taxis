@@ -294,12 +294,12 @@ function updateTaxiMarkers(taxis) {
                 // Ventana de información
                 const infoWindow = new google.maps.InfoWindow({
                     content: `
-                        <div style="color: #333 !important; background: white !important; padding: 10px; min-width: 200px;">
-                            <h5 style="color: #2c3e50 !important; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">${taxi.nombre_conductor || 'Sin nombre'}</h5>
-                            <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Placa:</strong> ${taxi.placa || 'N/A'}</p>
-                            <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Estado:</strong> ${taxi.disponible ? '✅ Disponible' : '🚗 Ocupado'}</p>
-                            <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Teléfono:</strong> ${taxi.telefono || 'N/A'}</p>
-                            <button onclick="openDriverChat(${taxi.id})" style="background: #007bff !important; color: white !important; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold;">
+                        <div class="taxi-info-window" style="color: #1a1a1a !important; background: #ffffff !important; padding: 10px; min-width: 200px; font-family: Arial, sans-serif !important;">
+                            <h5 style="color: #1a1a1a !important; margin: 0 0 10px 0 !important; font-size: 16px !important; font-weight: bold !important; text-shadow: none !important;">${taxi.nombre_conductor || 'Sin nombre'}</h5>
+                            <p style="color: #1a1a1a !important; margin: 5px 0 !important; text-shadow: none !important;"><strong style="color: #000000 !important;">Placa:</strong> ${taxi.placa || 'N/A'}</p>
+                            <p style="color: #1a1a1a !important; margin: 5px 0 !important; text-shadow: none !important;"><strong style="color: #000000 !important;">Estado:</strong> ${taxi.disponible ? '✅ Disponible' : '🚗 Ocupado'}</p>
+                            <p style="color: #1a1a1a !important; margin: 5px 0 !important; text-shadow: none !important;"><strong style="color: #000000 !important;">Teléfono:</strong> ${taxi.telefono || 'N/A'}</p>
+                            <button onclick="openDriverChat(${taxi.id})" style="background: #007bff !important; color: #ffffff !important; border: none !important; padding: 8px 16px !important; border-radius: 4px !important; cursor: pointer !important; margin-top: 10px !important; font-weight: bold !important;">
                                 💬 Chat
                             </button>
                         </div>
@@ -845,10 +845,10 @@ function handleLocationUpdate(data) {
         // InfoWindow básico
         const infoWindow = new google.maps.InfoWindow({
             content: `
-                <div style="color: #333 !important; background: white !important; padding: 10px; min-width: 180px;">
-                    <h5 style="color: #2c3e50 !important; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">${driverId}</h5>
-                    <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Origen:</strong> ${source === 'mobile' ? '📱 App Móvil' : '🌐 Web'}</p>
-                    <p style="color: #34495e !important; margin: 5px 0;"><strong style="color: #2c3e50 !important;">Ubicación:</strong> ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</p>
+                <div class="taxi-info-window" style="color: #1a1a1a !important; background: #ffffff !important; padding: 10px; min-width: 180px; font-family: Arial, sans-serif !important;">
+                    <h5 style="color: #1a1a1a !important; margin: 0 0 10px 0 !important; font-size: 16px !important; font-weight: bold !important; text-shadow: none !important;">${driverId}</h5>
+                    <p style="color: #1a1a1a !important; margin: 5px 0 !important; text-shadow: none !important;"><strong style="color: #000000 !important;">Origen:</strong> ${source === 'mobile' ? '📱 App Móvil' : '🌐 Web'}</p>
+                    <p style="color: #1a1a1a !important; margin: 5px 0 !important; text-shadow: none !important;"><strong style="color: #000000 !important;">Ubicación:</strong> ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</p>
                 </div>
             `
         });

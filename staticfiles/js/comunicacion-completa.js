@@ -686,6 +686,7 @@ function handleWebSocketMessage(data) {
         case 'driver_status':
             handleDriverStatusUpdate(data);
             break;
+        case 'location':
         case 'location_update':
         case 'driver_location_update':  // ✅ Agregar soporte para ubicaciones desde app móvil
             handleLocationUpdate(data);

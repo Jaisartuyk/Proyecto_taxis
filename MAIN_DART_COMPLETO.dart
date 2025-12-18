@@ -487,6 +487,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   bool _isServiceRunning = false;
   String? _fcmToken;
   final _driverIdController = TextEditingController();
+  List<Map<String, dynamic>> _chatMessages = []; // Lista de mensajes de chat
 
   @override
   void initState() {
@@ -504,10 +505,8 @@ class _DriverHomePageState extends State<DriverHomePage> {
       _fcmToken = token;
     });
     
-    // Si hay un token y un driverId guardado, registrar automáticamente
-    if (token != null && _driverIdController.text.isNotEmpty) {
-      _registerFCMToken(token, _driverIdController.text);
-    }
+    // NO registrar el token aquí porque el driverId aún no está disponible
+    // El token se registrará cuando el usuario conecte el servicio
     
     // Escuchar actualizaciones del token FCM (puede cambiar)
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
@@ -616,18 +615,27 @@ class _DriverHomePageState extends State<DriverHomePage> {
     try {
       print('📱 Registrando token FCM para conductor: $driverId');
       
+      if (driverId.isEmpty) {
+        print('⚠️ driverId está vacío, no se puede registrar el token');
+        return;
+      }
+      
       // Enviar el driverId tal cual (puede ser ID numérico o username)
       // El backend ahora acepta ambos formatos
+      final payload = {
+        'token': token,
+        'platform': 'android',
+        'user_id': driverId, // Puede ser ID numérico (11) o username ("carlos")
+      };
+      
+      print('📤 Enviando payload: $payload');
+      
       final response = await http.post(
         Uri.parse(FCM_REGISTER_URL),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'token': token,
-          'platform': 'android',
-          'user_id': driverId, // Puede ser ID numérico (11) o username ("carlos")
-        }),
+        body: jsonEncode(payload),
       );
       
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -705,9 +713,19 @@ class _DriverHomePageState extends State<DriverHomePage> {
           try {
             final data = jsonDecode(message);
             if (data['type'] == 'chat_message') {
-              print('✅ Nuevo mensaje de chat: ${data['message']}');
-              // Aquí puedes actualizar la UI o guardar el mensaje
-              // Por ahora solo lo mostramos en los logs
+              print('✅ Nuevo mensaje de chat recibido por WebSocket: ${data['message']}');
+              // Agregar mensaje a la lista
+              if (mounted) {
+                setState(() {
+                  _chatMessages.add({
+                    'sender_id': data['sender_id'],
+                    'sender_name': data['sender_name'] ?? 'Desconocido',
+                    'message': data['message'],
+                    'timestamp': DateTime.now().toString(),
+                    'is_sent': false,
+                  });
+                });
+              }
             }
           } catch (e) {
             print('⚠️ Error procesando mensaje de chat: $e');
@@ -735,38 +753,78 @@ class _DriverHomePageState extends State<DriverHomePage> {
   
   Future<void> _loadChatMessages(String driverId) async {
     try {
-      // Obtener el ID numérico del conductor
-      int? userId;
-      try {
-        userId = int.parse(driverId);
-      } catch (e) {
-        print('⚠️ driverId no es numérico, no se pueden cargar mensajes');
+      if (driverId.isEmpty) {
+        print('⚠️ driverId está vacío, no se pueden cargar mensajes');
         return;
       }
       
-      print('📜 Cargando mensajes de chat para conductor ID: $userId');
+      // El backend ahora acepta tanto ID numérico como username
+      final url = '$API_BASE_URL/driver/chat_history/$driverId/';
+      print('📡 Cargando mensajes desde: $url');
       
       final response = await http.get(
-        Uri.parse('$API_BASE_URL/driver/chat_history/$userId/'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
+      
+      print('📥 Respuesta: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final messages = data['messages'] as List;
         print('✅ ${messages.length} mensajes cargados desde el servidor');
         
-        // Aquí puedes guardar los mensajes localmente o actualizar la UI
-        // Por ahora solo los mostramos en los logs
+        // Guardar mensajes en la lista
+        if (mounted) {
+          setState(() {
+            _chatMessages = List<Map<String, dynamic>>.from(messages);
+          });
+        }
+        
+        // Mostrar en logs
         for (var msg in messages) {
-          print('   💬 ${msg['sender_name']}: ${msg['message']} (${msg['timestamp']})');
+          final isSent = msg['is_sent'] == true;
+          final sender = msg['sender_name'] ?? 'Desconocido';
+          final messageText = msg['message'] ?? '';
+          final timestamp = msg['timestamp'] ?? '';
+          print('   ${isSent ? "📤" : "📥"} $sender: $messageText ($timestamp)');
+        }
+        
+        // Mostrar notificación al usuario
+        if (mounted && messages.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ ${messages.length} mensajes cargados'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
         }
       } else {
         print('❌ Error cargando mensajes: ${response.statusCode}');
         print('   Respuesta: ${response.body}');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('⚠️ Error: ${response.statusCode}'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
       print('❌ Excepción cargando mensajes: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

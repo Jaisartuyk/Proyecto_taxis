@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 from django.contrib.auth import views as auth_views
 from . import views
 from . import api_views
@@ -48,7 +48,7 @@ urlpatterns = [
     path('comunicacion/', views.comunicacion_conductores, name='comunicacion_conductores'),
     path("api/actualizar_ubicacion/", views.actualizar_ubicacion, name="actualizar_ubicacion"),
     path('api/chat_history/<int:user_id>/', views.get_chat_history, name='get_chat_history'),
-    path('api/driver/chat_history/<int:driver_id>/', views.get_driver_chat_history, name='get_driver_chat_history'),
+    re_path(r'^api/driver/chat_history/(?P<driver_id>[\w-]+)/$', views.get_driver_chat_history, name='get_driver_chat_history'),
     path('api/register-fcm-token/', views.register_fcm_token_view, name='register_fcm_token'),
     path('ubicaciones_taxis/', views.ubicaciones_taxis, name='ubicaciones_taxis'),
     path('api/ubicaciones_taxis/', views.ubicaciones_taxis, name='api_ubicaciones_taxis'),

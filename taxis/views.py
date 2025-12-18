@@ -1716,7 +1716,18 @@ def get_driver_chat_history(request, driver_id):
     from django.db.models import Q
     
     try:
-        driver = AppUser.objects.get(id=driver_id)
+        # Intentar obtener el conductor por ID numérico o username
+        driver = None
+        try:
+            # Primero intentar como ID numérico
+            if isinstance(driver_id, int) or (isinstance(driver_id, str) and driver_id.isdigit()):
+                driver = AppUser.objects.get(id=int(driver_id))
+            else:
+                # Intentar como username
+                driver = AppUser.objects.get(username=driver_id)
+        except AppUser.DoesNotExist:
+            return JsonResponse({'error': f'Conductor "{driver_id}" no encontrado'}, status=404)
+        
         admin = AppUser.objects.filter(is_superuser=True).first()
         
         if not admin:
@@ -1728,6 +1739,9 @@ def get_driver_chat_history(request, driver_id):
             Q(sender=admin, recipient=driver)
         ).order_by('timestamp')
         
+        print(f"📜 Cargando historial de chat: {driver.username} (ID: {driver.id}) <-> Admin (ID: {admin.id})")
+        print(f"   Total mensajes encontrados: {messages.count()}")
+        
         data = [{
             'sender_id': msg.sender.id,
             'sender_name': msg.sender.get_full_name() or msg.sender.username,
@@ -1738,9 +1752,10 @@ def get_driver_chat_history(request, driver_id):
         
         return JsonResponse({'messages': data})
         
-    except AppUser.DoesNotExist:
-        return JsonResponse({'error': 'Conductor no encontrado'}, status=404)
     except Exception as e:
+        print(f"❌ Error en get_driver_chat_history: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
 

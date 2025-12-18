@@ -1681,11 +1681,15 @@ def chat_central(request):
 @login_required
 def get_chat_history(request, user_id):
     """API para obtener historial de chat con un usuario específico"""
-    if not request.user.is_superuser:
-        return JsonResponse({'error': 'No autorizado'}, status=403)
-    
     from .models import ChatMessage, AppUser
     from django.db.models import Q
+    
+    # Permitir acceso si es superusuario O si el usuario está consultando su propio chat
+    if not request.user.is_superuser:
+        # Si no es superusuario, solo puede ver sus propios mensajes
+        # user_id debe ser el ID del usuario actual o del admin (1)
+        if request.user.id != int(user_id) and int(user_id) != 1:
+            return JsonResponse({'error': 'No autorizado'}, status=403)
     
     other_user = get_object_or_404(AppUser, id=user_id)
     
@@ -1703,6 +1707,41 @@ def get_chat_history(request, user_id):
     } for msg in messages]
     
     return JsonResponse({'messages': data})
+
+
+@csrf_exempt
+def get_driver_chat_history(request, driver_id):
+    """API para que los conductores obtengan su historial de chat con el admin"""
+    from .models import ChatMessage, AppUser
+    from django.db.models import Q
+    
+    try:
+        driver = AppUser.objects.get(id=driver_id)
+        admin = AppUser.objects.filter(is_superuser=True).first()
+        
+        if not admin:
+            return JsonResponse({'error': 'Admin no encontrado'}, status=404)
+        
+        # Obtener mensajes entre el conductor y el admin
+        messages = ChatMessage.objects.filter(
+            Q(sender=driver, recipient=admin) | 
+            Q(sender=admin, recipient=driver)
+        ).order_by('timestamp')
+        
+        data = [{
+            'sender_id': msg.sender.id,
+            'sender_name': msg.sender.get_full_name() or msg.sender.username,
+            'message': msg.message,
+            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_sent': msg.sender.id == driver.id
+        } for msg in messages]
+        
+        return JsonResponse({'messages': data})
+        
+    except AppUser.DoesNotExist:
+        return JsonResponse({'error': 'Conductor no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 # ============================================
@@ -1894,6 +1933,7 @@ def debug_notifications(request):
     Página de debug para notificaciones push
     """
     return render(request, 'debug_notifications.html')
+@csrf_exempt
 @api_view(['POST'])
 def register_fcm_token_view(request):
     """
@@ -1916,93 +1956,41 @@ def register_fcm_token_view(request):
         device_id = request.data.get('device_id')
         user_id = request.data.get('user_id')  # ID del usuario
         
+        # Debug: Log de lo que se recibe
+        print(f"📱 [FCM Register] Token recibido: {token[:30] if token else 'None'}..., Platform: {platform}, User ID: {user_id}")
+        
         if not token:
+            print("❌ [FCM Register] Error: Token FCM requerido")
             return JsonResponse({
                 'success': False,
                 'error': 'Token FCM requerido'
             }, status=400)
         
-        # Obtener usuario
+        # Obtener usuario (puede ser ID numérico o username)
         if user_id:
             try:
-                user = AppUser.objects.get(id=user_id)
+                # Intentar como ID numérico primero
+                if isinstance(user_id, int) or (isinstance(user_id, str) and user_id.isdigit()):
+                    user = AppUser.objects.get(id=int(user_id))
+                    print(f"✅ [FCM Register] Usuario encontrado por ID: {user.username} (ID: {user_id})")
+                else:
+                    # Intentar como username
+                    user = AppUser.objects.get(username=user_id)
+                    print(f"✅ [FCM Register] Usuario encontrado por username: {user.username} (ID: {user.id})")
             except AppUser.DoesNotExist:
+                print(f"❌ [FCM Register] Usuario '{user_id}' no encontrado (ni por ID ni por username)")
                 return JsonResponse({
                     'success': False,
-                    'error': f'Usuario con ID {user_id} no encontrado'
+                    'error': f'Usuario "{user_id}" no encontrado. Usa el ID numérico o el username.'
                 }, status=404)
         elif request.user.is_authenticated:
             user = request.user
+            print(f"✅ [FCM Register] Usuario autenticado: {user.username}")
         else:
+            print(f"❌ [FCM Register] Error: Usuario no autenticado y no se proporcionó user_id")
             return JsonResponse({
                 'success': False,
-                'error': 'Usuario no autenticado y no se proporcionó user_id'
-            }, status=401)
-        
-        # Registrar token
-        fcm_token = register_fcm_token(user, token, platform, device_id)
-        
-        print(f"✅ Token FCM registrado para {user.username}: {token[:20]}...")
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Token FCM registrado correctamente',
-            'user_id': user.id,
-            'username': user.username,
-            'platform': platform
-        })
-        
-    except Exception as e:
-        print(f"❌ Error registrando token FCM: {e}")
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-@api_view(['POST'])
-def register_fcm_token_view(request):
-    """
-    API endpoint para registrar tokens FCM desde Android/iOS
-    
-    POST /api/register-fcm-token/
-    Body: {
-        "token": "fcm_token_string",
-        "platform": "android",  // opcional: android, ios, web
-        "device_id": "device_unique_id"  // opcional
-    }
-    """
-    from .fcm_notifications import register_fcm_token
-    from .models import AppUser
-    
-    try:
-        # Obtener datos del request
-        token = request.data.get('token')
-        platform = request.data.get('platform', 'android')
-        device_id = request.data.get('device_id')
-        user_id = request.data.get('user_id')  # ID del usuario
-        
-        if not token:
-            return JsonResponse({
-                'success': False,
-                'error': 'Token FCM requerido'
-            }, status=400)
-        
-        # Obtener usuario
-        if user_id:
-            try:
-                user = AppUser.objects.get(id=user_id)
-            except AppUser.DoesNotExist:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'Usuario con ID {user_id} no encontrado'
-                }, status=404)
-        elif request.user.is_authenticated:
-            user = request.user
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': 'Usuario no autenticado y no se proporcionó user_id'
+                'error': 'Usuario no autenticado y no se proporcionó user_id. Por favor, incluye "user_id" en el body del request.'
             }, status=401)
         
         # Registrar token

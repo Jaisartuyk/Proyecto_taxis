@@ -110,6 +110,16 @@ def send_fcm_notification(
     
     for fcm_token in tokens:
         try:
+            # ⚠️ IMPORTANTE: Para que las notificaciones funcionen cuando la app está cerrada,
+            # necesitamos tanto 'notification' (para mostrar la notificación) como 'data' (para el handler)
+            # Además, el payload 'data' debe tener todos los valores como strings
+            
+            # Convertir data a strings (FCM requiere que todos los valores sean strings)
+            data_payload = {}
+            if data:
+                for key, value in data.items():
+                    data_payload[str(key)] = str(value) if value is not None else ''
+            
             # Construir mensaje
             message = messaging.Message(
                 notification=messaging.Notification(
@@ -117,14 +127,20 @@ def send_fcm_notification(
                     body=body,
                     image=image_url
                 ),
-                data=data or {},
+                data=data_payload,  # Datos para el handler de background
                 android=messaging.AndroidConfig(
-                    priority='high',
+                    priority='high',  # Alta prioridad para que llegue incluso cuando la app está cerrada
+                    ttl=86400,  # 24 horas de validez
                     notification=messaging.AndroidNotification(
                         sound=sound,
-                        channel_id='default',
+                        channel_id='high_importance_channel',  # Usar el mismo canal que Flutter
                         color='#FF6B35',  # Color de la app
                         icon='ic_notification',
+                        priority='high',  # Alta prioridad
+                        visibility='public',  # Visible incluso cuando el dispositivo está bloqueado
+                        default_sound=True,
+                        default_vibrate_timings=True,
+                        default_light_settings=True,
                     )
                 ),
                 apns=messaging.APNSConfig(
@@ -132,6 +148,11 @@ def send_fcm_notification(
                         aps=messaging.Aps(
                             sound=sound,
                             badge=1,
+                            content_available=True,  # Permite que el handler se ejecute en background
+                            alert=messaging.ApsAlert(
+                                title=title,
+                                body=body,
+                            ),
                         )
                     )
                 ),
@@ -141,7 +162,12 @@ def send_fcm_notification(
             # Enviar
             response = messaging.send(message)
             results['sent'] += 1
-            logger.info(f"✅ Notificación enviada a {user.username}: {response}")
+            logger.info(f"✅ Notificación FCM enviada a {user.username}")
+            logger.info(f"   Token: {fcm_token.token[:30]}...")
+            logger.info(f"   Título: {title}")
+            logger.info(f"   Cuerpo: {body[:50]}...")
+            logger.info(f"   Data: {data_payload}")
+            logger.info(f"   Response: {response}")
             
         except messaging.UnregisteredError:
             # Token inválido - desactivar
@@ -306,14 +332,18 @@ def send_chat_message_notification_fcm(sender: User, recipient: User, message: s
         recipient: Usuario que recibe
         message: Contenido del mensaje
     """
-    title = f"💬 {sender.get_full_name()}"
+    title = f"💬 {sender.get_full_name() or sender.username}"
     body = message[:100]  # Limitar a 100 caracteres
     data = {
         'type': 'chat_message',
         'sender_id': str(sender.id),
-        'sender_name': sender.get_full_name(),
-        'message': message
+        'sender_name': sender.get_full_name() or sender.username,
+        'message': message,
+        'click_action': 'FLUTTER_NOTIFICATION_CLICK',  # Para que Flutter maneje el tap
     }
+    
+    logger.info(f"📤 Enviando notificación FCM de chat: {sender.username} -> {recipient.username}")
+    logger.info(f"   Mensaje: {message[:50]}...")
     
     return send_fcm_notification(recipient, title, body, data)
 

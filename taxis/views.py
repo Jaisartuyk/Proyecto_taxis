@@ -1489,17 +1489,60 @@ def list_drivers(request):
         messages.error(request, "No tienes permiso para acceder a esta página.")
         return redirect('home')
 
+    # Obtener parámetros de búsqueda y filtrado
+    search_query = request.GET.get('search', '').strip()
+    filter_status = request.GET.get('status', 'all')  # all, online, offline
+    filter_vehicle = request.GET.get('vehicle', 'all')  # all, with_vehicle, without_vehicle
+    
     # Obtener conductores con información relacionada
     drivers = AppUser.objects.filter(role='driver').select_related('taxi').prefetch_related('rides_as_driver')
     
-    # Calcular estadísticas
+    # Aplicar búsqueda
+    if search_query:
+        drivers = drivers.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(taxi__plate_number__icontains=search_query)
+        )
+    
+    # Aplicar filtro de estado (ubicación)
+    if filter_status == 'online':
+        drivers = drivers.filter(taxi__latitude__isnull=False, taxi__longitude__isnull=False)
+    elif filter_status == 'offline':
+        drivers = drivers.filter(
+            Q(taxi__latitude__isnull=True) | Q(taxi__longitude__isnull=True) | Q(taxi__isnull=True)
+        )
+    
+    # Aplicar filtro de vehículo
+    if filter_vehicle == 'with_vehicle':
+        drivers = drivers.filter(taxi__isnull=False)
+    elif filter_vehicle == 'without_vehicle':
+        drivers = drivers.filter(taxi__isnull=True)
+    
+    # Calcular estadísticas (antes de paginación)
+    total_drivers_all = AppUser.objects.filter(role='driver').count()
     total_drivers = drivers.count()
-    drivers_with_taxi = drivers.filter(taxi__isnull=False).count()
-    drivers_with_location = drivers.filter(taxi__latitude__isnull=False, taxi__longitude__isnull=False).count()
+    drivers_with_taxi = AppUser.objects.filter(role='driver', taxi__isnull=False).count()
+    drivers_with_location = AppUser.objects.filter(
+        role='driver', 
+        taxi__latitude__isnull=False, 
+        taxi__longitude__isnull=False
+    ).count()
+    
+    # Paginación
+    from django.core.paginator import Paginator
+    paginator = Paginator(drivers, 12)  # 12 conductores por página
+    page_number = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.get_page(page_number)
+    except:
+        page_obj = paginator.get_page(1)
     
     # Agregar información adicional a cada conductor
     drivers_list = []
-    for driver in drivers:
+    for driver in page_obj:
         taxi = getattr(driver, 'taxi', None)
         # Usar rides_as_driver que es el related_name definido en el modelo Ride
         rides_queryset = driver.rides_as_driver.all()
@@ -1518,9 +1561,14 @@ def list_drivers(request):
     
     context = {
         'drivers': drivers_list,
+        'page_obj': page_obj,
         'total_drivers': total_drivers,
+        'total_drivers_all': total_drivers_all,
         'drivers_with_taxi': drivers_with_taxi,
         'drivers_with_location': drivers_with_location,
+        'search_query': search_query,
+        'filter_status': filter_status,
+        'filter_vehicle': filter_vehicle,
     }
     
     return render(request, 'list_drivers.html', context)

@@ -326,11 +326,61 @@
         {% endfor %}
     {% endif %}
 
+    <!-- Barra de Búsqueda y Filtros -->
+    <div class="search-filters-bar" style="background: rgba(31, 31, 31, 0.8); border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid #2d2d2d;">
+        <form method="GET" action="{% url 'list_drivers' %}" class="search-filters-form" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+            <!-- Búsqueda -->
+            <div style="flex: 1; min-width: 250px;">
+                <label for="search" style="display: block; color: #b0b0b0; margin-bottom: 0.5rem; font-size: 0.9rem;">🔍 Buscar</label>
+                <input type="text" 
+                       id="search" 
+                       name="search" 
+                       value="{{ search_query }}" 
+                       placeholder="Nombre, teléfono, placa..." 
+                       style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid #2d2d2d; background: rgba(20, 20, 20, 0.8); color: #ffffff; font-size: 1rem;">
+            </div>
+            
+            <!-- Filtro de Estado -->
+            <div style="min-width: 150px;">
+                <label for="status" style="display: block; color: #b0b0b0; margin-bottom: 0.5rem; font-size: 0.9rem;">📍 Estado</label>
+                <select id="status" 
+                        name="status" 
+                        style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid #2d2d2d; background: rgba(20, 20, 20, 0.8); color: #ffffff; font-size: 1rem;">
+                    <option value="all" {% if filter_status == 'all' %}selected{% endif %}>Todos</option>
+                    <option value="online" {% if filter_status == 'online' %}selected{% endif %}>En línea</option>
+                    <option value="offline" {% if filter_status == 'offline' %}selected{% endif %}>Sin ubicación</option>
+                </select>
+            </div>
+            
+            <!-- Filtro de Vehículo -->
+            <div style="min-width: 150px;">
+                <label for="vehicle" style="display: block; color: #b0b0b0; margin-bottom: 0.5rem; font-size: 0.9rem;">🚗 Vehículo</label>
+                <select id="vehicle" 
+                        name="vehicle" 
+                        style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid #2d2d2d; background: rgba(20, 20, 20, 0.8); color: #ffffff; font-size: 1rem;">
+                    <option value="all" {% if filter_vehicle == 'all' %}selected{% endif %}>Todos</option>
+                    <option value="with_vehicle" {% if filter_vehicle == 'with_vehicle' %}selected{% endif %}>Con vehículo</option>
+                    <option value="without_vehicle" {% if filter_vehicle == 'without_vehicle' %}selected{% endif %}>Sin vehículo</option>
+                </select>
+            </div>
+            
+            <!-- Botones -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" style="padding: 0.75rem 1.5rem; border-radius: 10px; border: none; background: linear-gradient(135deg, #FFD700, #FFC107); color: #000; font-weight: 600; cursor: pointer; font-size: 1rem; transition: transform 0.2s;">
+                    Buscar
+                </button>
+                <a href="{% url 'list_drivers' %}" style="padding: 0.75rem 1.5rem; border-radius: 10px; border: 1px solid #2d2d2d; background: rgba(20, 20, 20, 0.8); color: #ffffff; font-weight: 600; text-decoration: none; display: inline-block; font-size: 1rem; transition: transform 0.2s;">
+                    Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
     <!-- Estadísticas -->
     <div class="stats-bar">
         <div class="stat-card">
             <div class="stat-number">{{ total_drivers }}</div>
-            <div class="stat-label">Total Conductores</div>
+            <div class="stat-label">Mostrando ({{ total_drivers_all }} total)</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ drivers_with_location }}</div>
@@ -439,11 +489,47 @@
                 {% endwith %}
             {% endfor %}
         </div>
+
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-container" style="margin-top: 2rem; display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div style="color: #b0b0b0; font-size: 0.9rem;">
+                Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} conductores
+            </div>
+            <div class="pagination" style="display: flex; gap: 0.5rem; align-items: center;">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}{% if filter_vehicle != 'all' %}&vehicle={{ filter_vehicle }}{% endif %}" 
+                       style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #2d2d2d; background: rgba(31, 31, 31, 0.8); color: #ffffff; text-decoration: none; transition: all 0.3s;">
+                        « Primera
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}{% if filter_vehicle != 'all' %}&vehicle={{ filter_vehicle }}{% endif %}" 
+                       style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #2d2d2d; background: rgba(31, 31, 31, 0.8); color: #ffffff; text-decoration: none; transition: all 0.3s;">
+                        ‹ Anterior
+                    </a>
+                {% endif %}
+
+                <span style="padding: 0.5rem 1rem; border-radius: 8px; background: linear-gradient(135deg, #FFD700, #FFC107); color: #000; font-weight: 600;">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}{% if filter_vehicle != 'all' %}&vehicle={{ filter_vehicle }}{% endif %}" 
+                       style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #2d2d2d; background: rgba(31, 31, 31, 0.8); color: #ffffff; text-decoration: none; transition: all 0.3s;">
+                        Siguiente ›
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_status != 'all' %}&status={{ filter_status }}{% endif %}{% if filter_vehicle != 'all' %}&vehicle={{ filter_vehicle }}{% endif %}" 
+                       style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #2d2d2d; background: rgba(31, 31, 31, 0.8); color: #ffffff; text-decoration: none; transition: all 0.3s;">
+                        Última »
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     {% else %}
         <div class="empty-state">
             <i class="fas fa-users-slash"></i>
-            <h3>No hay conductores registrados</h3>
-            <p>Los conductores aparecerán aquí una vez que se registren en el sistema.</p>
+            <h3>No se encontraron conductores</h3>
+            <p>Intenta ajustar los filtros de búsqueda.</p>
         </div>
     {% endif %}
 </div>

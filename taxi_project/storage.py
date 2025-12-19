@@ -14,6 +14,30 @@ class SafeCompressedStaticFilesStorage(CompressedStaticFilesStorage):
     de forma segura durante collectstatic
     """
     
+    def _compress_path(self, path):
+        """
+        Sobrescribe _compress_path para manejar archivos que pueden no existir
+        durante la compresión paralela de WhiteNoise
+        """
+        full_path = os.path.join(self.location, path)
+        
+        # Verificar que el archivo existe antes de intentar comprimirlo
+        if not os.path.exists(full_path):
+            logger.warning(f"Archivo no encontrado durante compresion (ignorado): {full_path}")
+            return []  # Retornar lista vacía si el archivo no existe
+        
+        try:
+            # Llamar al método del padre solo si el archivo existe
+            return super()._compress_path(path)
+        except FileNotFoundError:
+            # El archivo pudo haber sido eliminado durante la compresión
+            logger.warning(f"Archivo eliminado durante compresion (ignorado): {full_path}")
+            return []  # Retornar lista vacía si el archivo fue eliminado
+        except Exception as e:
+            # Cualquier otro error durante la compresión
+            logger.warning(f"Error durante compresion de {path} (ignorado): {e}")
+            return []  # Retornar lista vacía en caso de error
+    
     def post_process(self, paths, dry_run=False, **options):
         """
         Sobrescribe post_process para manejar archivos que pueden no existir

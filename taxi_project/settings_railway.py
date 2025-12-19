@@ -227,16 +227,22 @@ if RAILWAY_ENVIRONMENT:
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     
+    # Configuración de archivos estáticos para Railway
+    # Asegurar que STATIC_ROOT y STATICFILES_DIRS estén correctamente configurados
+    import os
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'taxis', 'static')]  # Ruta a tus archivos estáticos
+    
     # Configuración de WhiteNoise
     # IMPORTANTE: WhiteNoise sirve archivos desde STATIC_ROOT automáticamente
     # Configurar para que funcione correctamente con archivos copiados manualmente
-    import os
     # Configurar WHITENOISE_ROOT explícitamente para asegurar que apunte al directorio correcto
     WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz
     WHITENOISE_USE_FINDERS = True  # Habilitar finders como fallback adicional
     WHITENOISE_AUTOREFRESH = True  # Habilitar auto-refresh para detectar archivos nuevos
     WHITENOISE_INDEX_FILE = False  # No usar index.html automático
     WHITENOISE_MANIFEST_STRICT = False  # No ser estricto con el manifest
+    WHITENOISE_ALLOW_ALL_ORIGINS = True  # Permitir todos los orígenes (útil para debugging)
     
     # WhiteNoise servirá archivos desde STATIC_ROOT (configurado explícitamente)
     # Los archivos copiados manualmente en pre-deploy estarán disponibles

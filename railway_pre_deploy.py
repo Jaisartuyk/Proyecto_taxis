@@ -18,20 +18,49 @@ if __name__ == "__main__":
     print("\n" + "="*60)
     print("PRE-DEPLOY: COLECTANDO ARCHIVOS ESTATICOS")
     print("="*60 + "\n")
-    print("[INFO] Usando storage sin compresion para evitar errores")
-    print("[INFO] La compresion se hara automaticamente en tiempo de ejecucion\n")
     
-    # Guardar storage original
+    # Verificar configuración
+    print(f"[DEBUG] STATIC_ROOT: {settings.STATIC_ROOT}")
+    print(f"[DEBUG] STATICFILES_DIRS: {settings.STATICFILES_DIRS}")
+    print(f"[DEBUG] STATICFILES_STORAGE: {settings.STATICFILES_STORAGE}")
+    
+    # Verificar que los directorios existan
+    for static_dir in settings.STATICFILES_DIRS:
+        exists = os.path.exists(static_dir)
+        print(f"[DEBUG] Directorio {static_dir}: {'EXISTE' if exists else 'NO EXISTE'}")
+        if exists:
+            # Listar algunos archivos
+            try:
+                files = []
+                for root, dirs, filenames in os.walk(static_dir):
+                    for filename in filenames[:10]:  # Solo primeros 10
+                        files.append(os.path.join(root, filename))
+                print(f"[DEBUG] Archivos encontrados (primeros 10): {len(files)}")
+                for f in files[:5]:
+                    print(f"  - {f}")
+            except Exception as e:
+                print(f"[DEBUG] Error listando archivos: {e}")
+    
+    # Verificar finders antes de ejecutar
+    from django.contrib.staticfiles.finders import get_finders
+    print("\n[DEBUG] Finders de archivos estaticos:")
+    for finder in get_finders():
+        print(f"  - {finder.__class__.__name__}")
+    
+    # Usar storage sin compresión para evitar errores de compresión paralela
+    # La compresión se hará automáticamente en tiempo de ejecución por WhiteNoise
     original_storage = settings.STATICFILES_STORAGE
+    print(f"\n[INFO] Storage original: {original_storage}")
+    print("[INFO] Cambiando temporalmente a storage sin compresion...")
     
     try:
-        # Cambiar temporalmente a storage sin compresión
+        # Cambiar a storage sin compresión
         settings.STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
         
-        # Ejecutar collectstatic
+        # Ejecutar collectstatic con verbosity 2 para ver detalles
         from django.core.management import call_command
         call_command('collectstatic', 
-                    verbosity=1, 
+                    verbosity=2,  # Verbosity alto para ver qué archivos encuentra
                     interactive=False, 
                     ignore_patterns=['cloudinary'])
         
@@ -44,6 +73,6 @@ if __name__ == "__main__":
         traceback.print_exc()
         sys.exit(1)
     finally:
-        # Restaurar storage original (aunque ya no importa)
+        # Restaurar storage original
         settings.STATICFILES_STORAGE = original_storage
 

@@ -3,6 +3,15 @@
 
 {% block title %}Central de Comunicación{% endblock %}
 
+{% block extra_head %}
+<script>
+    // Agregar clase al body para ocultar botón flotante en esta vista
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.classList.add('central-comunicacion-page');
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <style>
     /* === ANIMACIONES PARA SISTEMA DE AUDIO === */

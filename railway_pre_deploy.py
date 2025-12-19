@@ -57,13 +57,40 @@ if __name__ == "__main__":
         # Cambiar a storage sin compresión
         settings.STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
         
+        # Verificar que los finders encuentren los archivos antes de copiar
+        print("\n[DEBUG] Verificando que los finders encuentren los archivos nuevos:")
+        from django.contrib.staticfiles.finders import find
+        archivos_buscar = [
+            'css/floating-audio-button.css',
+            'js/audio-floating-button.js',
+        ]
+        for archivo in archivos_buscar:
+            ruta_encontrada = find(archivo)
+            if ruta_encontrada:
+                print(f"  [OK] {archivo} encontrado en: {ruta_encontrada}")
+            else:
+                print(f"  [ERROR] {archivo} NO encontrado por los finders")
+        
+        # Limpiar staticfiles/ manualmente antes de copiar
+        static_root = settings.STATIC_ROOT
+        if os.path.exists(static_root):
+            print(f"\n[INFO] Limpiando {static_root}...")
+            import shutil
+            try:
+                shutil.rmtree(static_root)
+                os.makedirs(static_root)
+                print(f"[OK] {static_root} limpiado correctamente")
+            except Exception as e:
+                print(f"[WARNING] Error limpiando {static_root}: {e}")
+        
         # Ejecutar collectstatic con --clear para forzar copia de archivos nuevos
         # Usamos --clear porque estamos usando storage sin compresión (no causa conflictos)
         from django.core.management import call_command
+        print("\n[INFO] Ejecutando collectstatic...")
         call_command('collectstatic', 
                     verbosity=2,  # Verbosity alto para ver qué archivos encuentra
                     interactive=False,
-                    clear=True,  # Limpiar staticfiles/ antes de copiar (seguro con storage sin compresión)
+                    clear=False,  # Ya limpiamos manualmente
                     ignore_patterns=['cloudinary'])
         
         # Verificar que los archivos nuevos se copiaron correctamente

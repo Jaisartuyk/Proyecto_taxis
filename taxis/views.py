@@ -118,15 +118,42 @@ def profile_view(request):
 
     if user.role == 'driver':
         # Verificar si el taxista tiene un taxi asignado
-        if hasattr(user, 'taxi'):
-            context.update({
-                'taxi': user.taxi,  # Relación OneToOne con el modelo Taxi
-            })
-        else:
-            # Si no tiene taxi, puedes asignar un valor por defecto o manejar el caso
-            context.update({
-                'taxi': None,
-            })
+        taxi = getattr(user, 'taxi', None)
+        context['taxi'] = taxi
+        
+        # Estadísticas del conductor
+        rides_queryset = user.rides_as_driver.all()
+        total_rides = rides_queryset.count()
+        completed_rides = rides_queryset.filter(status='completed').count()
+        active_rides = rides_queryset.filter(status__in=['accepted', 'in_progress']).count()
+        canceled_rides = rides_queryset.filter(status='canceled').count()
+        
+        # Calcular ganancias
+        from django.db.models import Sum
+        total_earnings = rides_queryset.filter(
+            status='completed',
+            price__isnull=False
+        ).aggregate(total=Sum('price'))['total'] or 0
+        
+        context.update({
+            'total_rides': total_rides,
+            'completed_rides': completed_rides,
+            'active_rides': active_rides,
+            'canceled_rides': canceled_rides,
+            'total_earnings': total_earnings,
+            'has_location': taxi and taxi.latitude and taxi.longitude if taxi else False,
+        })
+    elif user.role == 'customer':
+        # Estadísticas del cliente
+        rides_queryset = user.rides_as_customer.all()
+        total_rides = rides_queryset.count()
+        completed_rides = rides_queryset.filter(status='completed').count()
+        active_rides = rides_queryset.filter(status__in=['requested', 'accepted', 'in_progress']).count()
+        context.update({
+            'total_rides': total_rides,
+            'completed_rides': completed_rides,
+            'active_rides': active_rides,
+        })
 
     return render(request, 'registration/profile.html', context)
 

@@ -123,6 +123,21 @@ if __name__ == "__main__":
         
         print(f"\n[DEBUG] Total de archivos encontrados por finders: {len(archivos_encontrados)}")
         
+        # Ejecutar collectstatic primero para copiar archivos de otras apps
+        # Luego copiar manualmente los archivos de taxis/static para asegurar que estén
+        print("\n[INFO] Ejecutando collectstatic para copiar archivos de otras apps...")
+        from django.core.management import call_command
+        try:
+            call_command('collectstatic', 
+                        verbosity=1,  # Verbosity medio
+                        interactive=False,
+                        clear=False,  # Ya limpiamos manualmente
+                        ignore_patterns=['cloudinary'],
+                        link=False)  # No usar symlinks
+            print("[OK] collectstatic completado")
+        except Exception as e:
+            print(f"[WARNING] collectstatic falló (continuando con copia manual): {e}")
+        
         # SIEMPRE copiar archivos de taxis/static manualmente como respaldo
         # Esto asegura que los archivos estén disponibles incluso si collectstatic falla
         print("\n[INFO] Copiando archivos de taxis/static manualmente...")
@@ -149,6 +164,7 @@ if __name__ == "__main__":
                         src_file = os.path.join(root, file)
                         dst_file = os.path.join(dest_path, file)
                         try:
+                            # Copiar archivo, sobrescribiendo si existe
                             shutil.copy2(src_file, dst_file)
                             files_copied += 1
                             if files_copied <= 15:  # Mostrar primeros 15
@@ -157,22 +173,22 @@ if __name__ == "__main__":
                             print(f"  [ERROR] No se pudo copiar {file}: {copy_error}")
             
             print(f"\n[OK] {files_copied} archivos copiados manualmente desde taxis/static a {dest_dir}")
+            
+            # Verificar que los archivos críticos estén presentes
+            critical_files = [
+                'css/floating-audio-button.css',
+                'js/audio-floating-button.js',
+            ]
+            print("\n[INFO] Verificando archivos críticos después de la copia:")
+            for file_path in critical_files:
+                full_path = os.path.join(dest_dir, file_path)
+                if os.path.exists(full_path):
+                    size = os.path.getsize(full_path)
+                    print(f"  [OK] {file_path} - {size} bytes")
+                else:
+                    print(f"  [ERROR] {file_path} - NO ENCONTRADO")
         else:
             print(f"[ERROR] Directorio fuente no existe: {source_dir}")
-        
-        # También ejecutar collectstatic para copiar archivos de otras apps (como rest_framework)
-        print("\n[INFO] Ejecutando collectstatic para copiar archivos de otras apps...")
-        from django.core.management import call_command
-        try:
-            call_command('collectstatic', 
-                        verbosity=1,  # Verbosity medio
-                        interactive=False,
-                        clear=False,  # Ya limpiamos manualmente
-                        ignore_patterns=['cloudinary'],
-                        link=False)  # No usar symlinks
-            print("[OK] collectstatic completado")
-        except Exception as e:
-            print(f"[WARNING] collectstatic falló (no crítico): {e}")
         
         # Verificar que los archivos nuevos se copiaron correctamente
         print("\n" + "="*60)

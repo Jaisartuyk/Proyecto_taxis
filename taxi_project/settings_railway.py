@@ -182,24 +182,24 @@ if RAILWAY_ENVIRONMENT:
     STATICFILES_FINDERS = [
         'django.contrib.staticfiles.finders.AppDirectoriesFinder',  # Solo AppDirectoriesFinder
     ]
-    # Usar storage simple para producción - WhiteNoise comprimirá automáticamente al servir
-    # Esto evita problemas con la compresión durante collectstatic
+    # Usar storage simple - WhiteNoise comprimirá automáticamente al servir
+    # Esto evita problemas con archivos copiados manualmente
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     
     # Configuración de WhiteNoise
-    # IMPORTANTE: WhiteNoise debe servir archivos desde STATIC_ROOT
-    # Usar configuración que permita servir archivos sin compresión primero
-    WHITENOISE_USE_FINDERS = True  # Habilitar finders como fallback si los archivos no están en STATIC_ROOT
+    # IMPORTANTE: WhiteNoise sirve archivos desde STATIC_ROOT automáticamente
+    # WhiteNoise comprimirá los archivos automáticamente al servirlos (on-the-fly compression)
+    WHITENOISE_USE_FINDERS = True  # Habilitar finders como fallback
     WHITENOISE_AUTOREFRESH = True  # Habilitar auto-refresh para detectar archivos nuevos
-    WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz de WhiteNoise
+    WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz
     WHITENOISE_INDEX_FILE = False  # No usar index.html automático
+    WHITENOISE_MANIFEST_STRICT = False  # No ser estricto con el manifest
+    WHITENOISE_ADD_HEADERS_FUNCTION = None  # Usar configuración por defecto
     
-    # Configuración adicional de WhiteNoise para manejar archivos que pueden no existir
-    # Esto evita errores cuando WhiteNoise intenta comprimir archivos que fueron eliminados
-    WHITENOISE_MANIFEST_STRICT = False
-    
-    # WhiteNoise intentará servir desde STATIC_ROOT primero, luego desde finders como fallback
+    # WhiteNoise servirá archivos desde STATIC_ROOT automáticamente
+    # Los archivos copiados manualmente en pre-deploy estarán disponibles
+    # WhiteNoise comprimirá automáticamente al servir (no necesita pre-compresión)
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

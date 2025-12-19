@@ -51,22 +51,35 @@ if __name__ == "__main__":
         "Aplicando migraciones de base de datos (AUTOMATICO)"
     )
     
-    # 3. Collectstatic (DESPUES de migraciones)
-    # NOTA: Si se ejecutó en pre-deploy, los archivos ya están copiados
-    # Solo ejecutamos collectstatic si los archivos no existen (fallback)
-    # No usamos --clear porque causa conflictos con WhiteNoise al intentar comprimir archivos eliminados
+    # 3. Verificar archivos estáticos y WhiteNoise
     import os
     staticfiles_dir = os.path.join(os.path.dirname(__file__), 'staticfiles')
     if os.path.exists(staticfiles_dir) and os.listdir(staticfiles_dir):
-        print(f"\n[INFO] Archivos estaticos ya copiados en pre-deploy, omitiendo collectstatic")
-        print(f"[INFO] WhiteNoise comprimira los archivos automaticamente al servirlos")
+        print(f"\n[INFO] Archivos estaticos ya copiados en pre-deploy")
+        
+        # Verificar que los archivos críticos estén presentes
+        critical_files = [
+            'css/floating-audio-button.css',
+            'js/audio-floating-button.js',
+        ]
+        from django.conf import settings
+        all_ok = True
+        for file_path in critical_files:
+            full_path = os.path.join(staticfiles_dir, file_path)
+            if os.path.exists(full_path):
+                size = os.path.getsize(full_path)
+                print(f"  [OK] {file_path} - {size} bytes")
+            else:
+                print(f"  [ERROR] {file_path} - NO ENCONTRADO")
+                all_ok = False
+        
+        if all_ok:
+            print(f"[INFO] Archivos críticos verificados, WhiteNoise los servirá desde {staticfiles_dir}")
+        else:
+            print(f"[WARNING] Algunos archivos críticos faltan, pero continuando...")
     else:
         print(f"\n[WARNING] Archivos estaticos no encontrados, ejecutando collectstatic...")
         run_command(
-            # IMPORTANTE (Railway): verbosity 0 para evitar rate limit de logs (500 logs/s)
-            # --noinput: no pide confirmación
-            # --ignore cloudinary: ignora archivos de Cloudinary (se sirven desde su CDN)
-            # Sin --clear: evita conflictos con WhiteNoise durante la compresión
             "python manage.py collectstatic --noinput --verbosity 0 --ignore cloudinary",
             "Recopilando archivos estaticos (silencioso, ignorando Cloudinary)"
         )

@@ -172,11 +172,14 @@ if RAILWAY_ENVIRONMENT:
     
     # Configuración de archivos estáticos para Railway
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    # IMPORTANTE: taxis/static debe ir PRIMERO para tener prioridad sobre static/ raíz
-    # Esto asegura que los archivos nuevos (como floating-audio-button) se copien correctamente
+    # IMPORTANTE: Solo usar taxis/static para evitar conflictos con archivos duplicados
+    # El directorio static/ raíz puede tener archivos duplicados que causan problemas
     STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, 'taxis', 'static'),  # PRIORIDAD: archivos de la app primero
-        os.path.join(BASE_DIR, 'static'),  # Archivos generales después
+        os.path.join(BASE_DIR, 'taxis', 'static'),  # Solo archivos de la app taxis
+    ]
+    # Desactivar AppDirectoriesFinder para evitar que busque en otras apps y cause duplicados
+    STATICFILES_FINDERS = [
+        'django.contrib.staticfiles.finders.FileSystemFinder',  # Solo usar FileSystemFinder
     ]
     # Usar storage personalizado que maneja archivos faltantes de forma segura
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/

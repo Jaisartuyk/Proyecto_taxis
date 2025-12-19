@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-5 p-4 rounded" style="color: #e9ecef; background-color: #212529;">
+    <h2 class="text-center">🚗 Carreras Activas</h2>
+    <p class="text-center text-muted">Carreras en curso (Aceptadas o En Progreso)</p>
+
+    {% if rides %}
+      <div class="table-responsive">
+        <table class="table table-striped table-hover table-dark" id="rides-table">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Conductor</th>
+              <th>Cliente</th>
+              <th>Origen</th>
+              <th>Destino</th>
+              <th>Precio</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ride in rides %}
+              <tr id="ride-{{ ride.id }}">
+                <td>{{ ride.id }}</td>
+                <td>
+                  {% if ride.driver %}
+                    {{ ride.driver.get_full_name|default:ride.driver.username }}
+                  {% else %}
+                    <span class="text-muted">Sin asignar</span>
+                  {% endif %}
+                </td>
+                <td>{{ ride.customer.get_full_name|default:ride.customer.username }}</td>
+                <td>{{ ride.origin }}</td>
+                <td>
+                  {% for destination in ride.destinations.all %}
+                    {{ destination.destination }}<br>
+                  {% empty %}
+                    No hay destinos
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if ride.price %}
+                    ${{ ride.price|floatformat:2 }}
+                  {% else %}
+                    <span class="text-muted">Sin precio</span>
+                  {% endif %}
+                </td>
+                <td class="status-{{ ride.id }}">
+                  <span class="badge
+                    {% if ride.status == 'accepted' %}bg-info{% elif ride.status == 'in_progress' %}bg-primary{% elif ride.status == 'completed' %}bg-success{% else %}bg-danger{% endif %}">
+                    {% if ride.status == 'accepted' %}
+                      ✓ Aceptada
+                    {% elif ride.status == 'in_progress' %}
+                      🚗 En Progreso
+                    {% else %}
+                      {{ ride.get_status_display }}
+                    {% endif %}
+                  </span>
+                </td>
+                <td>
+                  <a href="{% url 'ride_detail' ride.id %}" class="btn btn-info btn-sm">Ver Detalle</a>
+
+                  {% if ride.status == 'accepted' %}
+                    <form method="POST" action="{% url 'update_ride_status' ride.id %}" class="status-form d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="status" value="in_progress">
+                      <button type="submit" class="btn btn-primary btn-sm">Iniciar Viaje</button>
+                    </form>
+                  {% endif %}
+
+                  {% if ride.status == 'in_progress' %}
+                    <form method="POST" action="{% url 'update_ride_status' ride.id %}" class="status-form d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="status" value="completed">
+                      <button type="submit" class="btn btn-success btn-sm">Completar</button>
+                    </form>
+                  {% endif %}
+
+                  {% if ride.status in 'accepted,in_progress' %}
+                    <form method="POST" action="{% url 'update_ride_status' ride.id %}" class="status-form d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="status" value="canceled">
+                      <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de cancelar esta carrera?');">Cancelar</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i> No hay carreras activas en este momento.
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Manejar la actualización de estado
+        const statusForms = document.querySelectorAll('.status-form');
+        statusForms.forEach(form => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = document.getElementById(`ride-${data.ride_id}`);
+
+                        if (data.new_status === 'Cancelada' || data.new_status === 'Completada') {
+                            // Eliminar la carrera de la lista si fue cancelada o completada
+                            if (row) row.remove();
+                            alert('Carrera actualizada exitosamente');
+                        } else if (data.redirect_url) {
+                            // Redirigir a la página de detalles si es necesario
+                            window.location.href = data.redirect_url;
+                        } else {
+                            // Actualizar el estado en la tabla sin recargar
+                            const statusCell = row.querySelector(`.status-${data.ride_id}`);
+                            if (statusCell) {
+                                statusCell.innerHTML = `<span class="badge bg-primary">${data.new_status}</span>`;
+                            }
+                            alert('Estado actualizado con éxito');
+                        }
+                    } else {
+                        alert(data.error || "Ocurrió un error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ocurrió un error al actualizar el estado.');
+                });
+            });
+        });
+      });
+    </script>
+
+    <script>
+        // Recargar la página automáticamente cada 10 segundos para ver actualizaciones en tiempo real
+        setInterval(function() {
+            location.reload();
+        }, 10000);
+    </script>
+
+{% endblock %}
+

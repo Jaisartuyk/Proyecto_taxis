@@ -1131,6 +1131,20 @@ def available_rides(request):
     return render(request, 'available_rides.html', {'rides': rides})
 
 
+@login_required
+def active_rides(request):
+    """Vista para mostrar carreras activas (accepted o in_progress)"""
+    if not request.user.is_superuser and request.user.role != 'admin':
+        return JsonResponse({'error': 'Acceso no permitido'}, status=403)
+    
+    # Obtener carreras activas (aceptadas o en progreso)
+    rides = Ride.objects.filter(
+        status__in=['accepted', 'in_progress']
+    ).select_related('driver', 'customer').prefetch_related('destinations').order_by('-created_at')
+    
+    return render(request, 'active_rides.html', {'rides': rides})
+
+
 
 @login_required
 def update_ride_status(request, ride_id):

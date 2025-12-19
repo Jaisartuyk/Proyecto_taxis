@@ -30,6 +30,7 @@ urlpatterns = [
     path('unirse-a-ruta/<int:route_id>/', views.join_taxi_route_view, name='join_taxi_route'),
     path('request-ride/', views.request_ride, name='request_ride'),
     path('available-rides/', views.available_rides, name='available_rides'),
+    path('active-rides/', views.active_rides, name='active_rides'),
     path('update-ride-status/<int:ride_id>/', views.update_ride_status, name='update_ride_status'),
     path('ride_status/<int:ride_id>/', views.ride_status, name='ride_status'),
     path('ride/<int:ride_id>/', views.ride_detail, name='ride_detail'),

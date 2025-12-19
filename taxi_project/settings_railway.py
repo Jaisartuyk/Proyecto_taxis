@@ -176,8 +176,21 @@ if RAILWAY_ENVIRONMENT:
         os.path.join(BASE_DIR, 'static'),
         os.path.join(BASE_DIR, 'taxis', 'static'),
     ]
-    # Cambio a ManifestStaticFilesStorage para evitar eliminación de archivos
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    # Usar CompressedStaticFilesStorage en lugar de Manifest para evitar errores con archivos de Cloudinary
+    # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    
+    # Configuración de WhiteNoise para ignorar archivos faltantes (como los de Cloudinary)
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+    
+    # Excluir archivos de Cloudinary del finder de staticfiles
+    # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/
+    STATICFILES_FINDERS = [
+        'django.contrib.staticfiles.finders.FileSystemFinder',
+        'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+        # No incluir 'cloudinary_storage.finders.CloudinaryStaticFilesFinder' para evitar errores
+    ]
     
     # Configuración de logging para Railway
     LOGGING = {

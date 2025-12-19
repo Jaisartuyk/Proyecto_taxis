@@ -161,6 +161,18 @@ if RAILWAY_ENVIRONMENT:
     print(f"🔧 [RAILWAY] Channel Layer: Redis")
     print(f"🔗 [RAILWAY] Redis URL: {REDIS_URL}")
     
+    # Verificar que WhiteNoise esté en el middleware
+    # El orden actual en settings.py es correcto (después de SecurityMiddleware)
+    if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
+        # Si WhiteNoise no está en el middleware, agregarlo
+        MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+        print("[WHITENOISE] WhiteNoiseMiddleware agregado al MIDDLEWARE")
+    else:
+        print("[WHITENOISE] WhiteNoiseMiddleware ya está en MIDDLEWARE")
+        # Verificar posición
+        whitenoise_index = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
+        print(f"[WHITENOISE] WhiteNoiseMiddleware está en posición {whitenoise_index} del MIDDLEWARE")
+    
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
@@ -189,17 +201,44 @@ if RAILWAY_ENVIRONMENT:
     
     # Configuración de WhiteNoise
     # IMPORTANTE: WhiteNoise sirve archivos desde STATIC_ROOT automáticamente
-    # WhiteNoise comprimirá los archivos automáticamente al servirlos (on-the-fly compression)
-    WHITENOISE_USE_FINDERS = True  # Habilitar finders como fallback
+    # Configurar para que funcione correctamente con archivos copiados manualmente
+    # Deshabilitar WHITENOISE_USE_FINDERS para forzar que sirva solo desde STATIC_ROOT
+    # Esto evita que WhiteNoise busque en otros lugares y cause confusión
+    WHITENOISE_USE_FINDERS = False  # Deshabilitar finders, servir solo desde STATIC_ROOT
     WHITENOISE_AUTOREFRESH = True  # Habilitar auto-refresh para detectar archivos nuevos
-    WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz
+    # NO configurar WHITENOISE_ROOT - WhiteNoise usa STATIC_ROOT por defecto
+    # Configurar WHITENOISE_ROOT puede causar problemas si no coincide exactamente
     WHITENOISE_INDEX_FILE = False  # No usar index.html automático
     WHITENOISE_MANIFEST_STRICT = False  # No ser estricto con el manifest
-    WHITENOISE_ADD_HEADERS_FUNCTION = None  # Usar configuración por defecto
     
-    # WhiteNoise servirá archivos desde STATIC_ROOT automáticamente
+    # WhiteNoise servirá archivos SOLO desde STATIC_ROOT
     # Los archivos copiados manualmente en pre-deploy estarán disponibles
     # WhiteNoise comprimirá automáticamente al servir (no necesita pre-compresión)
+    
+    # Debug: Verificar configuración al iniciar
+    import os
+    print(f"\n[WHITENOISE] Configuración:")
+    print(f"  STATIC_ROOT: {STATIC_ROOT}")
+    print(f"  STATIC_URL: {STATIC_URL}")
+    print(f"  WHITENOISE_USE_FINDERS: {WHITENOISE_USE_FINDERS}")
+    print(f"  WHITENOISE_AUTOREFRESH: {WHITENOISE_AUTOREFRESH}")
+    
+    # Verificar que STATIC_ROOT existe y tiene archivos
+    if os.path.exists(STATIC_ROOT):
+        file_count = sum([len(files) for r, d, files in os.walk(STATIC_ROOT)])
+        print(f"  Archivos en STATIC_ROOT: {file_count}")
+        
+        # Verificar archivos críticos
+        critical_files = ['css/floating-audio-button.css', 'js/audio-floating-button.js']
+        for file_path in critical_files:
+            full_path = os.path.join(STATIC_ROOT, file_path)
+            if os.path.exists(full_path):
+                size = os.path.getsize(full_path)
+                print(f"  [OK] {file_path} - {size} bytes")
+            else:
+                print(f"  [ERROR] {file_path} NO existe en {full_path}")
+    else:
+        print(f"  [ERROR] STATIC_ROOT no existe: {STATIC_ROOT}")
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

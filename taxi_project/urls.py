@@ -31,8 +31,14 @@ if settings.DEBUG:  # Asegúrate de que solo se sirvan archivos estáticos y mul
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 else:
-    # En producción, servir archivos estáticos desde STATIC_ROOT como fallback
-    # WhiteNoise debería manejarlos, pero esto asegura que estén disponibles
+    # En producción, SIEMPRE servir archivos estáticos desde STATIC_ROOT como fallback
+    # WhiteNoise debería manejarlos primero, pero si falla, Django los servirá directamente
     import os
-    if os.path.exists(settings.STATIC_ROOT):
-        urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    static_root = settings.STATIC_ROOT
+    if os.path.exists(static_root):
+        # Servir archivos estáticos directamente desde STATIC_ROOT
+        # Esto funciona como fallback si WhiteNoise no los sirve
+        urlpatterns += static(settings.STATIC_URL, document_root=static_root)
+        print(f"[INFO] Fallback de archivos estáticos configurado desde: {static_root}")
+    else:
+        print(f"[WARNING] STATIC_ROOT no existe: {static_root}")

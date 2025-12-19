@@ -1490,7 +1490,7 @@ def list_drivers(request):
         return redirect('home')
 
     # Obtener conductores con información relacionada
-    drivers = AppUser.objects.filter(role='driver').select_related('taxi').prefetch_related('ride_set')
+    drivers = AppUser.objects.filter(role='driver').select_related('taxi').prefetch_related('rides_as_driver')
     
     # Calcular estadísticas
     total_drivers = drivers.count()
@@ -1501,9 +1501,11 @@ def list_drivers(request):
     drivers_list = []
     for driver in drivers:
         taxi = getattr(driver, 'taxi', None)
-        total_rides = driver.ride_set.count() if hasattr(driver, 'ride_set') else 0
-        completed_rides = driver.ride_set.filter(status='completed').count() if hasattr(driver, 'ride_set') else 0
-        active_rides = driver.ride_set.filter(status__in=['accepted', 'in_progress']).count() if hasattr(driver, 'ride_set') else 0
+        # Usar rides_as_driver que es el related_name definido en el modelo Ride
+        rides_queryset = driver.rides_as_driver.all()
+        total_rides = rides_queryset.count()
+        completed_rides = rides_queryset.filter(status='completed').count()
+        active_rides = rides_queryset.filter(status__in=['accepted', 'in_progress']).count()
         
         drivers_list.append({
             'driver': driver,

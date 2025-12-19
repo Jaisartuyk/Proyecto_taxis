@@ -181,13 +181,20 @@ if RAILWAY_ENVIRONMENT:
         try:
             whitenoise_index = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
             MIDDLEWARE.insert(whitenoise_index + 1, fallback_middleware)
-            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado después de WhiteNoiseMiddleware")
+            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado después de WhiteNoiseMiddleware en posición {whitenoise_index + 1}")
         except ValueError:
             # Si WhiteNoise no está, agregar el fallback al principio
             MIDDLEWARE.insert(1, fallback_middleware)
-            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado al MIDDLEWARE")
+            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado al MIDDLEWARE en posición 1")
     else:
-        print(f"[FALLBACK] StaticFilesFallbackMiddleware ya está en MIDDLEWARE")
+        fallback_index = MIDDLEWARE.index(fallback_middleware)
+        print(f"[FALLBACK] StaticFilesFallbackMiddleware ya está en MIDDLEWARE en posición {fallback_index}")
+    
+    # Debug: Mostrar el orden del middleware
+    print(f"[MIDDLEWARE] Orden del middleware:")
+    for i, middleware in enumerate(MIDDLEWARE):
+        if 'whitenoise' in middleware or 'StaticFilesFallback' in middleware:
+            print(f"  {i}: {middleware}")
     
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

@@ -370,14 +370,11 @@ function openDriverChat(driverId) {
         }
 
         // Limpiar mensajes anteriores y mostrar el chat
+        // NO limpiar el chat log aquí - loadChatHistory lo hará y cargará el historial
+        // Solo asegurarse de que el chat log existe
         const chatLog = document.getElementById('chat-log');
-        if (chatLog) {
-            chatLog.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #7f8c8d; border-bottom: 1px solid #eee;">
-                    <strong>Iniciando chat con ${driverName}</strong><br>
-                    <small>Los mensajes aparecerán aquí...</small>
-                </div>
-            `;
+        if (!chatLog) {
+            console.warn('⚠️ chat-log no encontrado');
         }
 
         // Mostrar el área de entrada de mensaje
@@ -444,50 +441,207 @@ function openDriverChat(driverId) {
     }
 }
 
-// Cargar historial de chat con un conductor
+// Función para guardar historial en localStorage
+function saveChatHistoryToStorage(driverId, messages) {
+    try {
+        // Guardar en memoria
+        chatHistoryStorage[driverId] = messages;
+        
+        // Guardar en localStorage para persistencia entre sesiones
+        const storageKey = `chat_history_${driverId}`;
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+        console.log(`💾 Historial guardado para conductor ${driverId}: ${messages.length} mensajes`);
+        console.log(`   Último mensaje: ${messages.length > 0 ? messages[messages.length - 1].message.substring(0, 30) : 'N/A'}...`);
+    } catch (error) {
+        console.error('❌ Error guardando historial en localStorage:', error);
+        // Si localStorage está lleno, intentar limpiar historiales antiguos
+        if (error.name === 'QuotaExceededError') {
+            console.warn('⚠️ localStorage lleno, limpiando historiales antiguos...');
+            // Limpiar historiales de conductores que no están activos
+            // Por ahora, solo loguear el error
+        }
+    }
+}
+
+// Función para cargar historial desde localStorage
+function loadChatHistoryFromStorage(driverId) {
+    try {
+        // Primero intentar desde memoria
+        if (chatHistoryStorage[driverId]) {
+            console.log(`📂 Historial cargado desde memoria para conductor ${driverId}`);
+            return chatHistoryStorage[driverId];
+        }
+        
+        // Si no está en memoria, intentar desde localStorage
+        const storageKey = `chat_history_${driverId}`;
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+            const messages = JSON.parse(stored);
+            chatHistoryStorage[driverId] = messages; // Guardar en memoria también
+            console.log(`📂 Historial cargado desde localStorage para conductor ${driverId}: ${messages.length} mensajes`);
+            return messages;
+        }
+        
+        return [];
+    } catch (error) {
+        console.error('❌ Error cargando historial desde localStorage:', error);
+        return [];
+    }
+}
+
+// Función para agregar un mensaje al historial guardado
+function addMessageToHistory(driverId, message) {
+    if (!chatHistoryStorage[driverId]) {
+        chatHistoryStorage[driverId] = [];
+    }
+    
+    // Agregar mensaje al historial
+    chatHistoryStorage[driverId].push(message);
+    
+    // Guardar en localStorage
+    saveChatHistoryToStorage(driverId, chatHistoryStorage[driverId]);
+}
+
+// Función para renderizar mensajes en el chat log
+function renderMessages(messages) {
+    const chatLog = document.getElementById('chat-log');
+    if (!chatLog) {
+        console.warn('⚠️ chat-log no encontrado para renderizar mensajes');
+        return;
+    }
+    
+    // Limpiar chat log
+    chatLog.innerHTML = '';
+    
+    // Si no hay mensajes, mostrar mensaje de "sin mensajes"
+    if (!messages || messages.length === 0) {
+        chatLog.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #7f8c8d;">
+                <strong>💬 No hay mensajes aún</strong><br>
+                <small>Los mensajes aparecerán aquí...</small>
+            </div>
+        `;
+        return;
+    }
+    
+    // Agregar mensajes al chat
+    messages.forEach(msg => {
+        const isSent = msg.is_sent === true || msg.sender_id == 1;
+        const timestamp = typeof msg.timestamp === 'string'
+            ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
+            : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const messageHtml = `
+            <div class="message ${isSent ? 'outgoing' : 'incoming'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
+                <strong>${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}:</strong> ${msg.message}
+                <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
+            </div>
+        `;
+        chatLog.insertAdjacentHTML('beforeend', messageHtml);
+    });
+    
+    // Scroll al final
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Cargar historial de chat con un conductor (CON PERSISTENCIA)
 async function loadChatHistory(driverId) {
     try {
         console.log(`📜 Cargando historial de chat con conductor ${driverId}...`);
-
-        // Backend expone /api/chat_history/<id>/ (con guion bajo)
-        const response = await fetch(`/api/chat_history/${driverId}/`);
-        if (!response.ok) {
-            console.warn('⚠️ No se pudo cargar el historial');
+        
+        const chatLog = document.getElementById('chat-log');
+        if (!chatLog) {
+            console.warn('⚠️ chat-log no encontrado');
             return;
         }
-
-        const payload = await response.json();
-        const messages = payload.messages || payload; // compat: algunos endpoints devuelven array directo
-        console.log(`✅ Historial cargado: ${messages.length || 0} mensajes`);
-
-        const chatLog = document.getElementById('chat-log');
-        if (!chatLog) return;
-
-        // Limpiar chat log
-        chatLog.innerHTML = '';
-
-        // Agregar mensajes al chat
-        messages.forEach(msg => {
-            // El endpoint devuelve timestamp como "HH:MM" (string). Si viene Date, también lo soportamos.
-            const isSent = msg.is_sent === true || msg.sender_id == 1; // fallback si backend no envía is_sent
-            const timestamp = typeof msg.timestamp === 'string'
-                ? msg.timestamp
-                : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            const messageHtml = `
-                <div class="message ${isSent ? 'outgoing' : 'incoming'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
-                    <strong>${isSent ? 'Central' : msg.sender_name}:</strong> ${msg.message}
-                    <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
+        
+        // Primero cargar desde almacenamiento local (historial guardado) - MUY RÁPIDO
+        const storedMessages = loadChatHistoryFromStorage(driverId);
+        
+        // Si hay mensajes guardados, mostrarlos inmediatamente
+        if (storedMessages.length > 0) {
+            console.log(`📂 Mostrando ${storedMessages.length} mensajes guardados localmente`);
+            renderMessages(storedMessages);
+        } else {
+            // Si no hay mensajes guardados, mostrar placeholder
+            chatLog.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #7f8c8d;">
+                    <strong>💬 Cargando historial...</strong><br>
+                    <small>Espera un momento...</small>
                 </div>
             `;
-            chatLog.insertAdjacentHTML('beforeend', messageHtml);
-        });
+        }
 
-        // Scroll al final
-        chatLog.scrollTop = chatLog.scrollHeight;
+        // Luego cargar desde el servidor para obtener mensajes nuevos/actualizados
+        try {
+            const response = await fetch(`/api/chat_history/${driverId}/`);
+            if (!response.ok) {
+                console.warn('⚠️ No se pudo cargar el historial del servidor');
+                // Si no se puede cargar del servidor pero tenemos mensajes guardados, mantener esos
+                if (storedMessages.length > 0) {
+                    console.log('📂 Manteniendo mensajes guardados localmente');
+                    return;
+                }
+                // Si no hay mensajes guardados y falla el servidor, mostrar error
+                chatLog.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                        <strong>⚠️ Error cargando historial</strong><br>
+                        <small>No se pudo conectar al servidor</small>
+                    </div>
+                `;
+                return;
+            }
+
+            const payload = await response.json();
+            const serverMessages = payload.messages || payload;
+            console.log(`✅ Historial del servidor: ${serverMessages.length || 0} mensajes`);
+            
+            // Si hay mensajes del servidor, actualizar el almacenamiento y renderizar
+            if (serverMessages.length > 0) {
+                // IMPORTANTE: Guardar historial completo del servidor (es la fuente de verdad)
+                // Esto sobrescribe cualquier historial local con el del servidor
+                // El servidor tiene TODOS los mensajes, así que usamos ese como fuente de verdad
+                saveChatHistoryToStorage(driverId, serverMessages);
+                // Renderizar mensajes del servidor
+                console.log(`✅ Renderizando ${serverMessages.length} mensajes del servidor`);
+                renderMessages(serverMessages);
+            } else if (storedMessages.length > 0) {
+                // Si el servidor no tiene mensajes pero tenemos guardados, mantener los guardados
+                console.log('📂 Manteniendo mensajes guardados localmente (servidor vacío)');
+                renderMessages(storedMessages);
+            } else {
+                // No hay mensajes ni en servidor ni guardados
+                console.log('📭 No hay mensajes en servidor ni guardados localmente');
+                renderMessages([]);
+            }
+
+        } catch (fetchError) {
+            console.error('❌ Error en fetch del historial:', fetchError);
+            // En caso de error, intentar mostrar mensajes guardados
+            if (storedMessages.length > 0) {
+                console.log('📂 Mostrando mensajes guardados como respaldo');
+                renderMessages(storedMessages);
+            } else {
+                chatLog.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                        <strong>⚠️ Error cargando historial</strong><br>
+                        <small>${fetchError.message}</small>
+                    </div>
+                `;
+            }
+        }
 
     } catch (error) {
         console.error('❌ Error cargando historial:', error);
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog) {
+            chatLog.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                    <strong>❌ Error cargando historial</strong><br>
+                    <small>${error.message}</small>
+                </div>
+            `;
+        }
     }
 }
 
@@ -919,12 +1073,13 @@ function handleChatMessage(data) {
             timestamp: new Date().toISOString()
         };
         
-        // Guardar mensaje en historial si hay un chat activo
+        // Guardar mensaje en historial (siempre, sin importar si hay chat activo)
+        // Esto asegura que los mensajes se guarden incluso si el chat no está abierto
+        addMessageToHistory(senderId, messageObj);
+        
+        // Si el chat está abierto para este conductor, también agregarlo visualmente
         if (currentChatDriverId && currentChatDriverId == senderId) {
-            addMessageToHistory(currentChatDriverId, messageObj);
-        } else {
-            // Si no hay chat activo pero recibimos un mensaje, guardarlo para cuando se abra el chat
-            addMessageToHistory(senderId, messageObj);
+            // El mensaje ya se está mostrando visualmente abajo, solo lo guardamos
         }
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1274,15 +1429,11 @@ function openDriverChatFromList(driverId, driverName) {
             `;
         }
 
-        // Limpiar mensajes anteriores y mostrar el chat
+        // NO limpiar el chat log aquí - loadChatHistory lo hará y cargará el historial
+        // Solo asegurarse de que el chat log existe
         const chatLog = document.getElementById('chat-log');
-        if (chatLog) {
-            chatLog.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #7f8c8d; border-bottom: 1px solid #eee;">
-                    <strong>💬 Chat iniciado con ${driverName}</strong><br>
-                    <small>Los mensajes aparecerán aquí en tiempo real...</small>
-                </div>
-            `;
+        if (!chatLog) {
+            console.warn('⚠️ chat-log no encontrado');
         }
 
         // Mostrar el área de entrada de mensaje

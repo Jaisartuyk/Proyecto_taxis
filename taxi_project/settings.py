@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'daphne',
     'channels',
     'corsheaders',
+    'cloudinary',
+    'cloudinary_storage',
     'taxis',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -137,9 +139,9 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     
-    print("🚀 Configuración de Railway activada")
-    print(f"📊 Base de datos: {DATABASES['default']['ENGINE']}")
-    print(f"🔴 Redis URL: {os.environ.get('REDIS_URL', 'No configurado')}")
+    print("[RAILWAY] Configuracion de Railway activada")
+    print(f"[RAILWAY] Base de datos: {DATABASES['default']['ENGINE']}")
+    print(f"[RAILWAY] Redis URL: {os.environ.get('REDIS_URL', 'No configurado')}")
     print(f"🌐 Hosts permitidos: {ALLOWED_HOSTS}")
 
 
@@ -201,8 +203,34 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'taxis', 'static'),  # Archivos estáticos de la app taxis
 ]
 
+# Cloudinary Configuration
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# Configuración de Cloudinary (se puede sobrescribir en settings_railway.py con variables de entorno)
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
+}
+
+# Solo configurar Cloudinary si hay credenciales
+if CLOUDINARY_STORAGE['CLOUD_NAME']:
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET']
+    )
+    # Usar Cloudinary para almacenamiento de medios
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+else:
+    # Fallback a almacenamiento local si no hay Cloudinary configurado
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
+# Configuración de medios (fallback para desarrollo local)
 MEDIA_URL = '/media/'  # La URL para acceder a los archivos multimedia
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # El directorio donde se guardarán los archivos multimedia
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # El directorio donde se guardarán los archivos multimedia (solo para desarrollo)
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
@@ -274,9 +302,9 @@ if not WEBPUSH_SETTINGS['VAPID_PRIVATE_KEY'] and not os.environ.get('RAILWAY_ENV
         globals()['VAPID_PRIVATE_KEY'] = vapid_private_b64
         globals()['VAPID_ADMIN_EMAIL'] = 'admin@deaquipalla.com'
         
-        print("✅ [LOCAL] Claves VAPID válidas cargadas (formato base64)")
+        print("[LOCAL] Claves VAPID validas cargadas (formato base64)")
     except Exception as e:
-        print(f"⚠️ [LOCAL] Error configurando claves VAPID locales: {e}")
+        print(f"[LOCAL] Error configurando claves VAPID locales: {e}")
 
 # === EMERGENCY CHANNEL_LAYERS CONFIGURATION ===
 # Si Railway está usando este settings.py en lugar de settings_railway.py
@@ -303,7 +331,7 @@ if not locals().get('CHANNEL_LAYERS'):
                 "BACKEND": "channels.layers.InMemoryChannelLayer",
             },
         }
-        print(f"🔧 [LOCAL] CHANNEL_LAYERS: InMemory para desarrollo")
+        print(f"[LOCAL] CHANNEL_LAYERS: InMemory para desarrollo")
 
 
 # =====================================================

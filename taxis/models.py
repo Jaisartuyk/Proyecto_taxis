@@ -7,6 +7,7 @@ import requests
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from django.contrib.auth import get_user_model
+from cloudinary.models import CloudinaryField
 
 
 #from django.utils.timezone import now
@@ -20,7 +21,7 @@ class AppUser(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
     phone_number = models.CharField(max_length=15, default='', blank=True, null=True)  # Número de celular
     national_id = models.CharField(max_length=20, default='', blank=True, null=True)  # Número de cédula
-    profile_picture = models.ImageField(upload_to='profile_pics/', default='default.jpg', blank=True, null=True)  # Foto de perfil
+    profile_picture = CloudinaryField('image', folder='profile_pics', blank=True, null=True, transformation={'quality': 'auto', 'fetch_format': 'auto'})  # Foto de perfil en Cloudinary
     telegram_chat_id = models.CharField(max_length=255, null=True, blank=True)  # ID de Telegram para mensajes directos
     last_latitude = models.FloatField(null=True, blank=True)
     last_longitude = models.FloatField(null=True, blank=True)

@@ -4,6 +4,7 @@ Configuración específica para Railway con PostgreSQL y Redis
 from .settings import *
 import os
 import dj_database_url
+import cloudinary
 
 # Configuración de Railway
 RAILWAY_ENVIRONMENT = os.environ.get('RAILWAY_ENVIRONMENT', False)
@@ -33,6 +34,23 @@ if RAILWAY_ENVIRONMENT:
     
     # Configuración de Redis en Railway
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    
+    # Configuración de Cloudinary en Railway (desde variables de entorno)
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+        'API_KEY': os.environ.get('CLOUDINARY_API_KEY', ''),
+        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
+    }
+    
+    # Configurar Cloudinary
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET']
+    )
+    
+    # Usar Cloudinary para almacenamiento de medios en producción
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     
     # Channels configuration - Redis optimizado para mejor rendimiento
     CHANNEL_LAYERS = {

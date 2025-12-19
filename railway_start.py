@@ -52,16 +52,24 @@ if __name__ == "__main__":
     )
     
     # 3. Collectstatic (DESPUES de migraciones)
-    # NOTA: No usamos --clear porque causa conflictos con WhiteNoise al intentar comprimir archivos eliminados
-    # Django sobrescribirá automáticamente los archivos que han cambiado
-    run_command(
-        # IMPORTANTE (Railway): verbosity 0 para evitar rate limit de logs (500 logs/s)
-        # --noinput: no pide confirmación
-        # --ignore cloudinary: ignora archivos de Cloudinary (se sirven desde su CDN)
-        # Sin --clear: evita conflictos con WhiteNoise durante la compresión
-        "python manage.py collectstatic --noinput --verbosity 0 --ignore cloudinary",
-        "Recopilando archivos estaticos (silencioso, ignorando Cloudinary)"
-    )
+    # NOTA: Si se ejecutó en pre-deploy, los archivos ya están copiados
+    # Solo ejecutamos collectstatic si los archivos no existen (fallback)
+    # No usamos --clear porque causa conflictos con WhiteNoise al intentar comprimir archivos eliminados
+    import os
+    staticfiles_dir = os.path.join(os.path.dirname(__file__), 'staticfiles')
+    if os.path.exists(staticfiles_dir) and os.listdir(staticfiles_dir):
+        print(f"\n[INFO] Archivos estaticos ya copiados en pre-deploy, omitiendo collectstatic")
+        print(f"[INFO] WhiteNoise comprimira los archivos automaticamente al servirlos")
+    else:
+        print(f"\n[WARNING] Archivos estaticos no encontrados, ejecutando collectstatic...")
+        run_command(
+            # IMPORTANTE (Railway): verbosity 0 para evitar rate limit de logs (500 logs/s)
+            # --noinput: no pide confirmación
+            # --ignore cloudinary: ignora archivos de Cloudinary (se sirven desde su CDN)
+            # Sin --clear: evita conflictos con WhiteNoise durante la compresión
+            "python manage.py collectstatic --noinput --verbosity 0 --ignore cloudinary",
+            "Recopilando archivos estaticos (silencioso, ignorando Cloudinary)"
+        )
     
     # 4. Iniciar servidor
     print("\n" + "="*60)

@@ -172,9 +172,11 @@ if RAILWAY_ENVIRONMENT:
     
     # Configuración de archivos estáticos para Railway
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    # IMPORTANTE: taxis/static debe ir PRIMERO para tener prioridad sobre static/ raíz
+    # Esto asegura que los archivos nuevos (como floating-audio-button) se copien correctamente
     STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, 'static'),
-        os.path.join(BASE_DIR, 'taxis', 'static'),
+        os.path.join(BASE_DIR, 'taxis', 'static'),  # PRIORIDAD: archivos de la app primero
+        os.path.join(BASE_DIR, 'static'),  # Archivos generales después
     ]
     # Usar storage personalizado que maneja archivos faltantes de forma segura
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/

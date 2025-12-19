@@ -57,11 +57,13 @@ if __name__ == "__main__":
         # Cambiar a storage sin compresión
         settings.STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
         
-        # Ejecutar collectstatic con verbosity 2 para ver detalles
+        # Ejecutar collectstatic con --clear para forzar copia de archivos nuevos
+        # Usamos --clear porque estamos usando storage sin compresión (no causa conflictos)
         from django.core.management import call_command
         call_command('collectstatic', 
                     verbosity=2,  # Verbosity alto para ver qué archivos encuentra
-                    interactive=False, 
+                    interactive=False,
+                    clear=True,  # Limpiar staticfiles/ antes de copiar (seguro con storage sin compresión)
                     ignore_patterns=['cloudinary'])
         
         print("\n[OK] Archivos estaticos recolectados correctamente")

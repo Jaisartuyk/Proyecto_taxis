@@ -173,6 +173,22 @@ if RAILWAY_ENVIRONMENT:
         whitenoise_index = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
         print(f"[WHITENOISE] WhiteNoiseMiddleware está en posición {whitenoise_index} del MIDDLEWARE")
     
+    # Agregar middleware de fallback DESPUÉS de WhiteNoise
+    # Este middleware servirá archivos estáticos si WhiteNoise no los encuentra
+    fallback_middleware = 'taxi_project.middleware.StaticFilesFallbackMiddleware'
+    if fallback_middleware not in MIDDLEWARE:
+        # Encontrar la posición de WhiteNoise y agregar el fallback después
+        try:
+            whitenoise_index = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
+            MIDDLEWARE.insert(whitenoise_index + 1, fallback_middleware)
+            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado después de WhiteNoiseMiddleware")
+        except ValueError:
+            # Si WhiteNoise no está, agregar el fallback al principio
+            MIDDLEWARE.insert(1, fallback_middleware)
+            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado al MIDDLEWARE")
+    else:
+        print(f"[FALLBACK] StaticFilesFallbackMiddleware ya está en MIDDLEWARE")
+    
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True

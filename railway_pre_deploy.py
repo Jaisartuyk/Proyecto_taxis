@@ -102,15 +102,79 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"[WARNING] Error limpiando {static_root}: {e}")
         
-        # Ejecutar collectstatic con --clear para forzar copia de archivos nuevos
-        # Usamos --clear porque estamos usando storage sin compresión (no causa conflictos)
+        # Verificar qué archivos encuentra el finder antes de ejecutar collectstatic
+        print("\n[DEBUG] Verificando qué archivos encuentra AppDirectoriesFinder:")
+        from django.contrib.staticfiles.finders import get_finders
+        from django.contrib.staticfiles.storage import staticfiles_storage
+        
+        finders = get_finders()
+        archivos_encontrados = []
+        for finder in finders:
+            print(f"  - Finder: {finder.__class__.__name__}")
+            try:
+                # Intentar listar archivos encontrados por este finder
+                if hasattr(finder, 'list'):
+                    for path, storage in finder.list([]):
+                        archivos_encontrados.append(path)
+                        if len(archivos_encontrados) <= 10:  # Solo primeros 10
+                            print(f"    - {path}")
+            except Exception as e:
+                print(f"    Error listando archivos: {e}")
+        
+        print(f"\n[DEBUG] Total de archivos encontrados por finders: {len(archivos_encontrados)}")
+        
+        # Ejecutar collectstatic
         from django.core.management import call_command
         print("\n[INFO] Ejecutando collectstatic...")
-        call_command('collectstatic', 
-                    verbosity=2,  # Verbosity alto para ver qué archivos encuentra
-                    interactive=False,
-                    clear=False,  # Ya limpiamos manualmente
-                    ignore_patterns=['cloudinary'])
+        try:
+            result = call_command('collectstatic', 
+                        verbosity=2,  # Verbosity alto para ver detalles
+                        interactive=False,
+                        clear=False,  # Ya limpiamos manualmente
+                        ignore_patterns=['cloudinary'],
+                        link=False)  # No usar symlinks
+            
+            # Verificar si se copiaron archivos
+            import subprocess
+            check_result = subprocess.run(
+                ['python', 'manage.py', 'collectstatic', '--dry-run', '--verbosity', '0'],
+                capture_output=True,
+                text=True
+            )
+            if '0 static files' in check_result.stdout:
+                print("\n[WARNING] collectstatic reportó 0 archivos copiados")
+                print("[INFO] Intentando copiar archivos manualmente...")
+                
+                # Copiar archivos manualmente desde taxis/static a staticfiles/
+                source_dir = os.path.join(settings.BASE_DIR, 'taxis', 'static')
+                dest_dir = settings.STATIC_ROOT
+                
+                if os.path.exists(source_dir):
+                    import shutil
+                    for root, dirs, files in os.walk(source_dir):
+                        # Calcular ruta relativa
+                        rel_path = os.path.relpath(root, source_dir)
+                        if rel_path == '.':
+                            dest_path = dest_dir
+                        else:
+                            dest_path = os.path.join(dest_dir, rel_path)
+                        
+                        # Crear directorio destino si no existe
+                        os.makedirs(dest_path, exist_ok=True)
+                        
+                        # Copiar archivos
+                        for file in files:
+                            if 'cloudinary' not in file:
+                                src_file = os.path.join(root, file)
+                                dst_file = os.path.join(dest_path, file)
+                                shutil.copy2(src_file, dst_file)
+                                print(f"  [COPIADO] {os.path.join(rel_path, file) if rel_path != '.' else file}")
+                    
+                    print(f"\n[OK] Archivos copiados manualmente a {dest_dir}")
+        except Exception as e:
+            print(f"\n[ERROR] Error en collectstatic: {e}")
+            import traceback
+            traceback.print_exc()
         
         # Verificar que los archivos nuevos se copiaron correctamente
         print("\n" + "="*60)

@@ -30,7 +30,5 @@ urlpatterns = [
 if settings.DEBUG:  # Asegúrate de que solo se sirvan archivos estáticos y multimedia en desarrollo
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-else:
-    # En producción, servir archivos estáticos directamente desde taxis/static
-    import os
-    urlpatterns += static(settings.STATIC_URL, document_root=os.path.join(settings.BASE_DIR, 'taxis', 'static'))
+# En producción, WhiteNoise sirve los archivos estáticos automáticamente desde STATIC_ROOT
+# No necesitamos agregar rutas estáticas aquí porque WhiteNoise middleware lo maneja

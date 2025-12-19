@@ -175,9 +175,8 @@ if RAILWAY_ENVIRONMENT:
     # IMPORTANTE: NO incluir taxis/static en STATICFILES_DIRS porque AppDirectoriesFinder
     # ya lo encuentra automáticamente (taxis es una app instalada)
     # Si lo incluimos en STATICFILES_DIRS, causa duplicados y "0 static files copied"
-    STATICFILES_DIRS = [
-        # Vacío - AppDirectoriesFinder encontrará automáticamente los archivos en taxis/static
-    ]
+    # Redefinir explícitamente para sobrescribir el valor importado de settings.py
+    STATICFILES_DIRS = []  # Vacío - AppDirectoriesFinder encontrará automáticamente los archivos en taxis/static
     # Usar solo AppDirectoriesFinder para evitar duplicados
     # AppDirectoriesFinder busca automáticamente en static/ de todas las apps instaladas
     STATICFILES_FINDERS = [
@@ -202,11 +201,8 @@ if RAILWAY_ENVIRONMENT:
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/
-    STATICFILES_FINDERS = [
-        'django.contrib.staticfiles.finders.FileSystemFinder',
-        'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-        # No incluir 'cloudinary_storage.finders.CloudinaryStaticFilesFinder' para evitar errores
-    ]
+    # NOTA: STATICFILES_FINDERS ya está definido arriba (línea 183) con solo AppDirectoriesFinder
+    # No sobrescribir aquí para evitar duplicados
     
     # Configuración de logging para Railway
     LOGGING = {

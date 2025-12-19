@@ -60,8 +60,16 @@ if __name__ == "__main__":
         # Cambiar a storage sin compresión
         settings.STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
         
-        # NO cambiar los finders - usar la configuración de settings_railway.py
-        # que solo usa AppDirectoriesFinder (evita duplicados)
+        # FORZAR configuración para evitar duplicados
+        # Vaciar STATICFILES_DIRS y usar solo AppDirectoriesFinder
+        settings.STATICFILES_DIRS = []
+        settings.STATICFILES_FINDERS = [
+            'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+        ]
+        
+        # Verificar que el cambio se aplicó
+        print(f"[DEBUG] STATICFILES_DIRS después del cambio: {settings.STATICFILES_DIRS}")
+        print(f"[DEBUG] STATICFILES_FINDERS después del cambio: {settings.STATICFILES_FINDERS}")
         
         # Verificar que el cambio se aplicó
         print("\n[DEBUG] Finders de archivos estaticos DESPUES del cambio:")

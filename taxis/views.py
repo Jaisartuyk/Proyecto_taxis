@@ -1489,8 +1489,39 @@ def list_drivers(request):
         messages.error(request, "No tienes permiso para acceder a esta página.")
         return redirect('home')
 
-    drivers = AppUser.objects.filter(role='driver')
-    return render(request, 'list_drivers.html', {'drivers': drivers})
+    # Obtener conductores con información relacionada
+    drivers = AppUser.objects.filter(role='driver').select_related('taxi').prefetch_related('ride_set')
+    
+    # Calcular estadísticas
+    total_drivers = drivers.count()
+    drivers_with_taxi = drivers.filter(taxi__isnull=False).count()
+    drivers_with_location = drivers.filter(taxi__latitude__isnull=False, taxi__longitude__isnull=False).count()
+    
+    # Agregar información adicional a cada conductor
+    drivers_list = []
+    for driver in drivers:
+        taxi = getattr(driver, 'taxi', None)
+        total_rides = driver.ride_set.count() if hasattr(driver, 'ride_set') else 0
+        completed_rides = driver.ride_set.filter(status='completed').count() if hasattr(driver, 'ride_set') else 0
+        active_rides = driver.ride_set.filter(status__in=['accepted', 'in_progress']).count() if hasattr(driver, 'ride_set') else 0
+        
+        drivers_list.append({
+            'driver': driver,
+            'taxi': taxi,
+            'total_rides': total_rides,
+            'completed_rides': completed_rides,
+            'active_rides': active_rides,
+            'has_location': taxi and taxi.latitude and taxi.longitude if taxi else False,
+        })
+    
+    context = {
+        'drivers': drivers_list,
+        'total_drivers': total_drivers,
+        'drivers_with_taxi': drivers_with_taxi,
+        'drivers_with_location': drivers_with_location,
+    }
+    
+    return render(request, 'list_drivers.html', context)
 
 @login_required
 def delete_driver(request, user_id):

@@ -1,45 +1,450 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 600px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #ffffff;
+    }
+
+    .drivers-container {
+        padding: 2rem 1rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .drivers-header {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 20px;
+        padding: 2.5rem;
+        color: #ffffff;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+    }
+
+    .drivers-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #FFD700, #FFC107);
+    }
+
+    .drivers-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .drivers-header p {
+        color: #b0b0b0;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .stats-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-card {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 15px;
+        padding: 1.5rem;
+        flex: 1;
+        min-width: 200px;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+    }
+
+    .stat-card .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #FFD700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .stat-label {
+        color: #b0b0b0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .drivers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .driver-card {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .driver-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, #FFD700, #FFC107);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .driver-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(255, 215, 0, 0.3);
+        border-color: #FFD700;
+    }
+
+    .driver-card:hover::before {
+        opacity: 1;
+    }
+
+    .driver-card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #2d2d2d;
+    }
+
+    .driver-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #000;
+        flex-shrink: 0;
+    }
+
+    .driver-info h3 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #ffffff;
+    }
+
+    .driver-info p {
+        margin: 0.25rem 0 0 0;
+        color: #b0b0b0;
+        font-size: 0.9rem;
+    }
+
+    .driver-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .detail-label {
+        color: #b0b0b0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-online {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+
+    .status-offline {
+        background: rgba(158, 158, 158, 0.2);
+        color: #9E9E9E;
+        border: 1px solid #9E9E9E;
+    }
+
+    .driver-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #2d2d2d;
+    }
+
+    .btn-action {
+        flex: 1;
+        padding: 0.6rem 1rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .btn-danger {
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+        border: 1px solid #f44336;
+    }
+
+    .btn-danger:hover {
+        background: #f44336;
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+    }
+
+    .btn-info {
+        background: rgba(33, 150, 243, 0.2);
+        color: #2196F3;
+        border: 1px solid #2196F3;
+    }
+
+    .btn-info:hover {
+        background: #2196F3;
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 20px;
+        border: 1px solid #2d2d2d;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #b0b0b0;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        color: #ffffff;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #b0b0b0;
+    }
+
+    @media (max-width: 768px) {
+        .drivers-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .driver-details {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-bar {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center">Lista de Conductores</h2>
+<div class="drivers-container">
+    <!-- Header -->
+    <div class="drivers-header">
+        <h1>🚕 Lista de Conductores</h1>
+        <p>Gestión completa de conductores registrados en el sistema</p>
+    </div>
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         {% endfor %}
     {% endif %}
 
+    <!-- Estadísticas -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_drivers }}</div>
+            <div class="stat-label">Total Conductores</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ drivers_with_location }}</div>
+            <div class="stat-label">Con Ubicación</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ drivers_with_taxi }}</div>
+            <div class="stat-label">Con Vehículo</div>
+        </div>
+    </div>
+
+    <!-- Lista de Conductores -->
     {% if drivers %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Teléfono</th>
-                    <th>Placa</th>
-                    <th>Vehículo</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for driver in drivers %}
-                <tr>
-                    <td>{{ driver.get_full_name }}</td>
-                    <td>{{ driver.phone_number }}</td>
-                    <td>{{ driver.taxi.plate_number }}</td>
-                    <td>{{ driver.taxi.vehicle_description }}</td>
-                    <td>
-                        <a href="{% url 'delete_driver' driver.id %}" class="btn btn-danger btn-sm"
-                           onclick="return confirm('¿Estás seguro de eliminar a este conductor?');">
-                            Eliminar
+        <div class="drivers-grid">
+            {% for driver_data in drivers %}
+                {% with driver=driver_data.driver taxi=driver_data.taxi %}
+                <div class="driver-card">
+                    <div class="driver-card-header">
+                        <div class="driver-avatar">
+                            {{ driver.get_full_name|first|upper|default:driver.username|first|upper }}
+                        </div>
+                        <div class="driver-info">
+                            <h3>{{ driver.get_full_name|default:driver.username }}</h3>
+                            <p>@{{ driver.username }}</p>
+                        </div>
+                    </div>
+
+                    <div class="driver-details">
+                        <div class="detail-item">
+                            <span class="detail-label">📱 Teléfono</span>
+                            <span class="detail-value">
+                                {% if driver.phone_number %}
+                                    <a href="tel:{{ driver.phone_number }}" style="color: #FFD700; text-decoration: none;">
+                                        {{ driver.phone_number }}
+                                    </a>
+                                {% else %}
+                                    <span style="color: #9E9E9E;">No registrado</span>
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">🚗 Placa</span>
+                            <span class="detail-value">
+                                {% if taxi %}
+                                    <strong style="color: #FFD700;">{{ taxi.plate_number|default:"N/A" }}</strong>
+                                {% else %}
+                                    <span style="color: #9E9E9E;">Sin vehículo</span>
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">🚙 Vehículo</span>
+                            <span class="detail-value">
+                                {% if taxi %}
+                                    {{ taxi.vehicle_description|truncatewords:5|default:"N/A" }}
+                                {% else %}
+                                    <span style="color: #9E9E9E;">No especificado</span>
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">📍 Estado</span>
+                            <span class="detail-value">
+                                {% if driver_data.has_location %}
+                                    <span class="status-badge status-online">En línea</span>
+                                {% else %}
+                                    <span class="status-badge status-offline">Sin ubicación</span>
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">📊 Carreras</span>
+                            <span class="detail-value">
+                                <span style="color: #FFD700;">{{ driver_data.completed_rides }}</span> completadas
+                            </span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">🚕 Activas</span>
+                            <span class="detail-value">
+                                {% if driver_data.active_rides > 0 %}
+                                    <span style="color: #4CAF50;">{{ driver_data.active_rides }}</span>
+                                {% else %}
+                                    <span style="color: #9E9E9E;">0</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="driver-actions">
+                        <a href="{% url 'profile' %}" class="btn-action btn-info" title="Ver perfil">
+                            <i class="fas fa-user"></i> Ver Perfil
                         </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <a href="{% url 'delete_driver' driver.id %}" 
+                           class="btn-action btn-danger" 
+                           onclick="return confirm('¿Estás seguro de eliminar a {{ driver.get_full_name|default:driver.username }}? Esta acción no se puede deshacer.');"
+                           title="Eliminar conductor">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </a>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
     {% else %}
-        <p class="text-center">No hay conductores registrados.</p>
+        <div class="empty-state">
+            <i class="fas fa-users-slash"></i>
+            <h3>No hay conductores registrados</h3>
+            <p>Los conductores aparecerán aquí una vez que se registren en el sistema.</p>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

@@ -35,6 +35,7 @@ else:
     # Esto funciona como fallback si WhiteNoise no los sirve
     from django.views.static import serve
     from django.urls import re_path
+    from django.http import FileResponse
     import os
     
     static_root = settings.STATIC_ROOT
@@ -42,10 +43,35 @@ else:
     
     if os.path.exists(static_root):
         # Crear una vista personalizada que sirva archivos desde STATIC_ROOT
-        # Esta vista se ejecutará si WhiteNoise no encuentra el archivo
+        # Esta vista se ejecutará ANTES de WhiteNoise para archivos específicos
         def serve_static_fallback(request, path):
             """Vista de fallback para servir archivos estáticos si WhiteNoise no los encuentra"""
-            return serve(request, path, document_root=static_root)
+            full_path = os.path.join(static_root, path)
+            
+            # Verificar que el archivo existe
+            if os.path.exists(full_path) and os.path.isfile(full_path):
+                # Determinar content type
+                ext = os.path.splitext(path)[1].lower()
+                content_types = {
+                    '.css': 'text/css',
+                    '.js': 'application/javascript',
+                    '.png': 'image/png',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.gif': 'image/gif',
+                    '.svg': 'image/svg+xml',
+                    '.json': 'application/json',
+                }
+                content_type = content_types.get(ext, 'application/octet-stream')
+                
+                # Servir el archivo directamente
+                file_handle = open(full_path, 'rb')
+                response = FileResponse(file_handle, content_type=content_type)
+                response['Content-Length'] = os.path.getsize(full_path)
+                return response
+            else:
+                # Si el archivo no existe, usar la vista por defecto
+                return serve(request, path, document_root=static_root)
         
         # Agregar la ruta de fallback ANTES de las otras rutas
         # Esto asegura que se ejecute si WhiteNoise no encuentra el archivo
@@ -54,6 +80,6 @@ else:
             serve_static_fallback,
             name='static_fallback'
         ))
-        print(f"[INFO] Vista de fallback de archivos estáticos configurada desde: {static_root}")
+        print(f"[URLS] Vista de fallback de archivos estáticos configurada desde: {static_root}")
     else:
-        print(f"[WARNING] STATIC_ROOT no existe: {static_root}")
+        print(f"[URLS] [WARNING] STATIC_ROOT no existe: {static_root}")

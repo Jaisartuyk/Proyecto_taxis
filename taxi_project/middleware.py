@@ -40,7 +40,10 @@ class StaticFilesFallbackMiddleware:
         
     def __call__(self, request):
         # Log cada petición a archivos estáticos para debugging
-        if request.path.startswith(self.static_url):
+        # Solo loggear archivos críticos para no saturar los logs
+        if request.path.startswith(self.static_url) and any(
+            x in request.path for x in ['floating-audio-button', 'audio-floating-button']
+        ):
             print(f"[FALLBACK] Petición recibida: {request.path}")
             
             # Extraer la ruta del archivo
@@ -91,9 +94,16 @@ class StaticFilesFallbackMiddleware:
                         pass
         
         # Procesar la petición normalmente (pasar a WhiteNoise u otros middlewares)
-        print(f"[FALLBACK] Pasando petición a siguiente middleware: {request.path}")
+        # Solo loggear archivos críticos
+        if request.path.startswith(self.static_url) and any(
+            x in request.path for x in ['floating-audio-button', 'audio-floating-button']
+        ):
+            print(f"[FALLBACK] Pasando petición a siguiente middleware: {request.path}")
         response = self.get_response(request)
-        print(f"[FALLBACK] Respuesta recibida del siguiente middleware: status={response.status_code}, path={request.path}")
+        if request.path.startswith(self.static_url) and any(
+            x in request.path for x in ['floating-audio-button', 'audio-floating-button']
+        ):
+            print(f"[FALLBACK] Respuesta recibida del siguiente middleware: status={response.status_code}, path={request.path}")
         
         # Si WhiteNoise devolvió 404 para un archivo estático, intentar servirlo directamente
         if response.status_code == 404 and request.path.startswith(self.static_url):

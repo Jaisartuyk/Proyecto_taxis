@@ -202,24 +202,23 @@ if RAILWAY_ENVIRONMENT:
     # Configuración de WhiteNoise
     # IMPORTANTE: WhiteNoise sirve archivos desde STATIC_ROOT automáticamente
     # Configurar para que funcione correctamente con archivos copiados manualmente
-    # Deshabilitar WHITENOISE_USE_FINDERS para forzar que sirva solo desde STATIC_ROOT
-    # Esto evita que WhiteNoise busque en otros lugares y cause confusión
-    WHITENOISE_USE_FINDERS = False  # Deshabilitar finders, servir solo desde STATIC_ROOT
+    import os
+    # Configurar WHITENOISE_ROOT explícitamente para asegurar que apunte al directorio correcto
+    WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz
+    WHITENOISE_USE_FINDERS = True  # Habilitar finders como fallback adicional
     WHITENOISE_AUTOREFRESH = True  # Habilitar auto-refresh para detectar archivos nuevos
-    # NO configurar WHITENOISE_ROOT - WhiteNoise usa STATIC_ROOT por defecto
-    # Configurar WHITENOISE_ROOT puede causar problemas si no coincide exactamente
     WHITENOISE_INDEX_FILE = False  # No usar index.html automático
     WHITENOISE_MANIFEST_STRICT = False  # No ser estricto con el manifest
     
-    # WhiteNoise servirá archivos SOLO desde STATIC_ROOT
+    # WhiteNoise servirá archivos desde STATIC_ROOT (configurado explícitamente)
     # Los archivos copiados manualmente en pre-deploy estarán disponibles
     # WhiteNoise comprimirá automáticamente al servir (no necesita pre-compresión)
     
     # Debug: Verificar configuración al iniciar
-    import os
     print(f"\n[WHITENOISE] Configuración:")
     print(f"  STATIC_ROOT: {STATIC_ROOT}")
     print(f"  STATIC_URL: {STATIC_URL}")
+    print(f"  WHITENOISE_ROOT: {WHITENOISE_ROOT}")
     print(f"  WHITENOISE_USE_FINDERS: {WHITENOISE_USE_FINDERS}")
     print(f"  WHITENOISE_AUTOREFRESH: {WHITENOISE_AUTOREFRESH}")
     
@@ -239,6 +238,12 @@ if RAILWAY_ENVIRONMENT:
                 print(f"  [ERROR] {file_path} NO existe en {full_path}")
     else:
         print(f"  [ERROR] STATIC_ROOT no existe: {STATIC_ROOT}")
+    
+    # Verificar que WHITENOISE_ROOT existe
+    if os.path.exists(WHITENOISE_ROOT):
+        print(f"  [OK] WHITENOISE_ROOT existe: {WHITENOISE_ROOT}")
+    else:
+        print(f"  [ERROR] WHITENOISE_ROOT no existe: {WHITENOISE_ROOT}")
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

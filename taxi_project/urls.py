@@ -31,14 +31,29 @@ if settings.DEBUG:  # Asegúrate de que solo se sirvan archivos estáticos y mul
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 else:
-    # En producción, SIEMPRE servir archivos estáticos desde STATIC_ROOT como fallback
-    # WhiteNoise debería manejarlos primero, pero si falla, Django los servirá directamente
+    # En producción, crear una vista personalizada para servir archivos estáticos
+    # Esto funciona como fallback si WhiteNoise no los sirve
+    from django.views.static import serve
+    from django.urls import re_path
     import os
+    
     static_root = settings.STATIC_ROOT
+    static_url = settings.STATIC_URL.rstrip('/')
+    
     if os.path.exists(static_root):
-        # Servir archivos estáticos directamente desde STATIC_ROOT
-        # Esto funciona como fallback si WhiteNoise no los sirve
-        urlpatterns += static(settings.STATIC_URL, document_root=static_root)
-        print(f"[INFO] Fallback de archivos estáticos configurado desde: {static_root}")
+        # Crear una vista personalizada que sirva archivos desde STATIC_ROOT
+        # Esta vista se ejecutará si WhiteNoise no encuentra el archivo
+        def serve_static_fallback(request, path):
+            """Vista de fallback para servir archivos estáticos si WhiteNoise no los encuentra"""
+            return serve(request, path, document_root=static_root)
+        
+        # Agregar la ruta de fallback ANTES de las otras rutas
+        # Esto asegura que se ejecute si WhiteNoise no encuentra el archivo
+        urlpatterns.insert(0, re_path(
+            r'^{}(?P<path>.*)$'.format(static_url),
+            serve_static_fallback,
+            name='static_fallback'
+        ))
+        print(f"[INFO] Vista de fallback de archivos estáticos configurada desde: {static_root}")
     else:
         print(f"[WARNING] STATIC_ROOT no existe: {static_root}")

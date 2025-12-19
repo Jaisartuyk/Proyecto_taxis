@@ -14,22 +14,35 @@ class SafeCompressedStaticFilesStorage(CompressedStaticFilesStorage):
     de forma segura durante collectstatic
     """
     
-    def _compress_path(self, path):
+    def post_process(self, paths, dry_run=False, **options):
         """
-        Sobrescribe _compress_path para manejar archivos que pueden no existir
+        Sobrescribe post_process para manejar archivos que pueden no existir
         """
-        full_path = os.path.join(self.location, path)
-        if not os.path.exists(full_path):
-            logger.warning(f"Archivo no encontrado durante compresion: {full_path}")
-            return []  # Retornar lista vacía si el archivo no existe
+        # Filtrar solo archivos que realmente existen
+        existing_paths = {}
+        for path, storage in paths.items():
+            full_path = os.path.join(self.location, path)
+            if os.path.exists(full_path):
+                existing_paths[path] = storage
+            else:
+                # Log pero no fallar si el archivo no existe
+                logger.warning(f"Archivo no encontrado durante post_process: {full_path}")
+                # Aún así retornar el path para que se copie sin comprimir
+                yield path, storage, False
         
-        try:
-            # Llamar al método del padre solo si el archivo existe
-            return super()._compress_path(path)
-        except FileNotFoundError:
-            logger.warning(f"Archivo eliminado durante compresion: {full_path}")
-            return []  # Retornar lista vacía si el archivo fue eliminado
-        except Exception as e:
-            logger.warning(f"Error durante compresion de {path}: {e}")
-            return []  # Retornar lista vacía en caso de error
+        # Llamar al post_process del padre solo con archivos existentes
+        if existing_paths:
+            try:
+                yield from super().post_process(existing_paths, dry_run=dry_run, **options)
+            except FileNotFoundError as e:
+                # Si aún así hay un error, loguear pero continuar
+                logger.warning(f"Error durante compresion (ignorado): {e}")
+                # Retornar los paths sin comprimir
+                for path, storage in existing_paths.items():
+                    yield path, storage, False
+            except Exception as e:
+                logger.warning(f"Error durante post_process (ignorado): {e}")
+                # Retornar los paths sin comprimir
+                for path, storage in existing_paths.items():
+                    yield path, storage, False
 

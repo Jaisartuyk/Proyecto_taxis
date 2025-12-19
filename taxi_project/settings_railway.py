@@ -173,17 +173,18 @@ if RAILWAY_ENVIRONMENT:
         whitenoise_index = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
         print(f"[WHITENOISE] WhiteNoiseMiddleware está en posición {whitenoise_index} del MIDDLEWARE")
     
-    # Agregar middleware de fallback DESPUÉS de WhiteNoise
-    # Este middleware servirá archivos estáticos si WhiteNoise no los encuentra
+    # Agregar middleware de fallback ANTES de WhiteNoise
+    # Este middleware servirá archivos estáticos directamente si existen
+    # Debe estar ANTES de WhiteNoise para interceptar las peticiones primero
     fallback_middleware = 'taxi_project.middleware.StaticFilesFallbackMiddleware'
     if fallback_middleware not in MIDDLEWARE:
-        # Encontrar la posición de WhiteNoise y agregar el fallback después
+        # Encontrar la posición de WhiteNoise y agregar el fallback ANTES
         try:
             whitenoise_index = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
-            MIDDLEWARE.insert(whitenoise_index + 1, fallback_middleware)
-            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado después de WhiteNoiseMiddleware en posición {whitenoise_index + 1}")
+            MIDDLEWARE.insert(whitenoise_index, fallback_middleware)
+            print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado ANTES de WhiteNoiseMiddleware en posición {whitenoise_index}")
         except ValueError:
-            # Si WhiteNoise no está, agregar el fallback al principio
+            # Si WhiteNoise no está, agregar el fallback después de SecurityMiddleware
             MIDDLEWARE.insert(1, fallback_middleware)
             print(f"[FALLBACK] StaticFilesFallbackMiddleware agregado al MIDDLEWARE en posición 1")
     else:
@@ -191,9 +192,9 @@ if RAILWAY_ENVIRONMENT:
         print(f"[FALLBACK] StaticFilesFallbackMiddleware ya está en MIDDLEWARE en posición {fallback_index}")
     
     # Debug: Mostrar el orden del middleware
-    print(f"[MIDDLEWARE] Orden del middleware:")
+    print(f"\n[MIDDLEWARE] Orden del middleware (solo relevantes):")
     for i, middleware in enumerate(MIDDLEWARE):
-        if 'whitenoise' in middleware or 'StaticFilesFallback' in middleware:
+        if 'whitenoise' in middleware or 'StaticFilesFallback' in middleware or 'Security' in middleware:
             print(f"  {i}: {middleware}")
     
     # Configuración de seguridad SSL para Railway

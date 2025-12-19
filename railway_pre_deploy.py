@@ -123,58 +123,56 @@ if __name__ == "__main__":
         
         print(f"\n[DEBUG] Total de archivos encontrados por finders: {len(archivos_encontrados)}")
         
-        # Ejecutar collectstatic
+        # SIEMPRE copiar archivos de taxis/static manualmente como respaldo
+        # Esto asegura que los archivos estén disponibles incluso si collectstatic falla
+        print("\n[INFO] Copiando archivos de taxis/static manualmente...")
+        source_dir = os.path.join(settings.BASE_DIR, 'taxis', 'static')
+        dest_dir = settings.STATIC_ROOT
+        
+        if os.path.exists(source_dir):
+            import shutil
+            files_copied = 0
+            for root, dirs, files in os.walk(source_dir):
+                # Calcular ruta relativa
+                rel_path = os.path.relpath(root, source_dir)
+                if rel_path == '.':
+                    dest_path = dest_dir
+                else:
+                    dest_path = os.path.join(dest_dir, rel_path)
+                
+                # Crear directorio destino si no existe
+                os.makedirs(dest_path, exist_ok=True)
+                
+                # Copiar archivos
+                for file in files:
+                    if 'cloudinary' not in file.lower():
+                        src_file = os.path.join(root, file)
+                        dst_file = os.path.join(dest_path, file)
+                        try:
+                            shutil.copy2(src_file, dst_file)
+                            files_copied += 1
+                            if files_copied <= 15:  # Mostrar primeros 15
+                                print(f"  [COPIADO] {os.path.join(rel_path, file) if rel_path != '.' else file}")
+                        except Exception as copy_error:
+                            print(f"  [ERROR] No se pudo copiar {file}: {copy_error}")
+            
+            print(f"\n[OK] {files_copied} archivos copiados manualmente desde taxis/static a {dest_dir}")
+        else:
+            print(f"[ERROR] Directorio fuente no existe: {source_dir}")
+        
+        # También ejecutar collectstatic para copiar archivos de otras apps (como rest_framework)
+        print("\n[INFO] Ejecutando collectstatic para copiar archivos de otras apps...")
         from django.core.management import call_command
-        print("\n[INFO] Ejecutando collectstatic...")
         try:
-            result = call_command('collectstatic', 
-                        verbosity=2,  # Verbosity alto para ver detalles
+            call_command('collectstatic', 
+                        verbosity=1,  # Verbosity medio
                         interactive=False,
                         clear=False,  # Ya limpiamos manualmente
                         ignore_patterns=['cloudinary'],
                         link=False)  # No usar symlinks
-            
-            # Verificar si se copiaron archivos
-            import subprocess
-            check_result = subprocess.run(
-                ['python', 'manage.py', 'collectstatic', '--dry-run', '--verbosity', '0'],
-                capture_output=True,
-                text=True
-            )
-            if '0 static files' in check_result.stdout:
-                print("\n[WARNING] collectstatic reportó 0 archivos copiados")
-                print("[INFO] Intentando copiar archivos manualmente...")
-                
-                # Copiar archivos manualmente desde taxis/static a staticfiles/
-                source_dir = os.path.join(settings.BASE_DIR, 'taxis', 'static')
-                dest_dir = settings.STATIC_ROOT
-                
-                if os.path.exists(source_dir):
-                    import shutil
-                    for root, dirs, files in os.walk(source_dir):
-                        # Calcular ruta relativa
-                        rel_path = os.path.relpath(root, source_dir)
-                        if rel_path == '.':
-                            dest_path = dest_dir
-                        else:
-                            dest_path = os.path.join(dest_dir, rel_path)
-                        
-                        # Crear directorio destino si no existe
-                        os.makedirs(dest_path, exist_ok=True)
-                        
-                        # Copiar archivos
-                        for file in files:
-                            if 'cloudinary' not in file:
-                                src_file = os.path.join(root, file)
-                                dst_file = os.path.join(dest_path, file)
-                                shutil.copy2(src_file, dst_file)
-                                print(f"  [COPIADO] {os.path.join(rel_path, file) if rel_path != '.' else file}")
-                    
-                    print(f"\n[OK] Archivos copiados manualmente a {dest_dir}")
+            print("[OK] collectstatic completado")
         except Exception as e:
-            print(f"\n[ERROR] Error en collectstatic: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"[WARNING] collectstatic falló (no crítico): {e}")
         
         # Verificar que los archivos nuevos se copiaron correctamente
         print("\n" + "="*60)

@@ -172,14 +172,16 @@ if RAILWAY_ENVIRONMENT:
     
     # Configuración de archivos estáticos para Railway
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    # IMPORTANTE: Solo usar taxis/static para evitar conflictos con archivos duplicados
-    # El directorio static/ raíz puede tener archivos duplicados que causan problemas
+    # IMPORTANTE: NO incluir taxis/static en STATICFILES_DIRS porque AppDirectoriesFinder
+    # ya lo encuentra automáticamente (taxis es una app instalada)
+    # Si lo incluimos en STATICFILES_DIRS, causa duplicados y "0 static files copied"
     STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, 'taxis', 'static'),  # Solo archivos de la app taxis
+        # Vacío - AppDirectoriesFinder encontrará automáticamente los archivos en taxis/static
     ]
-    # Desactivar AppDirectoriesFinder para evitar que busque en otras apps y cause duplicados
+    # Usar solo AppDirectoriesFinder para evitar duplicados
+    # AppDirectoriesFinder busca automáticamente en static/ de todas las apps instaladas
     STATICFILES_FINDERS = [
-        'django.contrib.staticfiles.finders.FileSystemFinder',  # Solo usar FileSystemFinder
+        'django.contrib.staticfiles.finders.AppDirectoriesFinder',  # Solo AppDirectoriesFinder
     ]
     # Usar storage personalizado que maneja archivos faltantes de forma segura
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/

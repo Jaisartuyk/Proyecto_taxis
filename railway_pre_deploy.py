@@ -43,19 +43,30 @@ if __name__ == "__main__":
     
     # Verificar finders antes de ejecutar
     from django.contrib.staticfiles.finders import get_finders
-    print("\n[DEBUG] Finders de archivos estaticos:")
+    print("\n[DEBUG] Finders de archivos estaticos ANTES del cambio:")
     for finder in get_finders():
         print(f"  - {finder.__class__.__name__}")
     
     # Usar storage sin compresión para evitar errores de compresión paralela
     # La compresión se hará automáticamente en tiempo de ejecución por WhiteNoise
     original_storage = settings.STATICFILES_STORAGE
+    original_finders = settings.STATICFILES_FINDERS.copy() if hasattr(settings, 'STATICFILES_FINDERS') else None
+    
     print(f"\n[INFO] Storage original: {original_storage}")
-    print("[INFO] Cambiando temporalmente a storage sin compresion...")
+    print(f"[INFO] Finders originales: {original_finders}")
+    print("[INFO] Cambiando temporalmente a storage sin compresion y desactivando AppDirectoriesFinder...")
     
     try:
         # Cambiar a storage sin compresión
         settings.STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        
+        # NO cambiar los finders - usar la configuración de settings_railway.py
+        # que solo usa AppDirectoriesFinder (evita duplicados)
+        
+        # Verificar que el cambio se aplicó
+        print("\n[DEBUG] Finders de archivos estaticos DESPUES del cambio:")
+        for finder in get_finders():
+            print(f"  - {finder.__class__.__name__}")
         
         # Verificar que los finders encuentren los archivos antes de copiar
         print("\n[DEBUG] Verificando que los finders encuentren los archivos nuevos:")
@@ -129,6 +140,8 @@ if __name__ == "__main__":
         traceback.print_exc()
         sys.exit(1)
     finally:
-        # Restaurar storage original
+        # Restaurar configuración original
         settings.STATICFILES_STORAGE = original_storage
+        if original_finders:
+            settings.STATICFILES_FINDERS = original_finders
 

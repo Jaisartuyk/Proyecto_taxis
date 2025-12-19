@@ -51,18 +51,29 @@ if __name__ == "__main__":
         "Aplicando migraciones de base de datos (AUTOMATICO)"
     )
     
-    # 3. Verificar archivos estáticos y WhiteNoise
+    # 3. Verificar archivos estáticos y configuración de WhiteNoise
     import os
-    staticfiles_dir = os.path.join(os.path.dirname(__file__), 'staticfiles')
+    from django.conf import settings
+    
+    staticfiles_dir = settings.STATIC_ROOT
+    print(f"\n[INFO] Verificando archivos estáticos en: {staticfiles_dir}")
+    print(f"[INFO] STATIC_URL: {settings.STATIC_URL}")
+    print(f"[INFO] STATICFILES_STORAGE: {settings.STATICFILES_STORAGE}")
+    
+    # Verificar configuración de WhiteNoise
+    if hasattr(settings, 'WHITENOISE_ROOT'):
+        print(f"[INFO] WHITENOISE_ROOT: {settings.WHITENOISE_ROOT}")
+    if hasattr(settings, 'WHITENOISE_USE_FINDERS'):
+        print(f"[INFO] WHITENOISE_USE_FINDERS: {settings.WHITENOISE_USE_FINDERS}")
+    
     if os.path.exists(staticfiles_dir) and os.listdir(staticfiles_dir):
-        print(f"\n[INFO] Archivos estaticos ya copiados en pre-deploy")
+        print(f"[INFO] Directorio staticfiles existe y tiene contenido")
         
         # Verificar que los archivos críticos estén presentes
         critical_files = [
             'css/floating-audio-button.css',
             'js/audio-floating-button.js',
         ]
-        from django.conf import settings
         all_ok = True
         for file_path in critical_files:
             full_path = os.path.join(staticfiles_dir, file_path)
@@ -70,15 +81,30 @@ if __name__ == "__main__":
                 size = os.path.getsize(full_path)
                 print(f"  [OK] {file_path} - {size} bytes")
             else:
-                print(f"  [ERROR] {file_path} - NO ENCONTRADO")
+                print(f"  [ERROR] {file_path} - NO ENCONTRADO en {full_path}")
                 all_ok = False
         
+        # Listar algunos archivos en staticfiles para verificar
+        print(f"\n[INFO] Archivos en staticfiles (primeros 10):")
+        count = 0
+        for root, dirs, files in os.walk(staticfiles_dir):
+            for file in files[:10]:
+                rel_path = os.path.relpath(os.path.join(root, file), staticfiles_dir)
+                print(f"  - {rel_path}")
+                count += 1
+                if count >= 10:
+                    break
+            if count >= 10:
+                break
+        
         if all_ok:
-            print(f"[INFO] Archivos críticos verificados, WhiteNoise los servirá desde {staticfiles_dir}")
+            print(f"\n[INFO] Archivos críticos verificados")
+            print(f"[INFO] WhiteNoise debería servir desde: {staticfiles_dir}")
         else:
-            print(f"[WARNING] Algunos archivos críticos faltan, pero continuando...")
+            print(f"\n[WARNING] Algunos archivos críticos faltan")
     else:
-        print(f"\n[WARNING] Archivos estaticos no encontrados, ejecutando collectstatic...")
+        print(f"\n[WARNING] Directorio staticfiles no existe o está vacío")
+        print(f"[INFO] Ejecutando collectstatic...")
         run_command(
             "python manage.py collectstatic --noinput --verbosity 0 --ignore cloudinary",
             "Recopilando archivos estaticos (silencioso, ignorando Cloudinary)"

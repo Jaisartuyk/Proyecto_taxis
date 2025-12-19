@@ -225,6 +225,8 @@ if RAILWAY_ENVIRONMENT:
     # Usar storage simple - WhiteNoise comprimirá automáticamente al servir
     # Esto evita problemas con archivos copiados manualmente
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
+    # IMPORTANTE: No usar CompressedManifestStaticFilesStorage porque requiere que todos los archivos
+    # estén presentes durante collectstatic, lo cual causa problemas con archivos copiados manualmente
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     
     # Configuración de archivos estáticos para Railway

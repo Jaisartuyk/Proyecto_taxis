@@ -182,22 +182,24 @@ if RAILWAY_ENVIRONMENT:
     STATICFILES_FINDERS = [
         'django.contrib.staticfiles.finders.AppDirectoriesFinder',  # Solo AppDirectoriesFinder
     ]
-    # Usar storage personalizado que maneja archivos faltantes de forma segura
+    # Usar storage simple para producción - WhiteNoise comprimirá automáticamente al servir
+    # Esto evita problemas con la compresión durante collectstatic
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
-    STATICFILES_STORAGE = 'taxi_project.storage.SafeCompressedStaticFilesStorage'
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     
     # Configuración de WhiteNoise
-    # IMPORTANTE: En producción, WhiteNoise sirve desde STATIC_ROOT automáticamente
-    # No necesitamos configurar WHITENOISE_ROOT porque WhiteNoise usa STATIC_ROOT por defecto
-    WHITENOISE_USE_FINDERS = False  # Desactivar finders en producción, servir solo desde STATIC_ROOT
-    WHITENOISE_AUTOREFRESH = False  # Desactivar auto-refresh en producción (los archivos ya están en staticfiles/)
+    # IMPORTANTE: WhiteNoise debe servir archivos desde STATIC_ROOT
+    # Usar configuración que permita servir archivos sin compresión primero
+    WHITENOISE_USE_FINDERS = True  # Habilitar finders como fallback si los archivos no están en STATIC_ROOT
+    WHITENOISE_AUTOREFRESH = True  # Habilitar auto-refresh para detectar archivos nuevos
+    WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz de WhiteNoise
+    WHITENOISE_INDEX_FILE = False  # No usar index.html automático
     
     # Configuración adicional de WhiteNoise para manejar archivos que pueden no existir
     # Esto evita errores cuando WhiteNoise intenta comprimir archivos que fueron eliminados
     WHITENOISE_MANIFEST_STRICT = False
     
-    # WhiteNoise automáticamente sirve desde STATIC_ROOT cuando WHITENOISE_USE_FINDERS = False
-    # No necesitamos configurar WHITENOISE_ROOT explícitamente
+    # WhiteNoise intentará servir desde STATIC_ROOT primero, luego desde finders como fallback
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

@@ -52,13 +52,15 @@ if __name__ == "__main__":
     )
     
     # 3. Collectstatic (DESPUES de migraciones)
+    # NOTA: No usamos --clear porque causa conflictos con WhiteNoise al intentar comprimir archivos eliminados
+    # Django sobrescribirá automáticamente los archivos que han cambiado
     run_command(
         # IMPORTANTE (Railway): verbosity 0 para evitar rate limit de logs (500 logs/s)
-        # --clear: limpia staticfiles antes de copiar (asegura archivos actualizados)
         # --noinput: no pide confirmación
         # --ignore cloudinary: ignora archivos de Cloudinary (se sirven desde su CDN)
-        "python manage.py collectstatic --noinput --clear --verbosity 0 --ignore cloudinary",
-        "Recopilando archivos estaticos (collectstatic con --clear, silencioso, ignorando Cloudinary)"
+        # Sin --clear: evita conflictos con WhiteNoise durante la compresión
+        "python manage.py collectstatic --noinput --verbosity 0 --ignore cloudinary",
+        "Recopilando archivos estaticos (silencioso, ignorando Cloudinary)"
     )
     
     # 4. Iniciar servidor

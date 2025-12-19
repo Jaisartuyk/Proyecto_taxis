@@ -176,13 +176,17 @@ if RAILWAY_ENVIRONMENT:
         os.path.join(BASE_DIR, 'static'),
         os.path.join(BASE_DIR, 'taxis', 'static'),
     ]
-    # Usar CompressedStaticFilesStorage en lugar de Manifest para evitar errores con archivos de Cloudinary
+    # Usar storage personalizado que maneja archivos faltantes de forma segura
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    STATICFILES_STORAGE = 'taxi_project.storage.SafeCompressedStaticFilesStorage'
     
     # Configuración de WhiteNoise para ignorar archivos faltantes (como los de Cloudinary)
     WHITENOISE_USE_FINDERS = True
     WHITENOISE_AUTOREFRESH = True
+    
+    # Configuración adicional de WhiteNoise para manejar archivos que pueden no existir
+    # Esto evita errores cuando WhiteNoise intenta comprimir archivos que fueron eliminados
+    WHITENOISE_MANIFEST_STRICT = False
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

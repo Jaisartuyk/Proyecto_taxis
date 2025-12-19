@@ -525,20 +525,31 @@ function renderMessages(messages) {
     }
     
     // Agregar mensajes al chat
-    messages.forEach(msg => {
+    console.log(`📝 Renderizando ${messages.length} mensajes en el chat log...`);
+    messages.forEach((msg, index) => {
+        // El backend devuelve: {sender_id, sender_name, message, timestamp, is_sent}
         const isSent = msg.is_sent === true || msg.sender_id == 1;
         const timestamp = typeof msg.timestamp === 'string'
             ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
             : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        // Usar el mismo formato que en comunicacion_driver.html para consistencia
         const messageHtml = `
-            <div class="message ${isSent ? 'outgoing' : 'incoming'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
-                <strong>${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}:</strong> ${msg.message}
-                <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
+            <div class="message ${isSent ? 'sent' : 'received'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
+                <div style="font-weight: bold; margin-bottom: 4px;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
+                <div>${msg.message}</div>
+                <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">${timestamp}</div>
             </div>
         `;
         chatLog.insertAdjacentHTML('beforeend', messageHtml);
+        
+        // Log cada 10 mensajes para no saturar la consola
+        if ((index + 1) % 10 === 0 || index === messages.length - 1) {
+            console.log(`   ✅ ${index + 1}/${messages.length} mensajes agregados al DOM`);
+        }
     });
+    
+    console.log(`✅ Todos los mensajes renderizados. Total en DOM: ${chatLog.querySelectorAll('.message').length}`);
     
     // Scroll al final
     chatLog.scrollTop = chatLog.scrollHeight;
@@ -593,8 +604,24 @@ async function loadChatHistory(driverId) {
             }
 
             const payload = await response.json();
-            const serverMessages = payload.messages || payload;
+            console.log(`📦 Payload completo del servidor:`, payload);
+            
+            // El servidor puede devolver {messages: [...]} o directamente un array
+            let serverMessages = [];
+            if (Array.isArray(payload)) {
+                serverMessages = payload;
+            } else if (payload.messages && Array.isArray(payload.messages)) {
+                serverMessages = payload.messages;
+            } else {
+                console.warn('⚠️ Formato de respuesta inesperado:', payload);
+                serverMessages = [];
+            }
+            
             console.log(`✅ Historial del servidor: ${serverMessages.length || 0} mensajes`);
+            if (serverMessages.length > 0) {
+                console.log(`   Primer mensaje:`, serverMessages[0]);
+                console.log(`   Último mensaje:`, serverMessages[serverMessages.length - 1]);
+            }
             
             // Si hay mensajes del servidor, actualizar el almacenamiento y renderizar
             if (serverMessages.length > 0) {
@@ -604,7 +631,22 @@ async function loadChatHistory(driverId) {
                 saveChatHistoryToStorage(driverId, serverMessages);
                 // Renderizar mensajes del servidor
                 console.log(`✅ Renderizando ${serverMessages.length} mensajes del servidor`);
-                renderMessages(serverMessages);
+                console.log(`   Verificando chat-log antes de renderizar...`);
+                const chatLogCheck = document.getElementById('chat-log');
+                if (chatLogCheck) {
+                    console.log(`   ✅ chat-log encontrado, renderizando mensajes...`);
+                    renderMessages(serverMessages);
+                    // Verificar que los mensajes se renderizaron
+                    setTimeout(() => {
+                        const renderedMessages = chatLogCheck.querySelectorAll('.message');
+                        console.log(`   ✅ Mensajes renderizados: ${renderedMessages.length}`);
+                        if (renderedMessages.length === 0 && serverMessages.length > 0) {
+                            console.error('❌ ERROR: Los mensajes no se renderizaron correctamente!');
+                        }
+                    }, 100);
+                } else {
+                    console.error('❌ ERROR: chat-log no encontrado después de cargar historial!');
+                }
             } else if (storedMessages.length > 0) {
                 // Si el servidor no tiene mensajes pero tenemos guardados, mantener los guardados
                 console.log('📂 Manteniendo mensajes guardados localmente (servidor vacío)');

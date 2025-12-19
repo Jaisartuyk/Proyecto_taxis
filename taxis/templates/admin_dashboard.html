@@ -344,10 +344,10 @@
             <h3>Gestionar Usuarios</h3>
             <p>Ver y administrar conductores y clientes</p>
         </a>
-        <a href="{% url 'available_routes_list' %}" class="action-card">
-            <i class="fas fa-route"></i>
-            <h3>Rutas Disponibles</h3>
-            <p>Configurar rutas del sistema</p>
+        <a href="{% url 'available_rides' %}" class="action-card">
+            <i class="fas fa-taxi"></i>
+            <h3>Carreras Disponibles</h3>
+            <p>Ver y gestionar carreras solicitadas</p>
         </a>
         <a href="{% url 'available_rides' %}" class="action-card">
             <i class="fas fa-taxi"></i>
@@ -550,8 +550,8 @@
                 </a>
             </div>
             <div class="col-md-3 mb-3">
-                <a href="{% url 'available_routes_list' %}" class="btn btn-secondary w-100">
-                    <i class="fas fa-route"></i> Configurar Rutas
+                <a href="{% url 'available_rides' %}" class="btn btn-secondary w-100">
+                    <i class="fas fa-taxi"></i> Carreras Disponibles
                 </a>
             </div>
             <div class="col-md-3 mb-3">

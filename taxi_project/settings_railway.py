@@ -182,13 +182,18 @@ if RAILWAY_ENVIRONMENT:
     # Cloudinary maneja sus propios archivos estáticos y no necesitan estar en staticfiles/
     STATICFILES_STORAGE = 'taxi_project.storage.SafeCompressedStaticFilesStorage'
     
-    # Configuración de WhiteNoise para ignorar archivos faltantes (como los de Cloudinary)
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_AUTOREFRESH = True
+    # Configuración de WhiteNoise
+    # IMPORTANTE: WhiteNoise debe servir desde STATIC_ROOT, no desde finders en producción
+    WHITENOISE_USE_FINDERS = False  # Desactivar finders en producción, servir solo desde STATIC_ROOT
+    WHITENOISE_AUTOREFRESH = False  # Desactivar auto-refresh en producción (los archivos ya están en staticfiles/)
     
     # Configuración adicional de WhiteNoise para manejar archivos que pueden no existir
     # Esto evita errores cuando WhiteNoise intenta comprimir archivos que fueron eliminados
     WHITENOISE_MANIFEST_STRICT = False
+    
+    # WhiteNoise debe servir archivos desde STATIC_ROOT
+    # Esto asegura que los archivos copiados por collectstatic se sirvan correctamente
+    WHITENOISE_ROOT = STATIC_ROOT
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

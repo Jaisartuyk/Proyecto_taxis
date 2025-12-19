@@ -66,7 +66,34 @@ if __name__ == "__main__":
                     clear=True,  # Limpiar staticfiles/ antes de copiar (seguro con storage sin compresión)
                     ignore_patterns=['cloudinary'])
         
-        print("\n[OK] Archivos estaticos recolectados correctamente")
+        # Verificar que los archivos nuevos se copiaron correctamente
+        print("\n" + "="*60)
+        print("VERIFICANDO ARCHIVOS COPIADOS")
+        print("="*60 + "\n")
+        
+        static_root = settings.STATIC_ROOT
+        archivos_verificar = [
+            'css/floating-audio-button.css',
+            'js/audio-floating-button.js',
+        ]
+        
+        todos_ok = True
+        for archivo in archivos_verificar:
+            ruta_completa = os.path.join(static_root, archivo)
+            existe = os.path.exists(ruta_completa)
+            if existe:
+                tamaño = os.path.getsize(ruta_completa)
+                print(f"[OK] {archivo} - {tamaño} bytes")
+            else:
+                print(f"[ERROR] {archivo} - NO ENCONTRADO")
+                todos_ok = False
+        
+        if todos_ok:
+            print("\n[OK] Todos los archivos nuevos se copiaron correctamente")
+        else:
+            print("\n[WARNING] Algunos archivos no se copiaron correctamente")
+            print("[INFO] Esto puede deberse a archivos duplicados en STATICFILES_DIRS")
+        
         sys.exit(0)
         
     except Exception as e:

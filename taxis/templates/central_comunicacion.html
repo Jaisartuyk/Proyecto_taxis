@@ -1216,57 +1216,6 @@
                             <p>Selecciona un conductor de la lista para iniciar una conversación privada</p>
                         </div>
                     </div>
-                    <!-- Historial inicial: Si hay conductores con historial, renderizar el del primero (similar a comunicacion_driver.html) -->
-                    {% if drivers_with_history and drivers_with_history|length > 0 %}
-                        {% with first_driver=drivers_with_history.0 %}
-                            {% if first_driver.chat_history %}
-                                <div id="initial-chat-history" data-driver-id="{{ first_driver.driver.id }}" style="width: 100%;">
-                                    {% for msg in first_driver.chat_history %}
-                                    {% if msg.sender == request.user %}
-                                    <div class="message sent" style="display: block; visibility: visible; opacity: 1; margin: 10px; padding: 10px; border-radius: 10px; max-width: 80%; background-color: #007bff; color: white; margin-left: auto;">
-                                        <div style="font-weight: bold; margin-bottom: 4px;">
-                                            Tú
-                                        </div>
-                                        <div style="word-wrap: break-word;">
-                                            {{ msg.message|linebreaksbr }}
-                                        </div>
-                                        <div class="message-time" style="font-size: 0.7em; opacity: 0.8; margin-top: 4px; text-align: right; color: #e0e0e0">
-                                            {{ msg.timestamp|date:"d/m/Y H:i" }}
-                                        </div>
-                                    </div>
-                                    {% else %}
-                                    <div class="message received" style="display: block; visibility: visible; opacity: 1; margin: 10px; padding: 10px; border-radius: 10px; max-width: 80%; background-color: #f1f1f1; color: #333;">
-                                        <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
-                                            {{ msg.sender.get_full_name|default:msg.sender.username }}
-                                        </div>
-                                        <div style="word-wrap: break-word; color: #333;">
-                                            {{ msg.message|linebreaksbr }}
-                                        </div>
-                                        <div class="message-time" style="font-size: 0.7em; opacity: 0.8; margin-top: 4px; text-align: right; color: #666">
-                                            {{ msg.timestamp|date:"d/m/Y H:i" }}
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                    {% endfor %}
-                                </div>
-                                <script>
-                                    // Desplazar al final del historial al cargar
-                                    document.addEventListener('DOMContentLoaded', function() {
-                                        const chatLog = document.getElementById('chat-log');
-                                        chatLog.scrollTop = chatLog.scrollHeight;
-                                    });
-                                </script>
-                            {% else %}
-                                <div id="no-chat-history" style="text-align: center; padding: 20px; color: #666;">
-                                    No hay historial de mensajes con este conductor.
-                                </div>
-                            {% endif %}
-                        {% endwith %}
-                    {% else %}
-                        <div id="no-drivers" style="text-align: center; padding: 20px; color: #666;">
-                            No hay conductores disponibles.
-                        </div>
-                    {% endif %}
                 </div>
                 <div class="chat-input-area" id="chat-input-container" style="display: none;">
                     <input id="chat-message-input" type="text" placeholder="Escribe un mensaje privado...">
@@ -1439,55 +1388,87 @@
                 this.classList.add('active');
 
                 activeChatRecipientId = this.dataset.driverId;
-                chatHeader.textContent = `Chat con ${this.dataset.driverName}`;
+                chatHeader.textContent = `Chat con: ${this.dataset.driverName}`;
                 inputContainer.style.display = 'flex';
-                chatLog.innerHTML = ''; // Limpiar chat anterior
                 if (noChatSelected) noChatSelected.style.display = 'none';
 
-                // Mostrar indicador de carga
-                chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Cargando historial...</div>';
-
-                // Cargar historial de chat
-                console.log(`📜 Cargando historial para usuario ${activeChatRecipientId}`);
-                console.log(`📜 CurrentUser ID: ${currentUser.id} (tipo: ${typeof currentUser.id})`);
-                fetch(`/api/chat_history/${activeChatRecipientId}/`)
-                    .then(response => {
-                        console.log(`📡 Respuesta recibida:`, response.status);
-                        if (!response.ok) {
-                            console.error(`❌ Error HTTP: ${response.status}`);
-                            return response.text().then(text => {
-                                console.error(`❌ Respuesta del servidor:`, text);
-                                throw new Error(`HTTP error! status: ${response.status}`);
+                // Verificar si hay historial precargado en el HTML
+                const initialHistory = document.getElementById('initial-chat-history');
+                const hasPreloadedHistory = this.dataset.chatHistoryLoaded === 'true';
+                
+                if (hasPreloadedHistory && initialHistory && initialHistory.dataset.driverId === activeChatRecipientId) {
+                    // Usar el historial precargado del HTML
+                    console.log(`📜 Usando historial precargado para conductor ${activeChatRecipientId}`);
+                    chatLog.innerHTML = ''; // Limpiar chat anterior
+                    
+                    // Parsear el historial del data attribute
+                    try {
+                        const historyData = JSON.parse(this.dataset.initialHistory || '[]');
+                        if (historyData.length > 0) {
+                            historyData.forEach((msg, index) => {
+                                appendMessage(msg.message, msg.sender_id, msg.sender_name, msg.is_sent);
                             });
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log(`📨 Datos del historial:`, data);
-                        chatLog.innerHTML = ''; // Limpiar indicador de carga
-                        
-                        if (data.messages && data.messages.length > 0) {
-                            console.log(`✅ Cargando ${data.messages.length} mensajes`);
-                            data.messages.forEach((msg, index) => {
-                                // Usar is_sent del backend o comparar sender_id con currentUser.id
-                                // Convertir ambos a números para comparación correcta (similar a comunicacion_driver.html)
-                                const isSent = msg.is_sent !== undefined ? msg.is_sent : (Number(msg.sender_id) === Number(currentUser.id));
-                                console.log(`📨 Mensaje ${index + 1}: sender_id=${msg.sender_id}, currentUser.id=${currentUser.id}, is_sent=${msg.is_sent}, isSent=${isSent}`);
-                                appendMessage(msg.message, msg.sender_id, msg.sender_name, isSent);
-                            });
-                            console.log(`✅ Historial cargado correctamente`);
+                            console.log(`✅ Historial precargado mostrado: ${historyData.length} mensajes`);
                         } else {
-                            console.log('ℹ️ No hay mensajes en el historial');
                             chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">No hay mensajes anteriores</div>';
                         }
-                    })
-                    .catch(error => {
-                        console.error('❌ Error cargando historial:', error);
-                        console.error('❌ Stack trace:', error.stack);
-                        chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">Error cargando historial. Intenta de nuevo.</div>';
-                    });
+                    } catch (e) {
+                        console.error('❌ Error parseando historial precargado:', e);
+                        // Si falla, cargar desde API
+                        loadChatHistoryFromAPI();
+                    }
+                } else {
+                    // Cargar desde API
+                    loadChatHistoryFromAPI();
+                }
+                
+                function loadChatHistoryFromAPI() {
+                    chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Cargando historial...</div>';
+                    
+                    console.log(`📜 Cargando historial desde API para usuario ${activeChatRecipientId}`);
+                    fetch(`/api/chat_history/${activeChatRecipientId}/`)
+                        .then(response => {
+                            console.log(`📡 Respuesta recibida:`, response.status);
+                            if (!response.ok) {
+                                console.error(`❌ Error HTTP: ${response.status}`);
+                                return response.text().then(text => {
+                                    console.error(`❌ Respuesta del servidor:`, text);
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log(`📨 Datos del historial:`, data);
+                            chatLog.innerHTML = ''; // Limpiar indicador de carga
+                            
+                            if (data.messages && data.messages.length > 0) {
+                                console.log(`✅ Cargando ${data.messages.length} mensajes`);
+                                data.messages.forEach((msg, index) => {
+                                    const isSent = msg.is_sent !== undefined ? msg.is_sent : (Number(msg.sender_id) === Number(currentUser.id));
+                                    appendMessage(msg.message, msg.sender_id, msg.sender_name, isSent);
+                                });
+                                console.log(`✅ Historial cargado correctamente`);
+                            } else {
+                                console.log('ℹ️ No hay mensajes en el historial');
+                                chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">No hay mensajes anteriores</div>';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('❌ Error cargando historial:', error);
+                            console.error('❌ Stack trace:', error.stack);
+                            chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">Error cargando historial. Intenta de nuevo.</div>';
+                        });
+                }
             });
         });
+        
+        // Auto-seleccionar el primer conductor al cargar la página
+        const firstDriver = document.querySelector('.user-item');
+        if (firstDriver) {
+            console.log('🎯 Auto-seleccionando primer conductor al cargar');
+            firstDriver.click();
+        }
     }
 
     // Lógica para el conductor: iniciar chat con el admin

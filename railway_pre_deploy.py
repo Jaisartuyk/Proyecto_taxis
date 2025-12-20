@@ -138,18 +138,21 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[WARNING] collectstatic falló (continuando con copia manual): {e}")
         
-        # SIEMPRE copiar archivos de taxis/static manualmente como respaldo
+        # SIEMPRE copiar archivos de taxis/static y static/ manualmente como respaldo
         # Esto asegura que los archivos estén disponibles incluso si collectstatic falla
-        print("\n[INFO] Copiando archivos de taxis/static manualmente...")
-        source_dir = os.path.join(settings.BASE_DIR, 'taxis', 'static')
+        print("\n[INFO] Copiando archivos de taxis/static y static/ manualmente...")
         dest_dir = settings.STATIC_ROOT
+        import shutil
+        total_files_copied = 0
         
-        if os.path.exists(source_dir):
-            import shutil
+        # 1. Copiar archivos de taxis/static
+        source_dir_taxis = os.path.join(settings.BASE_DIR, 'taxis', 'static')
+        if os.path.exists(source_dir_taxis):
+            print(f"[INFO] Copiando desde taxis/static...")
             files_copied = 0
-            for root, dirs, files in os.walk(source_dir):
+            for root, dirs, files in os.walk(source_dir_taxis):
                 # Calcular ruta relativa
-                rel_path = os.path.relpath(root, source_dir)
+                rel_path = os.path.relpath(root, source_dir_taxis)
                 if rel_path == '.':
                     dest_path = dest_dir
                 else:
@@ -167,28 +170,64 @@ if __name__ == "__main__":
                             # Copiar archivo, sobrescribiendo si existe
                             shutil.copy2(src_file, dst_file)
                             files_copied += 1
+                            total_files_copied += 1
                             if files_copied <= 15:  # Mostrar primeros 15
                                 print(f"  [COPIADO] {os.path.join(rel_path, file) if rel_path != '.' else file}")
                         except Exception as copy_error:
                             print(f"  [ERROR] No se pudo copiar {file}: {copy_error}")
             
-            print(f"\n[OK] {files_copied} archivos copiados manualmente desde taxis/static a {dest_dir}")
-            
-            # Verificar que los archivos críticos estén presentes
-            critical_files = [
-                'css/floating-audio-button.css',
-                'js/audio-floating-button.js',
-            ]
-            print("\n[INFO] Verificando archivos críticos después de la copia:")
-            for file_path in critical_files:
-                full_path = os.path.join(dest_dir, file_path)
-                if os.path.exists(full_path):
-                    size = os.path.getsize(full_path)
-                    print(f"  [OK] {file_path} - {size} bytes")
+            print(f"[OK] {files_copied} archivos copiados desde taxis/static")
+        
+        # 2. Copiar archivos de static/ (directorio global)
+        source_dir_global = os.path.join(settings.BASE_DIR, 'static')
+        if os.path.exists(source_dir_global):
+            print(f"[INFO] Copiando desde static/...")
+            files_copied = 0
+            for root, dirs, files in os.walk(source_dir_global):
+                # Calcular ruta relativa
+                rel_path = os.path.relpath(root, source_dir_global)
+                if rel_path == '.':
+                    dest_path = dest_dir
                 else:
-                    print(f"  [ERROR] {file_path} - NO ENCONTRADO")
-        else:
-            print(f"[ERROR] Directorio fuente no existe: {source_dir}")
+                    dest_path = os.path.join(dest_dir, rel_path)
+                
+                # Crear directorio destino si no existe
+                os.makedirs(dest_path, exist_ok=True)
+                
+                # Copiar archivos
+                for file in files:
+                    if 'cloudinary' not in file.lower():
+                        src_file = os.path.join(root, file)
+                        dst_file = os.path.join(dest_path, file)
+                        try:
+                            # Copiar archivo, sobrescribiendo si existe
+                            shutil.copy2(src_file, dst_file)
+                            files_copied += 1
+                            total_files_copied += 1
+                            if files_copied <= 15:  # Mostrar primeros 15
+                                print(f"  [COPIADO] {os.path.join(rel_path, file) if rel_path != '.' else file}")
+                        except Exception as copy_error:
+                            print(f"  [ERROR] No se pudo copiar {file}: {copy_error}")
+            
+            print(f"[OK] {files_copied} archivos copiados desde static/")
+        
+        print(f"\n[OK] Total: {total_files_copied} archivos copiados manualmente a {dest_dir}")
+        
+        # Verificar que los archivos críticos estén presentes
+        critical_files = [
+            'css/floating-audio-button.css',
+            'js/audio-floating-button.js',
+            'js/badge-manager.js',
+            'js/notifications-v5.js',
+        ]
+        print("\n[INFO] Verificando archivos críticos después de la copia:")
+        for file_path in critical_files:
+            full_path = os.path.join(dest_dir, file_path)
+            if os.path.exists(full_path):
+                size = os.path.getsize(full_path)
+                print(f"  [OK] {file_path} - {size} bytes")
+            else:
+                print(f"  [ERROR] {file_path} - NO ENCONTRADO")
         
         # Verificar que los archivos nuevos se copiaron correctamente
         print("\n" + "="*60)
@@ -199,6 +238,8 @@ if __name__ == "__main__":
         archivos_verificar = [
             'css/floating-audio-button.css',
             'js/audio-floating-button.js',
+            'js/badge-manager.js',
+            'js/notifications-v5.js',
         ]
         
         todos_ok = True

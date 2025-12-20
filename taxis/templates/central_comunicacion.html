@@ -1083,15 +1083,34 @@
             {% if request.user.is_superuser %}
             <div class="user-list">
                 <div class="user-list-header">Conductores</div>
-                {% for driver in drivers %}
-                <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
-                    {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
-                    <img src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
-                        onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
-                        alt="{{ driver.get_full_name }}">
-                    <span>{{ driver.get_full_name }}</span>
-                </div>
-                {% endfor %}
+                {% if drivers_with_history %}
+                    {% for item in drivers_with_history %}
+                    {% with driver=item.driver chat_history=item.chat_history %}
+                    <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}" data-chat-history-loaded="true">
+                        {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
+                        <img src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
+                            onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
+                            alt="{{ driver.get_full_name }}">
+                        <span>{{ driver.get_full_name }}</span>
+                        {% if item.last_message %}
+                        <small style="display: block; font-size: 0.8em; color: #666; margin-top: 4px;">
+                            {{ item.last_message.message|truncatewords:10 }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                {% else %}
+                    {% for driver in drivers %}
+                    <div class="user-item" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.get_full_name }}">
+                        {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
+                        <img src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
+                            onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
+                            alt="{{ driver.get_full_name }}">
+                        <span>{{ driver.get_full_name }}</span>
+                    </div>
+                    {% endfor %}
+                {% endif %}
             </div>
             {% endif %}
 
@@ -1221,7 +1240,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         const currentUser = {
-            id: "{{ request.user.id }}",
+            id: {{ request.user.id }},  // Cambiar a número para comparaciones correctas
             is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
         };
         const adminUserId = "{{ admin_user_id }}";
@@ -1288,12 +1307,13 @@
         };
     }
 
-    function appendMessage(message, sender_id, sender_name) {
+    function appendMessage(message, sender_id, sender_name, isSentOverride = null) {
         if (noChatSelected) noChatSelected.style.display = 'none';
 
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
-        const isSent = sender_id == currentUser.id;
+        // Usar isSentOverride si se proporciona, de lo contrario comparar sender_id con currentUser.id
+        const isSent = isSentOverride !== null ? isSentOverride : (String(sender_id) === String(currentUser.id));
         messageDiv.classList.add(isSent ? 'sent' : 'received');
 
         messageDiv.innerHTML = `
@@ -1346,11 +1366,16 @@
 
                 // Cargar historial de chat
                 console.log(`📜 Cargando historial para usuario ${activeChatRecipientId}`);
+                console.log(`📜 CurrentUser ID: ${currentUser.id} (tipo: ${typeof currentUser.id})`);
                 fetch(`/api/chat_history/${activeChatRecipientId}/`)
                     .then(response => {
                         console.log(`📡 Respuesta recibida:`, response.status);
                         if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
+                            console.error(`❌ Error HTTP: ${response.status}`);
+                            return response.text().then(text => {
+                                console.error(`❌ Respuesta del servidor:`, text);
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            });
                         }
                         return response.json();
                     })
@@ -1360,9 +1385,14 @@
                         
                         if (data.messages && data.messages.length > 0) {
                             console.log(`✅ Cargando ${data.messages.length} mensajes`);
-                            data.messages.forEach(msg => {
-                                appendMessage(msg.message, msg.sender_id, msg.sender_name);
+                            data.messages.forEach((msg, index) => {
+                                // Usar is_sent del backend o comparar sender_id con currentUser.id
+                                // Convertir ambos a números para comparación correcta (similar a comunicacion_driver.html)
+                                const isSent = msg.is_sent !== undefined ? msg.is_sent : (Number(msg.sender_id) === Number(currentUser.id));
+                                console.log(`📨 Mensaje ${index + 1}: sender_id=${msg.sender_id}, currentUser.id=${currentUser.id}, is_sent=${msg.is_sent}, isSent=${isSent}`);
+                                appendMessage(msg.message, msg.sender_id, msg.sender_name, isSent);
                             });
+                            console.log(`✅ Historial cargado correctamente`);
                         } else {
                             console.log('ℹ️ No hay mensajes en el historial');
                             chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">No hay mensajes anteriores</div>';
@@ -1370,6 +1400,7 @@
                     })
                     .catch(error => {
                         console.error('❌ Error cargando historial:', error);
+                        console.error('❌ Stack trace:', error.stack);
                         chatLog.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">Error cargando historial. Intenta de nuevo.</div>';
                     });
             });

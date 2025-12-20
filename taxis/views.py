@@ -1783,6 +1783,26 @@ def chat_central(request):
     drivers = AppUser.objects.filter(role='driver')
     admin_user = AppUser.objects.filter(is_superuser=True).first()
 
+    # Pre-cargar historial de chat para cada conductor (similar a comunicacion_driver.html)
+    from .models import ChatMessage
+    from django.db.models import Q
+    
+    drivers_with_history = []
+    for driver in drivers:
+        # Obtener historial de chat entre el admin y este conductor
+        chat_history = []
+        if admin_user:
+            chat_history = ChatMessage.objects.filter(
+                Q(sender=request.user, recipient=driver) | 
+                Q(sender=driver, recipient=request.user)
+            ).order_by('timestamp')[:50]  # Limitar a últimos 50 mensajes para rendimiento
+        
+        drivers_with_history.append({
+            'driver': driver,
+            'chat_history': chat_history,
+            'last_message': chat_history.last() if chat_history else None
+        })
+
     import time
     import random
     import datetime
@@ -1793,6 +1813,7 @@ def chat_central(request):
     
     context = {
         'drivers': drivers,
+        'drivers_with_history': drivers_with_history,  # Nueva lista con historial pre-cargado
         'admin_user_id': admin_user.id if admin_user else None,
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,  # Para el mapa
         'timestamp': unique_timestamp,  # Timestamp súper único

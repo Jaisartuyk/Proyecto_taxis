@@ -515,8 +515,20 @@ function renderMessages(messages) {
     }
     console.log(`📝 chat-log encontrado:`, chatLog);
     
-    // Limpiar chat log
+    // IMPORTANTE: Ocultar el mensaje "no-chat-selected" si existe
+    const noChatSelected = document.getElementById('no-chat-selected');
+    if (noChatSelected) {
+        noChatSelected.style.display = 'none';
+        console.log(`📝 Ocultado #no-chat-selected`);
+    }
+    
+    // Limpiar chat log completamente
     chatLog.innerHTML = '';
+    
+    // Asegurar que el chat log sea visible
+    chatLog.style.display = 'block';
+    chatLog.style.visibility = 'visible';
+    chatLog.style.opacity = '1';
     
     // Si no hay mensajes, mostrar mensaje de "sin mensajes"
     if (!messages || messages.length === 0) {
@@ -547,11 +559,26 @@ function renderMessages(messages) {
             : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Usar el mismo formato que en comunicacion_driver.html para consistencia
+        // IMPORTANTE: Asegurar que los mensajes sean visibles con estilos inline
         const messageHtml = `
-            <div class="message ${isSent ? 'sent' : 'received'}" style="margin-bottom: 10px; padding: 8px 12px; background: ${isSent ? '#007bff' : '#e9ecef'}; color: ${isSent ? 'white' : 'black'}; border-radius: 8px; max-width: 70%; ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}">
-                <div style="font-weight: bold; margin-bottom: 4px;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
-                <div>${msg.message}</div>
-                <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">${timestamp}</div>
+            <div class="message ${isSent ? 'sent' : 'received'}" 
+                 style="display: block !important; 
+                        visibility: visible !important; 
+                        opacity: 1 !important;
+                        margin-bottom: 10px; 
+                        padding: 8px 12px; 
+                        background: ${isSent ? '#007bff' : '#e9ecef'}; 
+                        color: ${isSent ? 'white' : 'black'}; 
+                        border-radius: 8px; 
+                        max-width: 70%; 
+                        ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}
+                        position: relative;
+                        z-index: 2;
+                        width: auto;
+                        min-width: 100px;">
+                <div style="font-weight: bold; margin-bottom: 4px; display: block;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
+                <div style="display: block; word-wrap: break-word;">${msg.message}</div>
+                <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
             </div>
         `;
         chatLog.insertAdjacentHTML('beforeend', messageHtml);

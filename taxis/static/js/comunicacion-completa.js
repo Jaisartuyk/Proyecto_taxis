@@ -1796,30 +1796,20 @@ function openDriverChatFromList(driverId, driverName) {
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
         console.log(`📋 Conductor anterior: ${previousDriverId}, Conductor actual: ${driverId}`);
         
-        // Verificar si se renderizó el historial desde data-initial-history
-        const renderedMessages = chatLog.querySelectorAll('.message');
-        console.log(`📊 Mensajes renderizados en DOM después de abrir chat: ${renderedMessages.length}`);
-        console.log(`📊 chatLog.innerHTML.length: ${chatLog.innerHTML.length}`);
-        console.log(`📊 chatLog.children.length: ${chatLog.children.length}`);
+        // SIEMPRE cargar el historial desde el servidor para asegurar que se muestre
+        // Esto es crítico porque el historial debe estar visible
+        console.log(`🔄 Cargando historial para conductor ${driverId}...`);
         
-        // SIEMPRE cargar desde el servidor para asegurar que tenemos el historial completo
-        // Pero solo si no hay mensajes renderizados
-        if (renderedMessages.length === 0) {
-            console.log(`⚠️ No hay mensajes renderizados, cargando desde servidor INMEDIATAMENTE...`);
-            // Cargar desde el servidor inmediatamente (sin setTimeout)
-            loadChatHistory(driverId).catch(error => {
-                console.error('❌ Error cargando historial desde servidor:', error);
-            });
-        } else {
-            console.log(`✅ Historial ya renderizado (${renderedMessages.length} mensajes)`);
-            // Actualizar en segundo plano para obtener mensajes nuevos
-            setTimeout(() => {
-                console.log(`🔄 Actualizando historial desde el servidor para conductor ${driverId}...`);
-                loadChatHistory(driverId).catch(error => {
-                    console.error('❌ Error actualizando historial:', error);
-                });
-            }, 500);
-        }
+        // Cargar inmediatamente (sin esperar)
+        loadChatHistory(driverId).catch(error => {
+            console.error('❌ Error cargando historial:', error);
+            // Si falla, intentar desde localStorage como respaldo
+            const storedMessages = loadChatHistoryFromStorage(driverId);
+            if (storedMessages.length > 0) {
+                console.log(`📂 Cargando ${storedMessages.length} mensajes desde localStorage como respaldo...`);
+                renderMessages(storedMessages);
+            }
+        });
 
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);

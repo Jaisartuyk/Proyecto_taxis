@@ -233,7 +233,8 @@ else:
 MEDIA_URL = '/media/'  # La URL para acceder a los archivos multimedia
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # El directorio donde se guardarán los archivos multimedia (solo para desarrollo)
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# WhiteNoise - usar versión sin compresión para evitar errores con archivos faltantes
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 
 
 

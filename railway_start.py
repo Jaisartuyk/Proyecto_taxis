@@ -49,18 +49,11 @@ if __name__ == "__main__":
         # --verbosity 1: muestra información básica sin saturar logs
         "python manage.py migrate --noinput --verbosity 1",
         "Aplicando migraciones de base de datos (AUTOMATICO)"
-    
-    # 3. FORZAR collectstatic SIEMPRE (crítico para archivos estáticos)
-    print("\n" + "="*60)
-    print("EJECUTANDO COLLECTSTATIC (FORZADO)")
-    print("="*60 + "\n")
-    run_command(
-        "python manage.py collectstatic --noinput --clear",
-        "Recopilando archivos estáticos (FORZADO - limpia archivos antiguos)"
     )
     
-    
     # 3. Verificar archivos estáticos y configuración de WhiteNoise
+    # NOTA: collectstatic ya se ejecuta en el Pre-deploy Command (railway_pre_deploy.py)
+    # No es necesario ejecutarlo aquí para evitar duplicación
     import os
     from django.conf import settings
     

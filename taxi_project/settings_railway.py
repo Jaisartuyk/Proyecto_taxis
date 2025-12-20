@@ -179,6 +179,7 @@ if RAILWAY_ENVIRONMENT:
     # Agregar middleware de fallback ANTES de WhiteNoise
     # Este middleware servirá archivos estáticos directamente si existen
     # Debe estar ANTES de WhiteNoise para interceptar las peticiones primero
+    print("\n[FALLBACK] ========================================")
     print("[FALLBACK] Intentando agregar StaticFilesFallbackMiddleware...")
     fallback_middleware = 'taxi_project.middleware.StaticFilesFallbackMiddleware'
     if fallback_middleware not in MIDDLEWARE:
@@ -194,6 +195,7 @@ if RAILWAY_ENVIRONMENT:
     else:
         fallback_index = MIDDLEWARE.index(fallback_middleware)
         print(f"[FALLBACK] StaticFilesFallbackMiddleware ya está en MIDDLEWARE en posición {fallback_index}")
+    print("[FALLBACK] ========================================\n")
     
     # Debug: Mostrar el orden del middleware
     print(f"\n[MIDDLEWARE] Orden del middleware (solo relevantes):")
@@ -216,7 +218,9 @@ if RAILWAY_ENVIRONMENT:
     # ya lo encuentra automáticamente (taxis es una app instalada)
     # Si lo incluimos en STATICFILES_DIRS, causa duplicados y "0 static files copied"
     # Redefinir explícitamente para sobrescribir el valor importado de settings.py
+    # FORZAR que STATICFILES_DIRS esté vacío - esto es crítico para evitar duplicados
     STATICFILES_DIRS = []  # Vacío - AppDirectoriesFinder encontrará automáticamente los archivos en taxis/static
+    print(f"[RAILWAY] STATICFILES_DIRS configurado como: {STATICFILES_DIRS}")
     # Usar solo AppDirectoriesFinder para evitar duplicados
     # AppDirectoriesFinder busca automáticamente en static/ de todas las apps instaladas
     STATICFILES_FINDERS = [
@@ -248,9 +252,11 @@ if RAILWAY_ENVIRONMENT:
     # WhiteNoise comprimirá automáticamente al servir (no necesita pre-compresión)
     
     # Debug: Verificar configuración al iniciar
-    print(f"\n[WHITENOISE] Configuración:")
+    print(f"\n[WHITENOISE] ========================================")
+    print(f"[WHITENOISE] Configuración de WhiteNoise:")
     print(f"  STATIC_ROOT: {STATIC_ROOT}")
     print(f"  STATIC_URL: {STATIC_URL}")
+    print(f"  STATICFILES_DIRS: {STATICFILES_DIRS}")
     print(f"  WHITENOISE_ROOT: {WHITENOISE_ROOT}")
     print(f"  WHITENOISE_USE_FINDERS: {WHITENOISE_USE_FINDERS}")
     print(f"  WHITENOISE_AUTOREFRESH: {WHITENOISE_AUTOREFRESH}")
@@ -262,13 +268,14 @@ if RAILWAY_ENVIRONMENT:
         
         # Verificar archivos críticos
         critical_files = ['css/floating-audio-button.css', 'js/audio-floating-button.js']
+        print(f"  Verificando archivos críticos:")
         for file_path in critical_files:
             full_path = os.path.join(STATIC_ROOT, file_path)
             if os.path.exists(full_path):
                 size = os.path.getsize(full_path)
-                print(f"  [OK] {file_path} - {size} bytes")
+                print(f"    [OK] {file_path} - {size} bytes")
             else:
-                print(f"  [ERROR] {file_path} NO existe en {full_path}")
+                print(f"    [ERROR] {file_path} NO existe en {full_path}")
     else:
         print(f"  [ERROR] STATIC_ROOT no existe: {STATIC_ROOT}")
     
@@ -277,6 +284,7 @@ if RAILWAY_ENVIRONMENT:
         print(f"  [OK] WHITENOISE_ROOT existe: {WHITENOISE_ROOT}")
     else:
         print(f"  [ERROR] WHITENOISE_ROOT no existe: {WHITENOISE_ROOT}")
+    print(f"[WHITENOISE] ========================================\n")
     
     # Excluir archivos de Cloudinary del finder de staticfiles
     # Cloudinary sirve sus propios archivos estáticos desde su CDN, no necesitan estar en staticfiles/

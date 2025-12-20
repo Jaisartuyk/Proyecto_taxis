@@ -1597,14 +1597,10 @@ async function initSystem() {
 
 // Función específica para abrir chat desde la lista lateral
 function openDriverChatFromList(driverId, driverName) {
-    // LOG MUY VISIBLE PARA VERIFICAR QUE SE EJECUTA LA VERSIÓN CORRECTA
-    console.log('🚨🚨🚨 VERSIÓN NUEVA DE openDriverChatFromList EJECUTÁNDOSE 🚨🚨🚨');
-    console.log('💬 ========================================');
+    console.log('🚨🚨🚨 FUNCIÓN openDriverChatFromList EJECUTÁNDOSE 🚨🚨🚨');
     console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
-    console.log('💬 ========================================');
-    console.log('🔍 DEBUG: Iniciando openDriverChatFromList...');
-    console.log('🔍 DEBUG: driverId =', driverId, 'driverName =', driverName);
-    console.log('🔍 DEBUG: Timestamp:', new Date().toISOString());
+    console.log('📍 Línea del archivo: ~1600');
+    console.log('⏰ Timestamp:', new Date().toISOString());
 
     try {
         // Buscar el elemento del conductor para obtener el historial pre-cargado

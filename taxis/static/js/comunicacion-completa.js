@@ -504,17 +504,23 @@ function addMessageToHistory(driverId, message) {
 
 // Función para renderizar mensajes en el chat log
 function renderMessages(messages) {
+    console.log(`\n📝 ========================================`);
+    console.log(`📝 renderMessages() llamada con ${messages ? messages.length : 0} mensajes`);
+    console.log(`📝 Tipo de messages:`, typeof messages, Array.isArray(messages));
+    
     const chatLog = document.getElementById('chat-log');
     if (!chatLog) {
-        console.warn('⚠️ chat-log no encontrado para renderizar mensajes');
+        console.error('❌ chat-log no encontrado para renderizar mensajes');
         return;
     }
+    console.log(`📝 chat-log encontrado:`, chatLog);
     
     // Limpiar chat log
     chatLog.innerHTML = '';
     
     // Si no hay mensajes, mostrar mensaje de "sin mensajes"
     if (!messages || messages.length === 0) {
+        console.log(`📝 No hay mensajes, mostrando mensaje vacío`);
         chatLog.innerHTML = `
             <div style="text-align: center; padding: 20px; color: #7f8c8d;">
                 <strong>💬 No hay mensajes aún</strong><br>
@@ -527,6 +533,13 @@ function renderMessages(messages) {
     // Agregar mensajes al chat
     console.log(`📝 Renderizando ${messages.length} mensajes en el chat log...`);
     messages.forEach((msg, index) => {
+        console.log(`📝 Mensaje ${index + 1}:`, {
+            sender_id: msg.sender_id,
+            sender_name: msg.sender_name,
+            message: msg.message ? msg.message.substring(0, 30) + '...' : 'SIN MENSAJE',
+            is_sent: msg.is_sent,
+            timestamp: msg.timestamp
+        });
         // El backend devuelve: {sender_id, sender_name, message, timestamp, is_sent}
         const isSent = msg.is_sent === true || msg.sender_id == 1;
         const timestamp = typeof msg.timestamp === 'string'
@@ -549,7 +562,15 @@ function renderMessages(messages) {
         }
     });
     
-    console.log(`✅ Todos los mensajes renderizados. Total en DOM: ${chatLog.querySelectorAll('.message').length}`);
+    // Verificar que los mensajes se agregaron correctamente
+    const renderedMessages = chatLog.querySelectorAll('.message');
+    console.log(`✅ Todos los mensajes renderizados. Total en DOM: ${renderedMessages.length}`);
+    if (renderedMessages.length === 0 && messages.length > 0) {
+        console.error(`❌ ERROR: Se intentaron renderizar ${messages.length} mensajes pero 0 aparecieron en el DOM!`);
+        console.error(`   chatLog.innerHTML length:`, chatLog.innerHTML.length);
+        console.error(`   chatLog.children:`, chatLog.children.length);
+    }
+    console.log(`📝 ========================================\n`);
     
     // Scroll al final
     chatLog.scrollTop = chatLog.scrollHeight;

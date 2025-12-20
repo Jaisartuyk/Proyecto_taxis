@@ -1835,19 +1835,25 @@ def get_chat_history(request, user_id):
     from .models import ChatMessage, AppUser
     from django.db.models import Q
     
+    print(f"[CHAT_HISTORY] Petición recibida: user_id={user_id}, request.user={request.user.id}, is_superuser={request.user.is_superuser}")
+    
     # Permitir acceso si es superusuario O si el usuario está consultando su propio chat
     if not request.user.is_superuser:
         # Si no es superusuario, solo puede ver sus propios mensajes
         # user_id debe ser el ID del usuario actual o del admin (1)
         if request.user.id != int(user_id) and int(user_id) != 1:
+            print(f"[CHAT_HISTORY] ❌ No autorizado: request.user.id={request.user.id}, user_id={user_id}")
             return JsonResponse({'error': 'No autorizado'}, status=403)
     
     other_user = get_object_or_404(AppUser, id=user_id)
+    print(f"[CHAT_HISTORY] Usuario encontrado: {other_user.get_full_name() or other_user.username} (ID: {other_user.id})")
     
     messages = ChatMessage.objects.filter(
         Q(sender=request.user, recipient=other_user) | 
         Q(sender=other_user, recipient=request.user)
     ).order_by('timestamp')
+    
+    print(f"[CHAT_HISTORY] Mensajes encontrados: {messages.count()}")
     
     data = [{
         'sender_id': msg.sender.id,
@@ -1857,6 +1863,7 @@ def get_chat_history(request, user_id):
         'is_sent': msg.sender.id == request.user.id
     } for msg in messages]
     
+    print(f"[CHAT_HISTORY] ✅ Retornando {len(data)} mensajes")
     return JsonResponse({'messages': data})
 
 

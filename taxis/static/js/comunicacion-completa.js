@@ -1545,6 +1545,7 @@ async function initSystem() {
 // Función específica para abrir chat desde la lista lateral
 function openDriverChatFromList(driverId, driverName) {
     console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
+    console.log('🔍 DEBUG: Iniciando openDriverChatFromList...');
 
     try {
         // Buscar el elemento del conductor para obtener el historial pre-cargado
@@ -1579,23 +1580,71 @@ function openDriverChatFromList(driverId, driverName) {
             `;
         }
 
-        // NO limpiar el chat log aquí - loadChatHistory lo hará y cargará el historial
-        // Solo asegurarse de que el chat log existe
+        // RENDERIZAR HISTORIAL DIRECTAMENTE EN EL HTML (igual que comunicacion_driver.html)
+        // Esto es más confiable que hacer llamadas al servidor
         const chatLog = document.getElementById('chat-log');
         if (!chatLog) {
             console.warn('⚠️ chat-log no encontrado');
+            return;
+        }
+        
+        // Limpiar el chat log completamente
+        chatLog.innerHTML = '';
+        console.log('🧹 chat-log limpiado');
+
+        // Ocultar el mensaje de "no chat seleccionado"
+        const noChatSelected = document.getElementById('no-chat-selected');
+        if (noChatSelected) {
+            noChatSelected.style.display = 'none';
+            noChatSelected.style.visibility = 'hidden';
+            noChatSelected.style.opacity = '0';
+        }
+
+        // Renderizar historial directamente desde data-initial-history (igual que el conductor)
+        if (initialHistory && initialHistory.length > 0) {
+            console.log(`📦 Renderizando ${initialHistory.length} mensajes directamente en el HTML (igual que el conductor)...`);
+            
+            // Guardar en localStorage para consistencia
+            saveChatHistoryToStorage(driverId, initialHistory);
+            
+            // Renderizar mensajes directamente en el HTML (igual que comunicacion_driver.html)
+            initialHistory.forEach((msg) => {
+                const isSent = msg.is_sent === true || msg.sender_id == 1;
+                const timestamp = typeof msg.timestamp === 'string'
+                    ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
+                    : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+                messageDiv.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; margin-bottom: 10px; padding: 8px 12px; background: ' + (isSent ? '#007bff' : '#e9ecef') + '; color: ' + (isSent ? 'white' : 'black') + '; border-radius: 8px; max-width: 70%; ' + (isSent ? 'margin-left: auto;' : 'margin-right: auto;') + '; position: relative; z-index: 2;';
+                
+                messageDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 4px; display: block;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
+                    <div style="display: block; word-wrap: break-word;">${msg.message}</div>
+                    <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
+                `;
+                
+                chatLog.appendChild(messageDiv);
+            });
+            
+            // Scroll al final
+            chatLog.scrollTop = chatLog.scrollHeight;
+            console.log(`✅ ${initialHistory.length} mensajes renderizados directamente en el HTML (igual que el conductor)`);
+        } else {
+            console.log('📭 No hay historial pre-cargado en data-initial-history');
+            // Mostrar mensaje de "sin mensajes" si no hay historial
+            chatLog.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #7f8c8d; display: block !important; visibility: visible !important;">
+                    <strong>💬 No hay mensajes aún</strong><br>
+                    <small>Inicia la conversación con ${driverName}</small>
+                </div>
+            `;
         }
 
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');
         if (inputContainer) {
             inputContainer.style.display = 'flex';
-        }
-
-        // Ocultar el mensaje de "no chat seleccionado"
-        const noChatSelected = document.getElementById('no-chat-selected');
-        if (noChatSelected) {
-            noChatSelected.style.display = 'none';
         }
 
         // Configurar el input para este conductor
@@ -1648,27 +1697,16 @@ function openDriverChatFromList(driverId, driverName) {
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
         console.log(`📋 Conductor anterior: ${previousDriverId}, Conductor actual: ${driverId}`);
         
-        // IMPORTANTE: Cargar historial INMEDIATAMENTE después de configurar todo
-        // Esto asegura que el historial se muestre cada vez que se abre el chat
-        console.log(`📜 ========================================`);
-        console.log(`📜 Cargando historial para conductor ${driverId}...`);
-        console.log(`📜 ========================================`);
-        
-        // Si ya tenemos historial pre-cargado, renderizarlo inmediatamente
-        if (initialHistory && initialHistory.length > 0) {
-            console.log(`📦 Renderizando ${initialHistory.length} mensajes pre-cargados inmediatamente...`);
-            renderMessages(initialHistory);
-        }
-        
-        // Usar setTimeout para asegurar que el DOM esté listo y cargar desde servidor
+        // El historial ya fue renderizado directamente desde data-initial-history (igual que el conductor)
+        // Solo cargar desde el servidor para obtener mensajes nuevos/actualizados en segundo plano
         setTimeout(() => {
-            console.log(`⏰ setTimeout ejecutado, llamando loadChatHistory(${driverId})...`);
+            console.log(`🔄 Cargando mensajes nuevos desde el servidor para conductor ${driverId}...`);
             try {
                 loadChatHistory(driverId);
             } catch (error) {
-                console.error('❌ Error en loadChatHistory:', error);
+                console.error('❌ Error cargando mensajes nuevos:', error);
             }
-        }, 100);
+        }, 500);
 
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);

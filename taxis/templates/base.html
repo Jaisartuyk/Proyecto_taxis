@@ -19,9 +19,7 @@
 
     <!-- Botón Flotante de Audio Global -->
     {% if user.is_authenticated %}
-    {# Temporarily disabled - causing 404 errors #}
-    {#
-    <link rel="stylesheet" href="{% static 'css/floating-audio-button.css' %}"> #}
+    <link rel="stylesheet" href="{% static 'css/floating-audio-button.css' %}">
     {% endif %}
 
     <!-- Ícono del sitio -->
@@ -179,9 +177,8 @@
 
     <!-- Botón Flotante de Audio Global -->
     {% if user.is_authenticated %}
-    {# Temporarily disabled - causing 404 errors #}
-    {#
-    <script src="{% static 'js/audio-floating-button.js' %}"></script> #}
+
+    <script src="{% static 'js/audio-floating-button.js' %}"></script>
     {% endif %}
 
     {% block extra_scripts %}

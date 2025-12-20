@@ -16,6 +16,16 @@ from pathlib import Path
 import os
 import dj_database_url
 
+# Detectar Railway y configurar para usar settings_railway.py
+# Esto asegura que settings_railway.py se cargue cuando Django inicialice
+if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL', '').startswith('postgres'):
+    # Si estamos en Railway, configurar para usar settings_railway
+    if not os.environ.get('DJANGO_SETTINGS_MODULE') or 'settings_railway' not in os.environ.get('DJANGO_SETTINGS_MODULE', ''):
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'taxi_project.settings_railway'
+        os.environ['RAILWAY_ENVIRONMENT'] = 'true'
+        print("[SETTINGS.PY] ✅ Detectado Railway, configurando DJANGO_SETTINGS_MODULE=taxi_project.settings_railway")
+        print("[SETTINGS.PY] ⚠️ Este archivo se cargará, pero settings_railway.py se usará cuando Django inicialice")
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -11,7 +11,14 @@ import dj_database_url
 import cloudinary
 
 # Configuración de Railway
+# Verificar múltiples formas de detectar Railway
 RAILWAY_ENVIRONMENT = os.environ.get('RAILWAY_ENVIRONMENT', False)
+# También verificar si tenemos DATABASE_URL de PostgreSQL (indicador de Railway)
+if not RAILWAY_ENVIRONMENT and os.environ.get('DATABASE_URL', '').startswith('postgres'):
+    RAILWAY_ENVIRONMENT = True
+    os.environ['RAILWAY_ENVIRONMENT'] = 'true'
+    print(f"[SETTINGS_RAILWAY] ✅ Detectado Railway por DATABASE_URL, configurando RAILWAY_ENVIRONMENT=true")
+
 print(f"[SETTINGS_RAILWAY] RAILWAY_ENVIRONMENT: {RAILWAY_ENVIRONMENT}")
 
 if RAILWAY_ENVIRONMENT:

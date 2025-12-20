@@ -1589,9 +1589,12 @@ async function initSystem() {
 
 // Función específica para abrir chat desde la lista lateral
 function openDriverChatFromList(driverId, driverName) {
-        console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
-        console.log('🔍 DEBUG: Iniciando openDriverChatFromList...');
-        console.log('🔍 DEBUG: driverId =', driverId, 'driverName =', driverName);
+    console.log('💬 ========================================');
+    console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
+    console.log('💬 ========================================');
+    console.log('🔍 DEBUG: Iniciando openDriverChatFromList...');
+    console.log('🔍 DEBUG: driverId =', driverId, 'driverName =', driverName);
+    console.log('🔍 DEBUG: Timestamp:', new Date().toISOString());
 
     try {
         // Buscar el elemento del conductor para obtener el historial pre-cargado
@@ -1793,28 +1796,28 @@ function openDriverChatFromList(driverId, driverName) {
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
         console.log(`📋 Conductor anterior: ${previousDriverId}, Conductor actual: ${driverId}`);
         
-        // Si no se renderizó el historial desde data-initial-history, cargarlo desde el servidor
+        // Verificar si se renderizó el historial desde data-initial-history
         const renderedMessages = chatLog.querySelectorAll('.message');
-        console.log(`📊 Mensajes renderizados en DOM: ${renderedMessages.length}`);
+        console.log(`📊 Mensajes renderizados en DOM después de abrir chat: ${renderedMessages.length}`);
+        console.log(`📊 chatLog.innerHTML.length: ${chatLog.innerHTML.length}`);
+        console.log(`📊 chatLog.children.length: ${chatLog.children.length}`);
         
+        // SIEMPRE cargar desde el servidor para asegurar que tenemos el historial completo
+        // Pero solo si no hay mensajes renderizados
         if (renderedMessages.length === 0) {
-            console.log(`⚠️ No hay mensajes renderizados, cargando desde servidor...`);
-            // Cargar desde el servidor inmediatamente
-            try {
-                loadChatHistory(driverId);
-            } catch (error) {
+            console.log(`⚠️ No hay mensajes renderizados, cargando desde servidor INMEDIATAMENTE...`);
+            // Cargar desde el servidor inmediatamente (sin setTimeout)
+            loadChatHistory(driverId).catch(error => {
                 console.error('❌ Error cargando historial desde servidor:', error);
-            }
+            });
         } else {
             console.log(`✅ Historial ya renderizado (${renderedMessages.length} mensajes)`);
-            // Solo actualizar en segundo plano para obtener mensajes nuevos
+            // Actualizar en segundo plano para obtener mensajes nuevos
             setTimeout(() => {
                 console.log(`🔄 Actualizando historial desde el servidor para conductor ${driverId}...`);
-                try {
-                    loadChatHistory(driverId);
-                } catch (error) {
+                loadChatHistory(driverId).catch(error => {
                     console.error('❌ Error actualizando historial:', error);
-                }
+                });
             }, 500);
         }
 

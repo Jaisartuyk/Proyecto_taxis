@@ -1552,11 +1552,23 @@ function openDriverChatFromList(driverId, driverName) {
         const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
         let initialHistory = [];
         
+        console.log(`🔍 Buscando elemento del conductor con ID: ${driverId}`);
+        console.log(`🔍 Elemento encontrado:`, driverElement);
+        
         if (driverElement && driverElement.hasAttribute('data-initial-history')) {
             try {
                 const historyJson = driverElement.getAttribute('data-initial-history');
+                console.log(`📦 JSON crudo del historial:`, historyJson);
+                console.log(`📦 Longitud del JSON:`, historyJson ? historyJson.length : 0);
+                
                 initialHistory = JSON.parse(historyJson);
+                console.log(`📦 Historial parseado:`, initialHistory);
                 console.log(`📦 Historial pre-cargado encontrado: ${initialHistory.length} mensajes`);
+                
+                if (initialHistory.length > 0) {
+                    console.log(`📦 Primer mensaje:`, initialHistory[0]);
+                    console.log(`📦 Último mensaje:`, initialHistory[initialHistory.length - 1]);
+                }
                 
                 // Guardar el historial pre-cargado en localStorage para uso inmediato
                 if (initialHistory.length > 0) {
@@ -1564,7 +1576,13 @@ function openDriverChatFromList(driverId, driverName) {
                     console.log(`💾 Historial pre-cargado guardado en localStorage`);
                 }
             } catch (e) {
-                console.warn('⚠️ Error parseando historial pre-cargado:', e);
+                console.error('❌ Error parseando historial pre-cargado:', e);
+                console.error('❌ JSON que causó el error:', driverElement.getAttribute('data-initial-history'));
+            }
+        } else {
+            console.warn(`⚠️ No se encontró data-initial-history para conductor ${driverId}`);
+            if (driverElement) {
+                console.warn(`⚠️ Atributos del elemento:`, Array.from(driverElement.attributes).map(a => `${a.name}="${a.value.substring(0, 50)}..."`));
             }
         }
         
@@ -1601,37 +1619,68 @@ function openDriverChatFromList(driverId, driverName) {
         }
 
         // Renderizar historial directamente desde data-initial-history (igual que el conductor)
-        if (initialHistory && initialHistory.length > 0) {
+        console.log(`🔍 Verificando historial: initialHistory =`, initialHistory);
+        console.log(`🔍 Tipo:`, typeof initialHistory, Array.isArray(initialHistory));
+        console.log(`🔍 Longitud:`, initialHistory ? initialHistory.length : 0);
+        
+        if (initialHistory && Array.isArray(initialHistory) && initialHistory.length > 0) {
             console.log(`📦 Renderizando ${initialHistory.length} mensajes directamente en el HTML (igual que el conductor)...`);
+            console.log(`📦 chatLog antes de renderizar:`, chatLog);
+            console.log(`📦 chatLog.innerHTML.length antes:`, chatLog.innerHTML.length);
             
             // Guardar en localStorage para consistencia
             saveChatHistoryToStorage(driverId, initialHistory);
             
             // Renderizar mensajes directamente en el HTML (igual que comunicacion_driver.html)
-            initialHistory.forEach((msg) => {
-                const isSent = msg.is_sent === true || msg.sender_id == 1;
-                const timestamp = typeof msg.timestamp === 'string'
-                    ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
-                    : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let messagesRendered = 0;
+            initialHistory.forEach((msg, index) => {
+                try {
+                    const isSent = msg.is_sent === true || msg.sender_id == 1;
+                    const timestamp = typeof msg.timestamp === 'string'
+                        ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
+                        : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-                messageDiv.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; margin-bottom: 10px; padding: 8px 12px; background: ' + (isSent ? '#007bff' : '#e9ecef') + '; color: ' + (isSent ? 'white' : 'black') + '; border-radius: 8px; max-width: 70%; ' + (isSent ? 'margin-left: auto;' : 'margin-right: auto;') + '; position: relative; z-index: 2;';
-                
-                messageDiv.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 4px; display: block;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
-                    <div style="display: block; word-wrap: break-word;">${msg.message}</div>
-                    <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
-                `;
-                
-                chatLog.appendChild(messageDiv);
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+                    messageDiv.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; margin-bottom: 10px; padding: 8px 12px; background: ' + (isSent ? '#007bff' : '#e9ecef') + '; color: ' + (isSent ? 'white' : 'black') + '; border-radius: 8px; max-width: 70%; ' + (isSent ? 'margin-left: auto;' : 'margin-right: auto;') + '; position: relative; z-index: 2;';
+                    
+                    messageDiv.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 4px; display: block;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
+                        <div style="display: block; word-wrap: break-word;">${msg.message || '(sin mensaje)'}</div>
+                        <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
+                    `;
+                    
+                    chatLog.appendChild(messageDiv);
+                    messagesRendered++;
+                    
+                    if (index === 0 || index === initialHistory.length - 1) {
+                        console.log(`   📝 Mensaje ${index + 1}/${initialHistory.length} renderizado:`, msg.message ? msg.message.substring(0, 30) : 'SIN MENSAJE');
+                    }
+                } catch (e) {
+                    console.error(`❌ Error renderizando mensaje ${index + 1}:`, e, msg);
+                }
             });
             
             // Scroll al final
             chatLog.scrollTop = chatLog.scrollHeight;
-            console.log(`✅ ${initialHistory.length} mensajes renderizados directamente en el HTML (igual que el conductor)`);
+            
+            // Verificar que los mensajes se agregaron
+            const renderedMessages = chatLog.querySelectorAll('.message');
+            console.log(`✅ ${messagesRendered} mensajes renderizados. Total en DOM: ${renderedMessages.length}`);
+            console.log(`📦 chatLog.innerHTML.length después:`, chatLog.innerHTML.length);
+            console.log(`📦 chatLog.children.length:`, chatLog.children.length);
+            
+            if (renderedMessages.length === 0 && initialHistory.length > 0) {
+                console.error(`❌ ERROR: Se intentaron renderizar ${initialHistory.length} mensajes pero 0 aparecieron en el DOM!`);
+                console.error(`   chatLog:`, chatLog);
+                console.error(`   chatLog.style:`, chatLog.style.cssText);
+            }
         } else {
             console.log('📭 No hay historial pre-cargado en data-initial-history');
+            console.log(`   initialHistory es:`, initialHistory);
+            console.log(`   Es array:`, Array.isArray(initialHistory));
+            console.log(`   Longitud:`, initialHistory ? initialHistory.length : 'N/A');
+            
             // Mostrar mensaje de "sin mensajes" si no hay historial
             chatLog.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #7f8c8d; display: block !important; visibility: visible !important;">

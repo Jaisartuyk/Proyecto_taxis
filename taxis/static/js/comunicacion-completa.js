@@ -1799,17 +1799,43 @@ function openDriverChatFromList(driverId, driverName) {
         // SIEMPRE cargar el historial desde el servidor para asegurar que se muestre
         // Esto es crítico porque el historial debe estar visible
         console.log(`🔄 Cargando historial para conductor ${driverId}...`);
+        console.log(`🔄 Llamando loadChatHistory(${driverId})...`);
         
-        // Cargar inmediatamente (sin esperar)
-        loadChatHistory(driverId).catch(error => {
-            console.error('❌ Error cargando historial:', error);
-            // Si falla, intentar desde localStorage como respaldo
-            const storedMessages = loadChatHistoryFromStorage(driverId);
-            if (storedMessages.length > 0) {
-                console.log(`📂 Cargando ${storedMessages.length} mensajes desde localStorage como respaldo...`);
-                renderMessages(storedMessages);
+        // Cargar inmediatamente (sin esperar) - FORZAR ejecución
+        try {
+            const historyPromise = loadChatHistory(driverId);
+            if (historyPromise && typeof historyPromise.then === 'function') {
+                historyPromise.catch(error => {
+                    console.error('❌ Error cargando historial:', error);
+                    // Si falla, intentar desde localStorage como respaldo
+                    try {
+                        const storedMessages = loadChatHistoryFromStorage(driverId);
+                        if (storedMessages && storedMessages.length > 0) {
+                            console.log(`📂 Cargando ${storedMessages.length} mensajes desde localStorage como respaldo...`);
+                            renderMessages(storedMessages);
+                        } else {
+                            console.log(`📭 No hay mensajes en localStorage`);
+                        }
+                    } catch (e) {
+                        console.error('❌ Error cargando desde localStorage:', e);
+                    }
+                });
+            } else {
+                console.warn('⚠️ loadChatHistory no devolvió una promesa');
             }
-        });
+        } catch (e) {
+            console.error('❌ Error llamando loadChatHistory:', e);
+            // Intentar desde localStorage como último recurso
+            try {
+                const storedMessages = loadChatHistoryFromStorage(driverId);
+                if (storedMessages && storedMessages.length > 0) {
+                    console.log(`📂 Cargando ${storedMessages.length} mensajes desde localStorage como último recurso...`);
+                    renderMessages(storedMessages);
+                }
+            } catch (e2) {
+                console.error('❌ Error cargando desde localStorage:', e2);
+            }
+        }
 
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);

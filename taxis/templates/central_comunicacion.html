@@ -1118,7 +1118,7 @@
                          data-driver-id="{{ driver.id }}" 
                          data-driver-name="{{ driver.get_full_name }}" 
                          data-chat-history-loaded="true"
-                         data-initial-history='{% if chat_history %}{% for msg in chat_history %}{"sender_id": {{ msg.sender.id }}, "sender_name": "{{ msg.sender.get_full_name|default:msg.sender.username }}", "message": "{{ msg.message|escapejs }}", "timestamp": "{{ msg.timestamp|date:"c" }}", "is_sent": {% if msg.sender == request.user %}true{% else %}false{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}{% else %}[]{% endif %}'>
+                         data-initial-history='{% if chat_history %}[{% for msg in chat_history %}{"sender_id": {{ msg.sender.id }}, "sender_name": "{{ msg.sender.get_full_name|default:msg.sender.username|escapejs }}", "message": "{{ msg.message|escapejs }}", "timestamp": "{{ msg.timestamp|date:"c" }}", "is_sent": {% if msg.sender == request.user %}true{% else %}false{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %}'>
                         {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
                         <img src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
                             onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
@@ -1216,7 +1216,22 @@
                             <p>Selecciona un conductor de la lista para iniciar una conversación privada</p>
                         </div>
                     </div>
-                    <!-- Historial inicial se cargará aquí vía JavaScript cuando se seleccione un conductor -->
+                    <!-- Historial inicial: Si hay conductores con historial, renderizar el del primero (similar a comunicacion_driver.html) -->
+                    {% if drivers_with_history and drivers_with_history|length > 0 %}
+                        {% with first_driver=drivers_with_history.0 %}
+                            {% if first_driver.chat_history %}
+                                <div id="initial-chat-history" style="display: none;" data-driver-id="{{ first_driver.driver.id }}">
+                                    {% for msg in first_driver.chat_history %}
+                                    <div class="message {% if msg.sender == request.user %}sent{% else %}received{% endif %}" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+                                        <div style="font-weight: bold; margin-bottom: 4px;">{% if msg.sender == request.user %}Central{% else %}{{ msg.sender.get_full_name|default:msg.sender.username }}{% endif %}</div>
+                                        <div style="word-wrap: break-word;">{{ msg.message }}</div>
+                                        <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">{{ msg.timestamp|date:"H:i" }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
                 </div>
                 <div class="chat-input-area" id="chat-input-container" style="display: none;">
                     <input id="chat-message-input" type="text" placeholder="Escribe un mensaje privado...">

@@ -4,7 +4,7 @@
  * Actualizado: 2025-12-11 - Forzar actualización de cache
  */
 
-const CACHE_VERSION = 'v5.4';
+const CACHE_VERSION = 'v5.5';
 const CACHE_NAME = `deaquipalla-${CACHE_VERSION}`;
 
 // Archivos para cachear (solo archivos que existen)

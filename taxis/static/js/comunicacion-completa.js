@@ -1589,6 +1589,8 @@ async function initSystem() {
 
 // Función específica para abrir chat desde la lista lateral
 function openDriverChatFromList(driverId, driverName) {
+    // LOG MUY VISIBLE PARA VERIFICAR QUE SE EJECUTA LA VERSIÓN CORRECTA
+    console.log('🚨🚨🚨 VERSIÓN NUEVA DE openDriverChatFromList EJECUTÁNDOSE 🚨🚨🚨');
     console.log('💬 ========================================');
     console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
     console.log('💬 ========================================');

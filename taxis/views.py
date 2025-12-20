@@ -1783,27 +1783,38 @@ def chat_central(request):
     drivers = AppUser.objects.filter(role='driver')
     admin_user = AppUser.objects.filter(is_superuser=True).first()
 
-    # Pre-cargar historial de chat para cada conductor (similar a comunicacion_driver.html)
+    # Pre-cargar historial de chat para cada conductor
     from .models import ChatMessage
-    from django.db.models import Q
+    from django.db.models import Q, Max
     
     drivers_with_history = []
     for driver in drivers:
         # Obtener historial de chat entre el admin y este conductor
         chat_history = []
         last_message = None
+        
+        # Obtener los IDs de los mensajes más recientes para optimizar la consulta
         if admin_user:
-            # Obtener el último mensaje ANTES de hacer el slice
-            last_message = ChatMessage.objects.filter(
+            # Primero obtener el último mensaje para cada par de usuarios
+            last_messages = ChatMessage.objects.filter(
                 Q(sender=request.user, recipient=driver) | 
                 Q(sender=driver, recipient=request.user)
-            ).order_by('-timestamp').first()  # Obtener el último mensaje (más reciente)
+            ).values('sender', 'recipient').annotate(
+                max_timestamp=Max('timestamp')
+            )
+            
+            # Obtener los mensajes completos para los timestamps máximos
+            if last_messages.exists():
+                last_message = ChatMessage.objects.filter(
+                    Q(sender=request.user, recipient=driver) | 
+                    Q(sender=driver, recipient=request.user)
+                ).order_by('-timestamp').first()
             
             # Obtener los últimos 50 mensajes para el historial
             chat_history = ChatMessage.objects.filter(
                 Q(sender=request.user, recipient=driver) | 
                 Q(sender=driver, recipient=request.user)
-            ).order_by('timestamp')[:50]  # Limitar a últimos 50 mensajes para rendimiento
+            ).select_related('sender', 'recipient').order_by('timestamp')[:50]
         
         drivers_with_history.append({
             'driver': driver,

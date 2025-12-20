@@ -587,15 +587,25 @@ async function loadChatHistory(driverId) {
             return;
         }
         
+        // IMPORTANTE: Limpiar cualquier mensaje placeholder o contenido anterior
+        // Esto asegura que no queden mensajes de "Chat iniciado" o similares
+        chatLog.innerHTML = '';
+        
+        // Ocultar el mensaje de "no chat seleccionado" si existe
+        const noChatSelected = document.getElementById('no-chat-selected');
+        if (noChatSelected) {
+            noChatSelected.style.display = 'none';
+        }
+        
         // Primero cargar desde almacenamiento local (historial guardado) - MUY RÁPIDO
         const storedMessages = loadChatHistoryFromStorage(driverId);
         
-        // Si hay mensajes guardados, mostrarlos inmediatamente
+        // Si hay mensajes guardados, mostrarlos inmediatamente (más rápido que esperar al servidor)
         if (storedMessages.length > 0) {
             console.log(`📂 Mostrando ${storedMessages.length} mensajes guardados localmente`);
             renderMessages(storedMessages);
         } else {
-            // Si no hay mensajes guardados, mostrar placeholder
+            // Si no hay mensajes guardados, mostrar indicador de carga
             chatLog.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #7f8c8d;">
                     <strong>💬 Cargando historial...</strong><br>
@@ -1480,6 +1490,26 @@ function openDriverChatFromList(driverId, driverName) {
     console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
 
     try {
+        // Buscar el elemento del conductor para obtener el historial pre-cargado
+        const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
+        let initialHistory = [];
+        
+        if (driverElement && driverElement.hasAttribute('data-initial-history')) {
+            try {
+                const historyJson = driverElement.getAttribute('data-initial-history');
+                initialHistory = JSON.parse(historyJson);
+                console.log(`📦 Historial pre-cargado encontrado: ${initialHistory.length} mensajes`);
+                
+                // Guardar el historial pre-cargado en localStorage para uso inmediato
+                if (initialHistory.length > 0) {
+                    saveChatHistoryToStorage(driverId, initialHistory);
+                    console.log(`💾 Historial pre-cargado guardado en localStorage`);
+                }
+            } catch (e) {
+                console.warn('⚠️ Error parseando historial pre-cargado:', e);
+            }
+        }
+        
         // Actualizar el header del chat
         const chatHeader = document.getElementById('chat-header');
         if (chatHeader) {
@@ -1549,6 +1579,7 @@ function openDriverChatFromList(driverId, driverName) {
         }
         
         // Guardar el ID del conductor actual para guardar mensajes recibidos
+        const previousDriverId = currentChatDriverId;
         currentChatDriverId = driverId;
 
         // Resaltar el elemento seleccionado
@@ -1558,9 +1589,18 @@ function openDriverChatFromList(driverId, driverName) {
         document.querySelector(`[data-driver-id="${driverId}"]`)?.classList.add('active');
 
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
+        console.log(`📋 Conductor anterior: ${previousDriverId}, Conductor actual: ${driverId}`);
         
-        // Cargar historial de chat (ahora con persistencia en localStorage)
-        loadChatHistory(driverId);
+        // IMPORTANTE: Cargar historial INMEDIATAMENTE después de configurar todo
+        // Esto asegura que el historial se muestre cada vez que se abre el chat
+        console.log(`📜 ========================================`);
+        console.log(`📜 Cargando historial para conductor ${driverId}...`);
+        console.log(`📜 ========================================`);
+        
+        // Usar setTimeout para asegurar que el DOM esté listo
+        setTimeout(() => {
+            loadChatHistory(driverId);
+        }, 100);
 
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);

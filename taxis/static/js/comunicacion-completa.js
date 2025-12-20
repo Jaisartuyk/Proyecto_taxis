@@ -824,18 +824,37 @@ function sendMessageToDriver(driverId) {
         // Guardar mensaje en historial
         addMessageToHistory(driverId, messageObj);
         
-        // Agregar mensaje al chat log inmediatamente
+        // Agregar mensaje al chat log inmediatamente (usar la misma estructura que renderMessages)
         const chatLog = document.getElementById('chat-log');
         if (chatLog) {
-            const timestamp = new Date().toLocaleTimeString();
-            const messageHtml = `
-                <div class="message outgoing" style="margin-bottom: 10px; padding: 8px 12px; background: #007bff; color: white; border-radius: 8px; max-width: 70%; margin-left: auto;">
-                    <strong>Central:</strong> ${message}
-                    <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
-                </div>
+            // Ocultar placeholder si existe
+            const noChatSelected = document.getElementById('no-chat-selected');
+            if (noChatSelected) {
+                noChatSelected.style.display = 'none';
+                noChatSelected.style.visibility = 'hidden';
+                noChatSelected.style.opacity = '0';
+            }
+            
+            // Limpiar placeholder de "No hay mensajes"
+            const placeholder = chatLog.querySelector('div[style*="text-align: center"]');
+            if (placeholder && placeholder.innerHTML.includes('No hay mensajes')) {
+                placeholder.remove();
+            }
+            
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message sent';
+            messageDiv.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; margin-bottom: 10px; padding: 8px 12px; background: #007bff; color: white; border-radius: 8px; max-width: 70%; margin-left: auto; position: relative; z-index: 2;';
+            
+            messageDiv.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 4px; display: block;">Central</div>
+                <div style="display: block; word-wrap: break-word;">${message}</div>
+                <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
             `;
-            chatLog.insertAdjacentHTML('beforeend', messageHtml);
+            
+            chatLog.appendChild(messageDiv);
             chatLog.scrollTop = chatLog.scrollHeight;
+            console.log(`✅ Mensaje agregado al chat log: ${message}`);
         }
 
         // Enviar por WebSocket de Chat
@@ -1570,16 +1589,18 @@ async function initSystem() {
 
 // Función específica para abrir chat desde la lista lateral
 function openDriverChatFromList(driverId, driverName) {
-    console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
-    console.log('🔍 DEBUG: Iniciando openDriverChatFromList...');
+        console.log('💬 Abriendo chat desde lista lateral:', driverName, 'ID:', driverId);
+        console.log('🔍 DEBUG: Iniciando openDriverChatFromList...');
+        console.log('🔍 DEBUG: driverId =', driverId, 'driverName =', driverName);
 
     try {
         // Buscar el elemento del conductor para obtener el historial pre-cargado
+        console.log(`🔍 Buscando elemento del conductor con ID: ${driverId}...`);
         const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
-        let initialHistory = [];
-        
-        console.log(`🔍 Buscando elemento del conductor con ID: ${driverId}`);
         console.log(`🔍 Elemento encontrado:`, driverElement);
+        console.log(`🔍 Tipo de elemento:`, driverElement ? driverElement.constructor.name : 'null');
+        
+        let initialHistory = [];
         
         if (driverElement && driverElement.hasAttribute('data-initial-history')) {
             try {

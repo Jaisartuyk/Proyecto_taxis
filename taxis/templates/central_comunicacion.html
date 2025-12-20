@@ -1997,8 +1997,7 @@
 <!-- FIN SCRIPT INLINE COMENTADO -->
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA (archivo presente en staticfiles) -->
-<script
-    src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}&cb={{ cache_bust }}&nocache={{ timestamp|slice:"
-    :10" }}"></script>
+<!-- FORZAR RECARGA: Cambiar versión manualmente si es necesario -->
+<script src="{% static 'js/comunicacion-completa.js' %}?v=20251220-1627&cb={{ timestamp }}"></script>
 
 {% endblock %}

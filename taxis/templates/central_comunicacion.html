@@ -2000,4 +2000,111 @@
 <!-- FORZAR RECARGA: Cambiar versión manualmente si es necesario -->
 <script src="{% static 'js/comunicacion-completa.js' %}?v=20251220-1637&cb={{ timestamp }}"></script>
 
+<!-- PARCHE TEMPORAL: Sobrescribir función para mostrar historial desde data-initial-history -->
+<script>
+console.log('🔧 PARCHE: Sobrescribiendo openDriverChatFromList para cargar historial...');
+
+// Guardar referencia a la función original
+const originalOpenDriverChatFromList = window.openDriverChatFromList || function() {};
+
+// Sobrescribir con nueva implementación
+window.openDriverChatFromList = function(driverId, driverName) {
+    console.log('🚨 PARCHE EJECUTÁNDOSE: openDriverChatFromList');
+    console.log('💬 Conductor:', driverName, 'ID:', driverId);
+    
+    // Llamar a la función original primero
+    if (typeof originalOpenDriverChatFromList === 'function') {
+        originalOpenDriverChatFromList(driverId, driverName);
+    }
+    
+    // Luego cargar el historial desde data-initial-history
+    setTimeout(() => {
+        console.log('📦 Intentando cargar historial desde data-initial-history...');
+        
+        const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
+        if (!driverElement) {
+            console.warn('⚠️ No se encontró elemento del conductor');
+            return;
+        }
+        
+        const historyJson = driverElement.getAttribute('data-initial-history');
+        if (!historyJson) {
+            console.warn('⚠️ No hay data-initial-history');
+            return;
+        }
+        
+        console.log('📦 JSON encontrado, longitud:', historyJson.length);
+        
+        try {
+            const history = JSON.parse(historyJson);
+            console.log('✅ Historial parseado:', history.length, 'mensajes');
+            
+            if (history.length === 0) {
+                console.log('📭 Historial vacío');
+                return;
+            }
+            
+            // Obtener el chat log
+            const chatLog = document.getElementById('chat-log');
+            if (!chatLog) {
+                console.error('❌ No se encontró chat-log');
+                return;
+            }
+            
+            // Limpiar chat log
+            chatLog.innerHTML = '';
+            console.log('🧹 Chat log limpiado');
+            
+            // Renderizar cada mensaje
+            history.forEach((msg, index) => {
+                const isSent = msg.is_sent === true;
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+                messageDiv.style.cssText = `
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    margin: 10px;
+                    padding: 10px;
+                    border-radius: 10px;
+                    max-width: 80%;
+                    background-color: ${isSent ? '#007bff' : '#f1f1f1'};
+                    color: ${isSent ? 'white' : '#333'};
+                    ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}
+                `;
+                
+                messageDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 4px;">
+                        ${isSent ? 'Tú' : msg.sender_name}
+                    </div>
+                    <div style="word-wrap: break-word;">
+                        ${msg.message}
+                    </div>
+                    <div style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">
+                        ${new Date(msg.timestamp).toLocaleString()}
+                    </div>
+                `;
+                
+                chatLog.appendChild(messageDiv);
+                
+                if (index === 0 || index === history.length - 1) {
+                    console.log(`   ✅ Mensaje ${index + 1}:`, msg.message.substring(0, 30));
+                }
+            });
+            
+            // Scroll al final
+            chatLog.scrollTop = chatLog.scrollHeight;
+            
+            console.log('✅ HISTORIAL RENDERIZADO:', history.length, 'mensajes mostrados');
+            console.log('📊 Elementos en DOM:', chatLog.children.length);
+            
+        } catch (e) {
+            console.error('❌ Error parseando historial:', e);
+        }
+    }, 500); // Esperar 500ms para que la función original termine
+};
+
+console.log('✅ PARCHE APLICADO: openDriverChatFromList sobrescrita');
+</script>
+
 {% endblock %}

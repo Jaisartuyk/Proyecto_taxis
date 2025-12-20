@@ -32,22 +32,30 @@ self.addEventListener('install', (event) => {
                 console.log('📦 Cache abierto');
                 // Usar Promise.allSettled para manejar errores individuales
                 // Esto evita que un archivo faltante rompa toda la instalación
-                return Promise.allSettled(
-                    urlsToCache.map(url => {
-                        return cache.add(url).catch(err => {
-                            console.warn(`⚠️ No se pudo cachear ${url}:`, err);
-                            return null; // Continuar aunque falle
-                        });
-                    })
-                );
+                // NO usar .catch() aquí - dejar que Promise.allSettled maneje los rechazos naturalmente
+                const cachePromises = urlsToCache.map(url => cache.add(url));
+                
+                return Promise.allSettled(cachePromises);
             })
-            .then(() => {
-                console.log('✅ Service Worker instalado');
+            .then((results) => {
+                // Contar cuántos archivos se cachearon exitosamente y loguear los errores
+                const successful = results.filter(r => r.status === 'fulfilled').length;
+                const failed = results.filter(r => r.status === 'rejected').length;
+                
+                // Loguear los errores de los archivos que fallaron
+                results.forEach((result, index) => {
+                    if (result.status === 'rejected') {
+                        console.warn(`⚠️ No se pudo cachear ${urlsToCache[index]}:`, result.reason?.message || result.reason);
+                    }
+                });
+                
+                console.log(`✅ Service Worker instalado: ${successful} archivos cacheados, ${failed} fallaron`);
+                // Continuar aunque algunos archivos fallen
                 return self.skipWaiting();
             })
             .catch((error) => {
                 console.error('❌ Error instalando Service Worker:', error);
-                // Continuar aunque haya errores
+                // Continuar aunque haya errores - esto es crítico para que el SW se active
                 return self.skipWaiting();
             })
     );

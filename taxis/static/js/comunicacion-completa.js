@@ -606,39 +606,69 @@ function renderMessages(messages) {
 // Cargar historial de chat con un conductor (CON PERSISTENCIA)
 async function loadChatHistory(driverId) {
     try {
-        console.log(`📜 Cargando historial de chat con conductor ${driverId}...`);
+        console.log(`📜 ========================================`);
+        console.log(`📜 loadChatHistory() llamada para conductor ${driverId}...`);
+        console.log(`📜 ========================================`);
         
         const chatLog = document.getElementById('chat-log');
         if (!chatLog) {
-            console.warn('⚠️ chat-log no encontrado');
+            console.error('❌ chat-log no encontrado en loadChatHistory');
             return;
         }
+        console.log(`✅ chat-log encontrado:`, chatLog);
         
         // IMPORTANTE: Limpiar cualquier mensaje placeholder o contenido anterior
         // Esto asegura que no queden mensajes de "Chat iniciado" o similares
         chatLog.innerHTML = '';
+        console.log(`🧹 chat-log limpiado`);
         
         // Ocultar el mensaje de "no chat seleccionado" si existe
         const noChatSelected = document.getElementById('no-chat-selected');
         if (noChatSelected) {
             noChatSelected.style.display = 'none';
+            noChatSelected.style.visibility = 'hidden';
+            noChatSelected.style.opacity = '0';
+            console.log(`🚫 #no-chat-selected ocultado`);
         }
         
-        // Primero cargar desde almacenamiento local (historial guardado) - MUY RÁPIDO
-        const storedMessages = loadChatHistoryFromStorage(driverId);
+        // Primero intentar cargar desde el atributo data-initial-history del elemento del conductor
+        const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
+        let initialHistory = [];
+        if (driverElement && driverElement.hasAttribute('data-initial-history')) {
+            try {
+                const historyJson = driverElement.getAttribute('data-initial-history');
+                initialHistory = JSON.parse(historyJson);
+                console.log(`📦 Historial inicial desde data-initial-history: ${initialHistory.length} mensajes`);
+                // Guardar en localStorage para consistencia
+                if (initialHistory.length > 0) {
+                    saveChatHistoryToStorage(driverId, initialHistory);
+                    console.log(`💾 Historial inicial guardado en localStorage`);
+                    // Renderizar inmediatamente
+                    renderMessages(initialHistory);
+                    console.log(`✅ Historial inicial renderizado`);
+                }
+            } catch (parseError) {
+                console.error('❌ Error parseando data-initial-history:', parseError);
+            }
+        }
         
-        // Si hay mensajes guardados, mostrarlos inmediatamente (más rápido que esperar al servidor)
-        if (storedMessages.length > 0) {
+        // Luego cargar desde almacenamiento local (historial guardado) - MUY RÁPIDO
+        const storedMessages = loadChatHistoryFromStorage(driverId);
+        console.log(`📂 Mensajes en localStorage: ${storedMessages.length}`);
+        
+        // Si hay mensajes guardados y no se cargó desde initialHistory, mostrarlos inmediatamente
+        if (storedMessages.length > 0 && initialHistory.length === 0) {
             console.log(`📂 Mostrando ${storedMessages.length} mensajes guardados localmente`);
             renderMessages(storedMessages);
-        } else {
-            // Si no hay mensajes guardados, mostrar indicador de carga
+        } else if (storedMessages.length === 0 && initialHistory.length === 0) {
+            // Si no hay mensajes guardados ni iniciales, mostrar indicador de carga
             chatLog.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #7f8c8d;">
+                <div style="text-align: center; padding: 20px; color: #7f8c8d; display: block !important; visibility: visible !important;">
                     <strong>💬 Cargando historial...</strong><br>
                     <small>Espera un momento...</small>
                 </div>
             `;
+            console.log(`⏳ Mostrando indicador de carga`);
         }
 
         // Luego cargar desde el servidor para obtener mensajes nuevos/actualizados
@@ -1624,9 +1654,20 @@ function openDriverChatFromList(driverId, driverName) {
         console.log(`📜 Cargando historial para conductor ${driverId}...`);
         console.log(`📜 ========================================`);
         
-        // Usar setTimeout para asegurar que el DOM esté listo
+        // Si ya tenemos historial pre-cargado, renderizarlo inmediatamente
+        if (initialHistory && initialHistory.length > 0) {
+            console.log(`📦 Renderizando ${initialHistory.length} mensajes pre-cargados inmediatamente...`);
+            renderMessages(initialHistory);
+        }
+        
+        // Usar setTimeout para asegurar que el DOM esté listo y cargar desde servidor
         setTimeout(() => {
-            loadChatHistory(driverId);
+            console.log(`⏰ setTimeout ejecutado, llamando loadChatHistory(${driverId})...`);
+            try {
+                loadChatHistory(driverId);
+            } catch (error) {
+                console.error('❌ Error en loadChatHistory:', error);
+            }
         }, 100);
 
     } catch (error) {

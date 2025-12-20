@@ -1543,10 +1543,18 @@ function setupDriverListEvents() {
 
             // Estilo cursor
             newItem.style.cursor = 'pointer';
-
+            
             console.log(`✅ Evento configurado para conductor: ${driverName}`);
         }
     });
+    
+    // Auto-seleccionar el primer conductor si existe
+    if (driverItems.length > 0) {
+        console.log('🎯 Auto-seleccionando primer conductor...');
+        setTimeout(() => {
+            driverItems[0].click();
+        }, 1000); // Esperar 1 segundo para que todo esté listo
+    }
 }
 
 // Inicialización principal
@@ -1556,7 +1564,7 @@ async function initSystem() {
         return;
     }
 
-    console.log('� Iniciando sistema completo...');
+    console.log('🎬 Iniciando sistema completo...');
 
     try {
         // Asegurar elementos requeridos

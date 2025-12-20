@@ -41,6 +41,7 @@ class StaticFilesFallbackMiddleware:
         
     def __call__(self, request):
         # Interceptar peticiones a archivos estáticos ANTES de WhiteNoise
+        # Esto es crítico: debemos servir los archivos directamente si existen
         if request.path.startswith(self.static_url):
             # Extraer la ruta del archivo
             file_path = request.path[len(self.static_url):].lstrip('/')
@@ -49,15 +50,19 @@ class StaticFilesFallbackMiddleware:
             # Solo loggear archivos críticos para no saturar los logs
             is_critical = any(x in request.path for x in ['floating-audio-button', 'audio-floating-button'])
             if is_critical:
+                print(f"\n[FALLBACK] ========================================")
                 print(f"[FALLBACK] Petición recibida: {request.path}")
                 print(f"[FALLBACK] Buscando archivo: {full_path}")
                 print(f"[FALLBACK] Archivo existe: {os.path.exists(full_path)}")
+                if os.path.exists(full_path):
+                    print(f"[FALLBACK] Es archivo: {os.path.isfile(full_path)}")
             
             # Verificar que el archivo existe y servirlo directamente
+            # NO pasar por WhiteNoise si el archivo existe
             if os.path.exists(full_path) and os.path.isfile(full_path):
                 try:
                     if is_critical:
-                        print(f"[FALLBACK] ✅ Sirviendo archivo directamente: {file_path}")
+                        print(f"[FALLBACK] ✅ Sirviendo archivo directamente (ANTES de WhiteNoise): {file_path}")
                     file_handle = open(full_path, 'rb')
                     content_type = self._get_content_type(file_path)
                     
@@ -73,12 +78,14 @@ class StaticFilesFallbackMiddleware:
                     if is_critical:
                         print(f"[FALLBACK] Content-Type: {content_type}, Size: {file_size} bytes")
                         print(f"[FALLBACK] ✅ Respuesta creada, retornando archivo")
+                        print(f"[FALLBACK] ========================================\n")
                     return response
                 except Exception as e:
                     if is_critical:
                         print(f"[FALLBACK] ❌ Error al servir archivo {file_path}: {e}")
                         import traceback
                         traceback.print_exc()
+                        print(f"[FALLBACK] ========================================\n")
                     # Continuar con el procesamiento normal si hay un error
                     pass
             elif is_critical:
@@ -93,11 +100,13 @@ class StaticFilesFallbackMiddleware:
                             print(f"  - {f}")
                     except:
                         pass
+                print(f"[FALLBACK] ========================================\n")
         
         # Procesar la petición normalmente (pasar a WhiteNoise u otros middlewares)
         response = self.get_response(request)
         
         # Si WhiteNoise devolvió 404 para un archivo estático, intentar servirlo directamente
+        # Esto es un fallback adicional por si WhiteNoise interceptó antes
         if response.status_code == 404 and request.path.startswith(self.static_url):
             # Extraer la ruta del archivo
             file_path = request.path[len(self.static_url):].lstrip('/')
@@ -105,6 +114,7 @@ class StaticFilesFallbackMiddleware:
             
             is_critical = any(x in request.path for x in ['floating-audio-button', 'audio-floating-button'])
             if is_critical:
+                print(f"\n[FALLBACK] ========================================")
                 print(f"[FALLBACK] WhiteNoise devolvió 404, intentando servir: {full_path}")
             
             # Verificar que el archivo existe
@@ -120,12 +130,16 @@ class StaticFilesFallbackMiddleware:
                     # Agregar headers apropiados
                     response['Content-Length'] = str(os.path.getsize(full_path))
                     response['Cache-Control'] = 'public, max-age=31536000'
+                    if is_critical:
+                        print(f"[FALLBACK] ✅ Archivo servido correctamente")
+                        print(f"[FALLBACK] ========================================\n")
                     return response
                 except Exception as e:
                     if is_critical:
                         print(f"[FALLBACK] ❌ Error al servir archivo {file_path}: {e}")
                         import traceback
                         traceback.print_exc()
+                        print(f"[FALLBACK] ========================================\n")
                     # Si hay un error al servir el archivo, devolver 404
                     pass
         

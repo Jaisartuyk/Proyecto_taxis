@@ -203,6 +203,17 @@ if RAILWAY_ENVIRONMENT:
         if 'whitenoise' in middleware.lower() or 'staticfilesfallback' in middleware.lower() or 'security' in middleware.lower():
             print(f"  {i}: {middleware}")
     
+    # Verificar que el middleware se agregó correctamente
+    if fallback_middleware in MIDDLEWARE:
+        fallback_pos = MIDDLEWARE.index(fallback_middleware)
+        whitenoise_pos = MIDDLEWARE.index('whitenoise.middleware.WhiteNoiseMiddleware')
+        if fallback_pos < whitenoise_pos:
+            print(f"[MIDDLEWARE] ✅ StaticFilesFallbackMiddleware está ANTES de WhiteNoiseMiddleware (posición {fallback_pos} vs {whitenoise_pos})")
+        else:
+            print(f"[MIDDLEWARE] ⚠️ StaticFilesFallbackMiddleware está DESPUÉS de WhiteNoiseMiddleware (posición {fallback_pos} vs {whitenoise_pos})")
+    else:
+        print(f"[MIDDLEWARE] ❌ StaticFilesFallbackMiddleware NO está en MIDDLEWARE")
+    
     # Configuración de seguridad SSL para Railway
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True

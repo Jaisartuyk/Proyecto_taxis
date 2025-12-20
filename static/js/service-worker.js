@@ -25,7 +25,7 @@ const urlsToCache = [
 // Instalación del Service Worker
 self.addEventListener('install', (event) => {
     console.log('🔧 Service Worker: Instalando...');
-    
+
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -42,7 +42,7 @@ self.addEventListener('install', (event) => {
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
     console.log('🚀 Service Worker: Activando...');
-    
+
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -62,26 +62,48 @@ self.addEventListener('activate', (event) => {
 
 // Estrategia de caché: Network First, fallback a Cache
 self.addEventListener('fetch', (event) => {
+    // Ignorar requests que no sean GET (POST, PUT, DELETE, etc.)
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
+    // Ignorar requests a APIs externas o WebSockets
+    const url = new URL(event.request.url);
+    if (url.protocol === 'ws:' || url.protocol === 'wss:' ||
+        url.hostname !== self.location.hostname) {
+        return;
+    }
+
     event.respondWith(
         fetch(event.request)
             .then((response) => {
+                // Solo cachear respuestas exitosas
+                if (!response || response.status !== 200 || response.type === 'error') {
+                    return response;
+                }
+
                 // Clonar la respuesta
                 const responseToCache = response.clone();
-                
-                // Guardar en cache
+
+                // Guardar en cache solo si es exitoso
                 caches.open(CACHE_NAME).then((cache) => {
                     cache.put(event.request, responseToCache);
+                }).catch(err => {
+                    console.warn('⚠️ No se pudo cachear:', event.request.url, err);
                 });
-                
+
                 return response;
             })
-            .catch(() => {
+            .catch((error) => {
+                console.warn('⚠️ Fetch falló para:', event.request.url, error);
+
                 // Si falla la red, buscar en cache
                 return caches.match(event.request).then((response) => {
                     if (response) {
+                        console.log('✅ Sirviendo desde cache:', event.request.url);
                         return response;
                     }
-                    
+
                     // Si no está en cache y es navegación, retornar respuesta genérica
                     if (event.request.mode === 'navigate') {
                         return new Response(
@@ -89,6 +111,12 @@ self.addEventListener('fetch', (event) => {
                             { headers: { 'Content-Type': 'text/html' } }
                         );
                     }
+
+                    // Para otros recursos, retornar error
+                    return new Response('Recurso no disponible', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
                 });
             })
     );
@@ -104,7 +132,7 @@ self.addEventListener('fetch', (event) => {
  */
 self.addEventListener('push', (event) => {
     console.log('📬 Push recibido:', event);
-    
+
     let notificationData = {
         title: '🚕 Nueva carrera disponible',
         body: 'Hay una nueva carrera cerca de ti',
@@ -135,14 +163,14 @@ self.addEventListener('push', (event) => {
         try {
             const pushData = event.data.json();
             console.log('📦 Datos del push:', pushData);
-            
+
             // Actualizar con datos del servidor
             if (pushData.title) notificationData.title = pushData.title;
             if (pushData.body) notificationData.body = pushData.body;
             if (pushData.icon) notificationData.icon = pushData.icon;
             if (pushData.badge) notificationData.badge = pushData.badge;
             if (pushData.data) notificationData.data = { ...notificationData.data, ...pushData.data };
-            
+
             // CONFIGURACIÓN ESPECIAL PARA AUDIO WALKIE-TALKIE
             if (pushData.data && pushData.data.type === 'walkie_talkie_audio') {
                 console.log('📻 AUDIO WALKIE-TALKIE RECIBIDO - REPRODUCIENDO AUTOMÁTICAMENTE');
@@ -151,24 +179,24 @@ self.addEventListener('push', (event) => {
                     urgent: pushData.data.urgent,
                     audioLength: pushData.data.audio_url ? pushData.data.audio_url.length : 'No audio'
                 });
-                
+
                 const audioUrl = pushData.data.audio_url;
                 const senderName = pushData.data.sender_name;
-                
+
                 if (audioUrl && senderName) {
                     // ESTRATEGIA INTELIGENTE PARA REPRODUCCIÓN AUTOMÁTICA
                     event.waitUntil(
-                        self.clients.matchAll({ 
+                        self.clients.matchAll({
                             type: 'window',
-                            includeUncontrolled: true 
+                            includeUncontrolled: true
                         }).then(clients => {
                             console.log(`🔍 Clientes encontrados: ${clients.length}`);
-                            
+
                             if (clients.length > 0) {
                                 // ✅ HAY VENTANA ABIERTA - Reproducir en segundo plano
                                 const client = clients[0];
                                 console.log('📱 App abierta - Reproduciendo audio en segundo plano');
-                                
+
                                 // Enviar mensaje al cliente para reproducir audio
                                 client.postMessage({
                                     type: 'PLAY_AUDIO_IMMEDIATELY',
@@ -177,24 +205,24 @@ self.addEventListener('push', (event) => {
                                     timestamp: Date.now(),
                                     background: true // No enfocar la ventana
                                 });
-                                
+
                                 console.log('🔇 Audio reproduciéndose sin interrumpir al usuario');
-                                
+
                                 // Retornar promesa resuelta
                                 return Promise.resolve();
                             } else {
                                 // ❌ NO HAY VENTANA - Abrir app automáticamente
                                 console.log('🆕 App cerrada - Abriendo automáticamente para reproducir');
-                                
+
                                 // Abrir la app en comunicación con parámetros de autoplay
                                 return self.clients.openWindow(
-                                    '/central-comunicacion/?autoplay=true&audio=' + 
-                                    encodeURIComponent(audioUrl) + 
+                                    '/central-comunicacion/?autoplay=true&audio=' +
+                                    encodeURIComponent(audioUrl) +
                                     '&sender=' + encodeURIComponent(senderName) +
                                     '&background=true' // Indicar que debe reproducir automáticamente
                                 ).then(windowClient => {
                                     console.log('✅ App abierta automáticamente');
-                                    
+
                                     // Esperar a que la ventana cargue y enviar el audio
                                     if (windowClient) {
                                         setTimeout(() => {
@@ -207,13 +235,13 @@ self.addEventListener('push', (event) => {
                                             });
                                         }, 1000); // Esperar 1 segundo para que cargue
                                     }
-                                    
+
                                     return windowClient;
                                 });
                             }
                         })
                     );
-                    
+
                     console.log('🔊 COMANDO DE REPRODUCCIÓN ENVIADO');
                 } else {
                     console.error('❌ Datos de audio incompletos:', {
@@ -221,20 +249,20 @@ self.addEventListener('push', (event) => {
                         senderName: !!senderName
                     });
                 }
-                
+
                 // NOTIFICACIÓN SILENCIOSA - Solo para informar, no molestar
                 notificationData.silent = true; // SILENCIOSO - no hace sonido
                 notificationData.tag = 'walkie-talkie-audio'; // Agrupar audios (reemplaza la anterior)
                 notificationData.renotify = false; // NO volver a notificar
                 notificationData.requireInteraction = false; // Se cierra automáticamente
-                
+
                 // Vibración suave solo para indicar que llegó algo
                 notificationData.vibrate = [100]; // Una sola vibración corta
-                
+
                 // Cambiar el título para que sea menos intrusivo
                 notificationData.title = `🎙️ ${senderName}`;
                 notificationData.body = 'Audio reproduciéndose...';
-                
+
                 // Acciones rápidas
                 notificationData.actions = [
                     {
@@ -243,7 +271,7 @@ self.addEventListener('push', (event) => {
                         icon: '/static/imagenes/icon-192x192.png'
                     }
                 ];
-                
+
                 // Guardar audio pendiente para cuando abra la app
                 savePendingAudio(
                     pushData.data.sender_id,
@@ -252,7 +280,7 @@ self.addEventListener('push', (event) => {
                     pushData.data.timestamp || Date.now()
                 );
             }
-            
+
         } catch (e) {
             console.error('❌ Error al parsear datos del push:', e);
         }
@@ -291,32 +319,32 @@ self.addEventListener('push', (event) => {
  */
 self.addEventListener('notificationclick', (event) => {
     console.log('🖱️ Click en notificación:', event.action);
-    
+
     const notificationData = event.notification.data || {};
     const action = event.action;
-    
+
     event.notification.close();
 
     // MANEJO ESPECÍFICO PARA AUDIO WALKIE-TALKIE
     if (notificationData.type === 'walkie_talkie_audio' || notificationData.type === 'background_audio_playback') {
         console.log('📻 Click en notificación de walkie-talkie');
-        
+
         if (action === 'open_and_play' || action === 'replay_audio' || !action) {
             console.log('🔊 Abriendo app para reproducir audio');
-            
+
             // Abrir app y enviar comando para reproducir audio
             event.waitUntil(
-                clients.matchAll({ 
+                clients.matchAll({
                     type: 'window',
-                    includeUncontrolled: true 
+                    includeUncontrolled: true
                 }).then((clientList) => {
                     console.log(`🔍 Ventanas encontradas: ${clientList.length}`);
-                    
+
                     // Si hay una ventana abierta, navegar a comunicación
                     if (clientList.length > 0) {
                         const client = clientList[0];
                         console.log('📱 Navegando a comunicación y enviando audio');
-                        
+
                         // Navegar a la vista de comunicación
                         client.navigate('/central-comunicacion/').then(() => {
                             // Esperar un momento para que cargue la página
@@ -339,7 +367,7 @@ self.addEventListener('notificationclick', (event) => {
                                 timestamp: Date.now()
                             });
                         });
-                        
+
                         return client.focus();
                     } else {
                         // Si no hay ventana abierta, abrir directamente en comunicación
@@ -409,7 +437,7 @@ self.addEventListener('notificationclick', (event) => {
                         return client.focus();
                     }
                 }
-                
+
                 // Si no hay ventana abierta, abrir una nueva
                 if (clients.openWindow) {
                     return clients.openWindow(urlToOpen);
@@ -433,7 +461,7 @@ self.addEventListener('notificationclose', (event) => {
  */
 self.addEventListener('sync', (event) => {
     console.log('🔄 Sync event:', event.tag);
-    
+
     if (event.tag === 'check-new-rides') {
         event.waitUntil(checkNewRides());
     }
@@ -446,7 +474,7 @@ async function checkNewRides() {
     try {
         const response = await fetch('/api/available-rides/');
         const data = await response.json();
-        
+
         if (data.new_rides && data.new_rides.length > 0) {
             // Mostrar notificación
             await self.registration.showNotification('🚕 Nuevas carreras disponibles', {
@@ -470,11 +498,11 @@ async function checkNewRides() {
  */
 self.addEventListener('push', (event) => {
     console.log('📨 Push recibido:', event);
-    
+
     if (event.data) {
         const data = event.data.json();
         console.log('📄 Datos del push:', data);
-        
+
         const notificationTitle = data.title || '🚕 De Aquí Pa\'llá';
         const notificationOptions = {
             body: data.body || 'Tienes una nueva notificación',
@@ -506,7 +534,7 @@ self.addEventListener('push', (event) => {
             Promise.all([
                 // Mostrar la notificación del navegador
                 self.registration.showNotification(notificationTitle, notificationOptions),
-                
+
                 // Enviar mensaje a las páginas abiertas para mostrar indicador visual
                 self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(clients => {
                     clients.forEach(client => {
@@ -543,23 +571,23 @@ async function playAudioInBackground(audioUrl, senderName) {
     try {
         console.log(`🔊 REPRODUCIENDO AUDIO EN BACKGROUND de: ${senderName}`);
         console.log(`🎵 URL del audio: ${audioUrl.substring(0, 100)}...`);
-        
+
         // Método 1: Usar Audio API directamente en Service Worker
         try {
             const audio = new Audio();
             audio.src = audioUrl;
             audio.volume = 1.0; // Volumen máximo
             audio.preload = 'auto';
-            
+
             // FORZAR REPRODUCCIÓN INMEDIATA
             console.log(`🎵 Iniciando reproducción inmediata...`);
             const playPromise = audio.play();
-            
+
             if (playPromise !== undefined) {
                 playPromise
                     .then(() => {
                         console.log(`✅ AUDIO REPRODUCIÉNDOSE EN BACKGROUND: ${senderName}`);
-                        
+
                         // Mostrar notificación de confirmación
                         self.registration.showNotification(`🔊 Reproduciendo: ${senderName}`, {
                             body: '🎵 Audio de walkie-talkie en curso...',
@@ -570,7 +598,7 @@ async function playAudioInBackground(audioUrl, senderName) {
                             vibrate: [100],
                             data: { type: 'audio_playing_notification' }
                         });
-                        
+
                         // Auto-cerrar notificación de reproducción después de 3 segundos
                         setTimeout(() => {
                             self.registration.getNotifications({ tag: 'audio-playing' })
@@ -585,22 +613,22 @@ async function playAudioInBackground(audioUrl, senderName) {
                         fallbackAudioPlayback(audioUrl, senderName);
                     });
             }
-            
+
             // Configurar eventos del audio
             audio.addEventListener('ended', () => {
                 console.log(`🏁 Audio de ${senderName} terminó de reproducirse`);
             });
-            
+
             audio.addEventListener('error', (error) => {
                 console.error(`❌ Error cargando audio:`, error);
                 fallbackAudioPlayback(audioUrl, senderName);
             });
-            
+
         } catch (audioError) {
             console.error(`❌ Error creando objeto Audio:`, audioError);
             fallbackAudioPlayback(audioUrl, senderName);
         }
-        
+
     } catch (error) {
         console.error('❌ Error en playAudioInBackground:', error);
         fallbackAudioPlayback(audioUrl, senderName);
@@ -613,19 +641,19 @@ async function playAudioInBackground(audioUrl, senderName) {
 async function fallbackAudioPlayback(audioUrl, senderName) {
     try {
         console.log(`🔄 FALLBACK: Reproducción de audio de ${senderName}`);
-        
+
         // Método 2: Crear notificación con sonido más intenso
         await createAudioNotification(audioUrl, senderName);
-        
+
         // Método 3: Enviar comando a todas las ventanas/tabs abiertas
-        const clients = await self.clients.matchAll({ 
-            type: 'window', 
-            includeUncontrolled: true 
+        const clients = await self.clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true
         });
-        
+
         if (clients.length > 0) {
             console.log(`📢 Enviando comando de audio urgente a ${clients.length} ventana(s)`);
-            
+
             // Enviar a TODAS las ventanas abiertas
             clients.forEach(client => {
                 client.postMessage({
@@ -640,14 +668,14 @@ async function fallbackAudioPlayback(audioUrl, senderName) {
                 });
             });
         }
-        
+
         // Método 4: Usar Web Audio API si está disponible
         try {
             await playWithWebAudioAPI(audioUrl, senderName);
         } catch (webAudioError) {
             console.warn(`⚠️ Web Audio API falló:`, webAudioError);
         }
-        
+
     } catch (error) {
         console.error('❌ Error en fallbackAudioPlayback:', error);
     }
@@ -659,41 +687,41 @@ async function fallbackAudioPlayback(audioUrl, senderName) {
 async function playWithWebAudioAPI(audioUrl, senderName) {
     try {
         console.log(`🎛️ Intentando Web Audio API para ${senderName}`);
-        
+
         // Convertir base64 a ArrayBuffer
         if (audioUrl.startsWith('data:audio/')) {
             const base64Data = audioUrl.split(',')[1];
             const binaryData = atob(base64Data);
             const arrayBuffer = new ArrayBuffer(binaryData.length);
             const uint8Array = new Uint8Array(arrayBuffer);
-            
+
             for (let i = 0; i < binaryData.length; i++) {
                 uint8Array[i] = binaryData.charCodeAt(i);
             }
-            
+
             // Crear contexto de audio
             const audioContext = new (AudioContext || webkitAudioContext)();
-            
+
             // Decodificar y reproducir
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             const source = audioContext.createBufferSource();
             const gainNode = audioContext.createGain();
-            
+
             source.buffer = audioBuffer;
             gainNode.gain.value = 1.0; // Volumen máximo
-            
+
             source.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
+
             source.start(0);
-            
+
             console.log(`✅ Web Audio API reproduciendo: ${senderName}`);
-            
+
             source.addEventListener('ended', () => {
                 console.log(`🏁 Web Audio terminó: ${senderName}`);
                 audioContext.close();
             });
-            
+
         }
     } catch (error) {
         console.warn(`⚠️ Web Audio API no pudo reproducir:`, error);
@@ -707,7 +735,7 @@ async function playWithWebAudioAPI(audioUrl, senderName) {
 async function createAudioNotification(audioUrl, senderName) {
     try {
         console.log(`🔔 Creando notificación sonora para ${senderName}`);
-        
+
         await self.registration.showNotification(`📻 AUDIO URGENTE: ${senderName}`, {
             body: '� MENSAJE DE WALKIE-TALKIE - Presiona para abrir y escuchar',
             icon: '/static/imagenes/icon-192x192.png',
@@ -736,9 +764,9 @@ async function createAudioNotification(audioUrl, senderName) {
                 urgent: true
             }
         });
-        
+
         console.log(`✅ Notificación urgente creada para ${senderName}`);
-        
+
         // Crear múltiples notificaciones para asegurar que se note
         setTimeout(async () => {
             try {
@@ -759,7 +787,7 @@ async function createAudioNotification(audioUrl, senderName) {
                 console.warn('No se pudo crear notificación de recordatorio:', e);
             }
         }, 10000); // Recordatorio después de 10 segundos
-        
+
     } catch (error) {
         console.error('❌ Error creando notificación de audio:', error);
     }
@@ -773,7 +801,7 @@ function savePendingAudio(senderId, senderName, audioUrl, timestamp) {
         try {
             // REPRODUCIR AUDIO INMEDIATAMENTE EN BACKGROUND
             playAudioInBackground(audioUrl, senderName);
-            
+
             // Obtener lista actual de audios pendientes
             self.clients.matchAll({ type: 'window' }).then(clients => {
                 if (clients.length > 0) {
@@ -790,7 +818,7 @@ function savePendingAudio(senderId, senderName, audioUrl, timestamp) {
                     });
                 }
             });
-            
+
             console.log(`📻 Audio pendiente guardado: ${senderName} - ${timestamp}`);
             resolve();
         } catch (error) {
@@ -818,7 +846,7 @@ function markAudioAsDismissed(senderId, timestamp) {
                     });
                 }
             });
-            
+
             console.log(`📻 Audio marcado como descartado: ${senderId} - ${timestamp}`);
             resolve();
         } catch (error) {
@@ -835,7 +863,7 @@ function cleanOldPendingAudios() {
     return new Promise((resolve) => {
         try {
             const oneHourAgo = Date.now() - (60 * 60 * 1000);
-            
+
             self.clients.matchAll({ type: 'window' }).then(clients => {
                 if (clients.length > 0) {
                     clients[0].postMessage({
@@ -846,7 +874,7 @@ function cleanOldPendingAudios() {
                     });
                 }
             });
-            
+
             console.log('🧹 Limpieza de audios antiguos solicitada');
             resolve();
         } catch (error) {

@@ -617,10 +617,18 @@ async function loadChatHistory(driverId) {
         }
         console.log(`✅ chat-log encontrado:`, chatLog);
         
-        // IMPORTANTE: Limpiar cualquier mensaje placeholder o contenido anterior
-        // Esto asegura que no queden mensajes de "Chat iniciado" o similares
-        chatLog.innerHTML = '';
-        console.log(`🧹 chat-log limpiado`);
+        // Verificar si ya hay mensajes renderizados (no limpiar si ya hay contenido)
+        const existingMessages = chatLog.querySelectorAll('.message');
+        const hasExistingMessages = existingMessages.length > 0;
+        console.log(`📊 Mensajes existentes en DOM: ${existingMessages.length}`);
+        
+        // Solo limpiar si no hay mensajes o si hay un placeholder
+        if (!hasExistingMessages || chatLog.innerHTML.includes('Cargando historial') || chatLog.innerHTML.includes('No hay mensajes')) {
+            chatLog.innerHTML = '';
+            console.log(`🧹 chat-log limpiado (no había mensajes reales)`);
+        } else {
+            console.log(`✅ Manteniendo ${existingMessages.length} mensajes existentes`);
+        }
         
         // Ocultar el mensaje de "no chat seleccionado" si existe
         const noChatSelected = document.getElementById('no-chat-selected');
@@ -711,38 +719,56 @@ async function loadChatHistory(driverId) {
                 console.log(`   Último mensaje:`, serverMessages[serverMessages.length - 1]);
             }
             
-            // Si hay mensajes del servidor, actualizar el almacenamiento y renderizar
+            // Si hay mensajes del servidor, actualizar el almacenamiento
             if (serverMessages.length > 0) {
                 // IMPORTANTE: Guardar historial completo del servidor (es la fuente de verdad)
-                // Esto sobrescribe cualquier historial local con el del servidor
-                // El servidor tiene TODOS los mensajes, así que usamos ese como fuente de verdad
                 saveChatHistoryToStorage(driverId, serverMessages);
-                // Renderizar mensajes del servidor
-                console.log(`✅ Renderizando ${serverMessages.length} mensajes del servidor`);
-                console.log(`   Verificando chat-log antes de renderizar...`);
-                const chatLogCheck = document.getElementById('chat-log');
-                if (chatLogCheck) {
-                    console.log(`   ✅ chat-log encontrado, renderizando mensajes...`);
-                    renderMessages(serverMessages);
-                    // Verificar que los mensajes se renderizaron
-                    setTimeout(() => {
-                        const renderedMessages = chatLogCheck.querySelectorAll('.message');
-                        console.log(`   ✅ Mensajes renderizados: ${renderedMessages.length}`);
-                        if (renderedMessages.length === 0 && serverMessages.length > 0) {
-                            console.error('❌ ERROR: Los mensajes no se renderizaron correctamente!');
-                        }
-                    }, 100);
+                
+                // Verificar si ya hay mensajes renderizados (usar la variable guardada)
+                const hasExisting = window._hasExistingMessages || false;
+                const currentMessages = chatLog.querySelectorAll('.message');
+                
+                if (hasExisting && currentMessages.length > 0) {
+                    // Si ya hay mensajes, solo actualizar si el servidor tiene más mensajes
+                    console.log(`✅ Ya hay ${currentMessages.length} mensajes renderizados. El servidor tiene ${serverMessages.length} mensajes.`);
+                    if (serverMessages.length > currentMessages.length) {
+                        console.log(`📝 Actualizando con ${serverMessages.length} mensajes del servidor (más que los existentes)`);
+                        renderMessages(serverMessages);
+                    } else {
+                        console.log(`✅ Manteniendo mensajes existentes (servidor no tiene más mensajes)`);
+                    }
                 } else {
-                    console.error('❌ ERROR: chat-log no encontrado después de cargar historial!');
+                    // Si no hay mensajes renderizados, renderizar los del servidor
+                    console.log(`✅ Renderizando ${serverMessages.length} mensajes del servidor`);
+                    renderMessages(serverMessages);
                 }
+                
+                // Verificar que los mensajes se renderizaron
+                setTimeout(() => {
+                    const renderedMessages = chatLog.querySelectorAll('.message');
+                    console.log(`   ✅ Mensajes finales en DOM: ${renderedMessages.length}`);
+                    if (renderedMessages.length === 0 && serverMessages.length > 0) {
+                        console.error('❌ ERROR: Los mensajes no se renderizaron correctamente!');
+                    }
+                }, 100);
             } else if (storedMessages.length > 0) {
-                // Si el servidor no tiene mensajes pero tenemos guardados, mantener los guardados
-                console.log('📂 Manteniendo mensajes guardados localmente (servidor vacío)');
-                renderMessages(storedMessages);
+                // Si el servidor no tiene mensajes pero tenemos guardados, mostrar los guardados solo si no hay mensajes renderizados
+                const currentMessages = chatLog.querySelectorAll('.message');
+                if (currentMessages.length === 0) {
+                    console.log('📂 Mostrando mensajes guardados localmente (servidor vacío, no hay mensajes renderizados)');
+                    renderMessages(storedMessages);
+                } else {
+                    console.log('✅ Manteniendo mensajes renderizados (servidor vacío pero hay mensajes en DOM)');
+                }
             } else {
                 // No hay mensajes ni en servidor ni guardados
-                console.log('📭 No hay mensajes en servidor ni guardados localmente');
-                renderMessages([]);
+                const currentMessages = chatLog.querySelectorAll('.message');
+                if (currentMessages.length === 0) {
+                    console.log('📭 No hay mensajes en servidor ni guardados localmente ni renderizados');
+                    renderMessages([]);
+                } else {
+                    console.log('✅ Manteniendo mensajes renderizados');
+                }
             }
 
         } catch (fetchError) {
@@ -1746,16 +1772,30 @@ function openDriverChatFromList(driverId, driverName) {
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
         console.log(`📋 Conductor anterior: ${previousDriverId}, Conductor actual: ${driverId}`);
         
-        // El historial ya fue renderizado directamente desde data-initial-history (igual que el conductor)
-        // Solo cargar desde el servidor para obtener mensajes nuevos/actualizados en segundo plano
-        setTimeout(() => {
-            console.log(`🔄 Cargando mensajes nuevos desde el servidor para conductor ${driverId}...`);
+        // Si no se renderizó el historial desde data-initial-history, cargarlo desde el servidor
+        const renderedMessages = chatLog.querySelectorAll('.message');
+        console.log(`📊 Mensajes renderizados en DOM: ${renderedMessages.length}`);
+        
+        if (renderedMessages.length === 0) {
+            console.log(`⚠️ No hay mensajes renderizados, cargando desde servidor...`);
+            // Cargar desde el servidor inmediatamente
             try {
                 loadChatHistory(driverId);
             } catch (error) {
-                console.error('❌ Error cargando mensajes nuevos:', error);
+                console.error('❌ Error cargando historial desde servidor:', error);
             }
-        }, 500);
+        } else {
+            console.log(`✅ Historial ya renderizado (${renderedMessages.length} mensajes)`);
+            // Solo actualizar en segundo plano para obtener mensajes nuevos
+            setTimeout(() => {
+                console.log(`🔄 Actualizando historial desde el servidor para conductor ${driverId}...`);
+                try {
+                    loadChatHistory(driverId);
+                } catch (error) {
+                    console.error('❌ Error actualizando historial:', error);
+                }
+            }, 500);
+        }
 
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);

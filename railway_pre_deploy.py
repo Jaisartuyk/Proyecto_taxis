@@ -5,24 +5,49 @@ Ejecuta collectstatic usando storage sin compresión para evitar errores de arch
 """
 import os
 import sys
-import django
-from django.conf import settings
 
-# Configurar Django settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taxi_project.settings_railway')
+# CRÍTICO: Configurar DJANGO_SETTINGS_MODULE ANTES de importar Django
+# Detectar Railway por DATABASE_URL o RAILWAY_ENVIRONMENT
+if not os.environ.get('DJANGO_SETTINGS_MODULE') or 'settings_railway' not in os.environ.get('DJANGO_SETTINGS_MODULE', ''):
+    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL', '').startswith('postgres'):
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'taxi_project.settings_railway'
+        os.environ['RAILWAY_ENVIRONMENT'] = 'true'
+        print(f"[PRE-DEPLOY] ✅ Configurando DJANGO_SETTINGS_MODULE=taxi_project.settings_railway")
+    else:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taxi_project.settings')
+        print(f"[PRE-DEPLOY] Usando DJANGO_SETTINGS_MODULE=taxi_project.settings")
+else:
+    print(f"[PRE-DEPLOY] DJANGO_SETTINGS_MODULE ya está configurado: {os.environ.get('DJANGO_SETTINGS_MODULE')}")
 
-# Inicializar Django
-django.setup()
+try:
+    import django
+    from django.conf import settings
+    
+    # Inicializar Django
+    print(f"[PRE-DEPLOY] Inicializando Django...")
+    django.setup()
+    print(f"[PRE-DEPLOY] ✅ Django inicializado correctamente")
+except Exception as e:
+    print(f"[PRE-DEPLOY] ❌ Error inicializando Django: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
 
 if __name__ == "__main__":
-    print("\n" + "="*60)
-    print("PRE-DEPLOY: COLECTANDO ARCHIVOS ESTATICOS")
-    print("="*60 + "\n")
-    
-    # Verificar configuración
-    print(f"[DEBUG] STATIC_ROOT: {settings.STATIC_ROOT}")
-    print(f"[DEBUG] STATICFILES_DIRS: {settings.STATICFILES_DIRS}")
-    print(f"[DEBUG] STATICFILES_STORAGE: {settings.STATICFILES_STORAGE}")
+    try:
+        print("\n" + "="*60)
+        print("PRE-DEPLOY: COLECTANDO ARCHIVOS ESTATICOS")
+        print("="*60 + "\n")
+        
+        # Verificar que Django se inicializó correctamente
+        if not hasattr(settings, 'STATIC_ROOT'):
+            raise Exception("Django no se inicializó correctamente - STATIC_ROOT no encontrado")
+        
+        # Verificar configuración
+        print(f"[DEBUG] STATIC_ROOT: {settings.STATIC_ROOT}")
+        print(f"[DEBUG] STATICFILES_DIRS: {settings.STATICFILES_DIRS}")
+        print(f"[DEBUG] STATICFILES_STORAGE: {settings.STATICFILES_STORAGE}")
+        print(f"[DEBUG] BASE_DIR: {settings.BASE_DIR}")
     
     # Verificar que los directorios existan
     for static_dir in settings.STATICFILES_DIRS:
@@ -259,16 +284,26 @@ if __name__ == "__main__":
             print("\n[WARNING] Algunos archivos no se copiaron correctamente")
             print("[INFO] Esto puede deberse a archivos duplicados en STATICFILES_DIRS")
         
+        print("\n" + "="*60)
+        print("✅ PRE-DEPLOY COMPLETADO EXITOSAMENTE")
+        print("="*60 + "\n")
         sys.exit(0)
         
     except Exception as e:
-        print(f"\n[ERROR] collectstatic fallo: {e}")
+        print(f"\n" + "="*60)
+        print(f"❌ ERROR EN PRE-DEPLOY: {e}")
+        print("="*60)
         import traceback
         traceback.print_exc()
+        print("="*60 + "\n")
         sys.exit(1)
     finally:
         # Restaurar configuración original
-        settings.STATICFILES_STORAGE = original_storage
-        if original_finders:
-            settings.STATICFILES_FINDERS = original_finders
+        try:
+            if 'original_storage' in locals():
+                settings.STATICFILES_STORAGE = original_storage
+            if 'original_finders' in locals() and original_finders:
+                settings.STATICFILES_FINDERS = original_finders
+        except Exception as restore_error:
+            print(f"[WARNING] Error restaurando configuración: {restore_error}")
 

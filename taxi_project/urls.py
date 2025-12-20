@@ -32,10 +32,10 @@ if settings.DEBUG:  # Asegúrate de que solo se sirvan archivos estáticos y mul
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 else:
     # En producción, crear una vista personalizada para servir archivos estáticos
-    # Esto funciona como fallback si WhiteNoise no los sirve
+    # Esta vista se ejecutará ANTES de WhiteNoise para archivos específicos
     from django.views.static import serve
     from django.urls import re_path
-    from django.http import FileResponse
+    from django.http import FileResponse, Http404
     import os
     
     static_root = settings.STATIC_ROOT
@@ -45,8 +45,15 @@ else:
         # Crear una vista personalizada que sirva archivos desde STATIC_ROOT
         # Esta vista se ejecutará ANTES de WhiteNoise para archivos específicos
         def serve_static_fallback(request, path):
-            """Vista de fallback para servir archivos estáticos si WhiteNoise no los encuentra"""
+            """Vista de fallback para servir archivos estáticos directamente desde STATIC_ROOT"""
             full_path = os.path.join(static_root, path)
+            
+            # Solo loggear archivos críticos para debugging
+            is_critical = any(x in path for x in ['floating-audio-button', 'audio-floating-button', 'badge-manager', 'notifications'])
+            if is_critical:
+                print(f"[URLS-FALLBACK] Petición recibida: {request.path}")
+                print(f"[URLS-FALLBACK] Buscando archivo: {full_path}")
+                print(f"[URLS-FALLBACK] Archivo existe: {os.path.exists(full_path)}")
             
             # Verificar que el archivo existe
             if os.path.exists(full_path) and os.path.isfile(full_path):
@@ -65,21 +72,30 @@ else:
                 content_type = content_types.get(ext, 'application/octet-stream')
                 
                 # Servir el archivo directamente
-                file_handle = open(full_path, 'rb')
-                response = FileResponse(file_handle, content_type=content_type)
-                response['Content-Length'] = os.path.getsize(full_path)
-                return response
+                try:
+                    file_handle = open(full_path, 'rb')
+                    response = FileResponse(file_handle, content_type=content_type)
+                    response['Content-Length'] = str(os.path.getsize(full_path))
+                    response['Cache-Control'] = 'public, max-age=31536000'
+                    if is_critical:
+                        print(f"[URLS-FALLBACK] ✅ Sirviendo archivo: {path} ({content_type})")
+                    return response
+                except Exception as e:
+                    if is_critical:
+                        print(f"[URLS-FALLBACK] ❌ Error sirviendo archivo: {e}")
+                    raise Http404(f"Archivo no encontrado: {path}")
             else:
-                # Si el archivo no existe, usar la vista por defecto
-                return serve(request, path, document_root=static_root)
+                if is_critical:
+                    print(f"[URLS-FALLBACK] ⚠️ Archivo no encontrado: {full_path}")
+                raise Http404(f"Archivo no encontrado: {path}")
         
         # Agregar la ruta de fallback ANTES de las otras rutas
-        # Esto asegura que se ejecute si WhiteNoise no encuentra el archivo
+        # IMPORTANTE: Las URLs se procesan en orden, así que esto se ejecutará ANTES de WhiteNoise
         urlpatterns.insert(0, re_path(
             r'^{}(?P<path>.*)$'.format(static_url),
             serve_static_fallback,
             name='static_fallback'
         ))
-        print(f"[URLS] Vista de fallback de archivos estáticos configurada desde: {static_root}")
+        print(f"[URLS] ✅ Vista de fallback de archivos estáticos configurada desde: {static_root}")
     else:
         print(f"[URLS] [WARNING] STATIC_ROOT no existe: {static_root}")

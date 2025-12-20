@@ -218,7 +218,7 @@ if __name__ == "__main__":
             'css/floating-audio-button.css',
             'js/audio-floating-button.js',
             'js/badge-manager.js',
-            'js/notifications-v5.js',
+            'js/notifications-v5.js',  # Existe en static/js/
         ]
         print("\n[INFO] Verificando archivos críticos después de la copia:")
         for file_path in critical_files:
@@ -239,7 +239,7 @@ if __name__ == "__main__":
             'css/floating-audio-button.css',
             'js/audio-floating-button.js',
             'js/badge-manager.js',
-            'js/notifications-v5.js',
+            'js/notifications-v4.js',  # Verificar la versión que realmente existe
         ]
         
         todos_ok = True

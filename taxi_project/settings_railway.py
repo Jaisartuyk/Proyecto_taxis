@@ -182,6 +182,20 @@ if RAILWAY_ENVIRONMENT:
     print("\n[FALLBACK] ========================================")
     print("[FALLBACK] Intentando agregar StaticFilesFallbackMiddleware...")
     fallback_middleware = 'taxi_project.middleware.StaticFilesFallbackMiddleware'
+    
+    # Verificar que el middleware se puede importar
+    try:
+        from taxi_project.middleware import StaticFilesFallbackMiddleware
+        print("[FALLBACK] ✅ Middleware importado correctamente")
+    except ImportError as e:
+        print(f"[FALLBACK] ❌ Error importando middleware: {e}")
+        import traceback
+        traceback.print_exc()
+    except Exception as e:
+        print(f"[FALLBACK] ❌ Error inesperado al importar middleware: {e}")
+        import traceback
+        traceback.print_exc()
+    
     if fallback_middleware not in MIDDLEWARE:
         # Encontrar la posición de WhiteNoise y agregar el fallback ANTES
         try:
@@ -249,14 +263,15 @@ if RAILWAY_ENVIRONMENT:
     # Configurar para que funcione correctamente con archivos copiados manualmente
     # Configurar WHITENOISE_ROOT explícitamente para asegurar que apunte al directorio correcto
     WHITENOISE_ROOT = STATIC_ROOT  # Configurar explícitamente el directorio raíz
-    # CRÍTICO: Deshabilitar USE_FINDERS para que WhiteNoise solo sirva desde STATIC_ROOT
-    # Si USE_FINDERS está habilitado, WhiteNoise intenta buscar archivos usando los finders
-    # pero esto puede causar problemas si los archivos no están en los finders
-    WHITENOISE_USE_FINDERS = False  # Deshabilitar finders - solo servir desde STATIC_ROOT
-    WHITENOISE_AUTOREFRESH = False  # Deshabilitar auto-refresh en producción (mejor rendimiento)
+    # CRÍTICO: Habilitar USE_FINDERS para que WhiteNoise busque archivos usando los finders
+    # Esto permite que WhiteNoise encuentre archivos que fueron copiados manualmente
+    WHITENOISE_USE_FINDERS = True  # Habilitar finders para buscar archivos
+    WHITENOISE_AUTOREFRESH = True  # Habilitar auto-refresh para detectar archivos nuevos
     WHITENOISE_INDEX_FILE = False  # No usar index.html automático
     WHITENOISE_MANIFEST_STRICT = False  # No ser estricto con el manifest
     WHITENOISE_ALLOW_ALL_ORIGINS = True  # Permitir todos los orígenes (útil para debugging)
+    # IMPORTANTE: WhiteNoise también necesita que STATICFILES_STORAGE no use manifest
+    # porque los archivos copiados manualmente no están en el manifest
     
     # WhiteNoise servirá archivos desde STATIC_ROOT (configurado explícitamente)
     # Los archivos copiados manualmente en pre-deploy estarán disponibles

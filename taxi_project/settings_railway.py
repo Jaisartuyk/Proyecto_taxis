@@ -75,7 +75,7 @@ if RAILWAY_ENVIRONMENT:
                 "capacity": 2000,        # Más capacidad para mensajes
                 "expiry": 300,           # TTL de 5 minutos (más tiempo)
                 "group_expiry": 3600,    # Grupos activos por 1 hora
-                "channel_capacity": 500, # Capacidad por canal
+                # channel_capacity debe ser un diccionario o None, no un entero
                 # Nota: asymmetric_expiry no está disponible en channels_redis 4.2.1
             },
         },

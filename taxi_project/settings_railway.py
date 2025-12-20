@@ -76,7 +76,7 @@ if RAILWAY_ENVIRONMENT:
                 "expiry": 300,           # TTL de 5 minutos (más tiempo)
                 "group_expiry": 3600,    # Grupos activos por 1 hora
                 "channel_capacity": 500, # Capacidad por canal
-                "asymmetric_expiry": 60, # Mensajes asimétricos por 1 minuto
+                # Nota: asymmetric_expiry no está disponible en channels_redis 4.2.1
             },
         },
     }

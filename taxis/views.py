@@ -1791,7 +1791,15 @@ def chat_central(request):
     for driver in drivers:
         # Obtener historial de chat entre el admin y este conductor
         chat_history = []
+        last_message = None
         if admin_user:
+            # Obtener el último mensaje ANTES de hacer el slice
+            last_message = ChatMessage.objects.filter(
+                Q(sender=request.user, recipient=driver) | 
+                Q(sender=driver, recipient=request.user)
+            ).order_by('-timestamp').first()  # Obtener el último mensaje (más reciente)
+            
+            # Obtener los últimos 50 mensajes para el historial
             chat_history = ChatMessage.objects.filter(
                 Q(sender=request.user, recipient=driver) | 
                 Q(sender=driver, recipient=request.user)
@@ -1800,7 +1808,7 @@ def chat_central(request):
         drivers_with_history.append({
             'driver': driver,
             'chat_history': chat_history,
-            'last_message': chat_history.last() if chat_history else None
+            'last_message': last_message
         })
 
     import time

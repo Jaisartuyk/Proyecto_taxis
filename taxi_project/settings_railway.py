@@ -1,6 +1,10 @@
 """
 Configuración específica para Railway con PostgreSQL y Redis
 """
+print("\n" + "="*60)
+print("[SETTINGS_RAILWAY] Cargando settings_railway.py...")
+print("="*60 + "\n")
+
 from .settings import *
 import os
 import dj_database_url
@@ -8,8 +12,10 @@ import cloudinary
 
 # Configuración de Railway
 RAILWAY_ENVIRONMENT = os.environ.get('RAILWAY_ENVIRONMENT', False)
+print(f"[SETTINGS_RAILWAY] RAILWAY_ENVIRONMENT: {RAILWAY_ENVIRONMENT}")
 
 if RAILWAY_ENVIRONMENT:
+    print("[SETTINGS_RAILWAY] ✅ Entrando en bloque de configuración de Railway")
     # Configuración de seguridad para producción
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -163,8 +169,11 @@ if RAILWAY_ENVIRONMENT:
     
     # Verificar que WhiteNoise esté en el middleware
     # El orden actual en settings.py es correcto (después de SecurityMiddleware)
-    print("\n[MIDDLEWARE] Configurando middleware...")
+    print("\n" + "="*60)
+    print("[MIDDLEWARE] Configurando middleware...")
+    print("="*60)
     print(f"[MIDDLEWARE] MIDDLEWARE actual (primeros 5): {MIDDLEWARE[:5]}")
+    print(f"[MIDDLEWARE] Total de middlewares: {len(MIDDLEWARE)}")
     
     if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
         # Si WhiteNoise no está en el middleware, agregarlo

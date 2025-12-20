@@ -290,13 +290,13 @@ if __name__ == "__main__":
             sys.exit(0)
             
         except Exception as e:
-        print(f"\n" + "="*60)
-        print(f"❌ ERROR EN PRE-DEPLOY: {e}")
-        print("="*60)
-        import traceback
-        traceback.print_exc()
-        print("="*60 + "\n")
-        sys.exit(1)
+            print(f"\n" + "="*60)
+            print(f"❌ ERROR EN PRE-DEPLOY: {e}")
+            print("="*60)
+            import traceback
+            traceback.print_exc()
+            print("="*60 + "\n")
+            sys.exit(1)
     finally:
         # Restaurar configuración original
         try:

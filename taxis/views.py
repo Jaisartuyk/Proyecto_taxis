@@ -135,7 +135,7 @@ def profile_view(request):
             price__isnull=False
         ).aggregate(total=Sum('price'))['total'] or 0
         
-        context.update({
+            context.update({
             'total_rides': total_rides,
             'completed_rides': completed_rides,
             'active_rides': active_rides,
@@ -149,11 +149,11 @@ def profile_view(request):
         total_rides = rides_queryset.count()
         completed_rides = rides_queryset.filter(status='completed').count()
         active_rides = rides_queryset.filter(status__in=['requested', 'accepted', 'in_progress']).count()
-        context.update({
+            context.update({
             'total_rides': total_rides,
             'completed_rides': completed_rides,
             'active_rides': active_rides,
-        })
+            })
 
     return render(request, 'registration/profile.html', context)
 

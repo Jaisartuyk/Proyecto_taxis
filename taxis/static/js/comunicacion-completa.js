@@ -66,7 +66,7 @@ function safeGetElement(id, retries = 3) {
         } catch (error) {
             console.warn(`⚠️ Error buscando elemento ${id}, intento ${i + 1}:`, error);
         }
-
+        
         if (i < retries - 1) {
             // Esperar un poco antes del siguiente intento
             setTimeout(() => { }, 100);
@@ -78,28 +78,28 @@ function safeGetElement(id, retries = 3) {
 // Función para crear elementos faltantes
 function ensureRequiredElements() {
     console.log('🔧 Verificando y creando elementos requeridos...');
-
+    
     const requiredElements = {
         'connection-status': 'div',
         'audio-log': 'div',
         'audio-player': 'audio',
         'record-audio-btn': 'button'
     };
-
+    
     for (const [id, tagName] of Object.entries(requiredElements)) {
         let element = document.getElementById(id);
         if (!element) {
             console.log(`⚠️ Creando elemento faltante: ${id}`);
             element = document.createElement(tagName);
             element.id = id;
-
+            
             // Configuraciones específicas según el tipo
             if (id === 'audio-player') {
                 element.controls = false;
                 element.autoplay = false;
                 element.style.display = 'none';
             }
-
+            
             document.body.appendChild(element);
             console.log(`✅ Elemento ${id} creado`);
         }
@@ -112,23 +112,23 @@ function updateStatus(message, className = 'connected') {
     try {
         const elements = ['connection-status', 'system-status', 'status'];
         let found = false;
-
+        
         for (const id of elements) {
             const el = document.getElementById(id);
             if (el) {
                 el.textContent = message;
-
+                
                 // Actualizar clase si el elemento lo soporta
                 if (el.className !== undefined) {
                     el.className = className;
                 }
-
+                
                 found = true;
                 console.log('✅ Estado actualizado en:', id);
                 break;
             }
         }
-
+        
         if (!found) {
             console.warn('⚠️ Ningún elemento de estado encontrado');
         }
@@ -141,13 +141,13 @@ function updateStatus(message, className = 'connected') {
 function updateConnectionStatus() {
     const audioConnected = socket && socket.readyState === WebSocket.OPEN;
     const chatConnected = chatSocket && chatSocket.readyState === WebSocket.OPEN;
-
+    
     console.log('🔍 Estado WebSockets - Audio:', audioConnected, 'Chat:', chatConnected);
-
+    
     // Actualizar indicador visual en el header
     const statusIndicator = document.querySelector('.status-indicator span');
     const statusDot = document.querySelector('.status-dot');
-
+    
     if (audioConnected && chatConnected) {
         if (statusIndicator) statusIndicator.textContent = 'Conectado a Central';
         if (statusDot) {
@@ -186,14 +186,14 @@ async function loadGoogleMapsAPI() {
         const response = await fetch('/api/maps-key/');
         const data = await response.json();
         Maps_API_KEY = data.maps_api_key;
-
+        
         if (!Maps_API_KEY) {
             console.error('❌ No se pudo obtener la API key de Google Maps');
             return;
         }
 
         console.log('✅ API key obtenida, cargando Google Maps...');
-
+        
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${Maps_API_KEY}&callback=initMap`;
         script.async = true;
@@ -202,7 +202,7 @@ async function loadGoogleMapsAPI() {
             console.error('❌ Error cargando Google Maps API');
         };
         document.head.appendChild(script);
-
+        
     } catch (error) {
         console.error('❌ Error configurando Google Maps:', error);
     }
@@ -211,29 +211,29 @@ async function loadGoogleMapsAPI() {
 // Función global para inicializar Google Maps
 window.initMap = function () {
     console.log('🗺️ Inicializando Google Maps...');
-
+    
     try {
         const mapContainer = document.getElementById("map");
         if (!mapContainer) {
             console.warn('⚠️ Contenedor del mapa no encontrado');
             return;
         }
-
+        
         map = new google.maps.Map(mapContainer, {
             zoom: 14,
             center: { lat: -2.170998, lng: -79.922359 },
             mapTypeId: 'roadmap'
         });
-
+        
         console.log('✅ Mapa inicializado correctamente');
         updateStatus('Mapa cargado', 'connected');
-
+        
         // Cargar ubicaciones de taxis
         loadTaxiLocations();
-
+        
         // Actualizar ubicaciones cada 30 segundos
         setInterval(loadTaxiLocations, 30000);
-
+        
     } catch (error) {
         console.warn('⚠️ Error inicializando mapa:', error.message);
     }
@@ -244,17 +244,17 @@ async function loadTaxiLocations() {
     try {
         console.log('🚖 Cargando ubicaciones de taxis...');
         const response = await fetch('/api/taxis_ubicacion/');
-
+        
         if (!response.ok) {
             console.warn('⚠️ Error en respuesta del servidor:', response.status);
             return;
         }
-
+        
         const taxis = await response.json();
         console.log('📍 Taxis recibidos:', taxis.length);
-
+        
         updateTaxiMarkers(taxis);
-
+        
     } catch (error) {
         console.warn('⚠️ Error cargando ubicaciones:', error.message);
     }
@@ -266,7 +266,7 @@ function updateTaxiMarkers(taxis) {
         console.warn('⚠️ Mapa no inicializado');
         return;
     }
-
+    
     try {
         // Limpiar marcadores existentes
         Object.values(driverMarkers).forEach(marker => {
@@ -275,7 +275,7 @@ function updateTaxiMarkers(taxis) {
             }
         });
         driverMarkers = {};
-
+        
         // Agregar nuevos marcadores
         taxis.forEach(taxi => {
             if (taxi.latitude && taxi.longitude) {
@@ -283,7 +283,7 @@ function updateTaxiMarkers(taxis) {
                     lat: parseFloat(taxi.latitude),
                     lng: parseFloat(taxi.longitude)
                 };
-
+                
                 const marker = new google.maps.Marker({
                     position: position,
                     map: map,
@@ -295,7 +295,7 @@ function updateTaxiMarkers(taxis) {
                         anchor: new google.maps.Point(12, 12)
                     }
                 });
-
+                
                 // Ventana de información
                 const infoWindow = new google.maps.InfoWindow({
                     content: `
@@ -310,7 +310,7 @@ function updateTaxiMarkers(taxis) {
                         </div>
                     `
                 });
-
+                
                 marker.addListener('click', () => {
                     // Cerrar otras ventanas
                     Object.values(driverMarkers).forEach(m => {
@@ -318,10 +318,10 @@ function updateTaxiMarkers(taxis) {
                             m.infoWindow.close();
                         }
                     });
-
+                    
                     infoWindow.open(map, marker);
                 });
-
+                
                 marker.infoWindow = infoWindow;
                 driverMarkers[taxi.id] = marker;
 
@@ -332,10 +332,10 @@ function updateTaxiMarkers(taxis) {
                 }
             }
         });
-
+        
         console.log(`✅ ${Object.keys(driverMarkers).length} marcadores actualizados`);
         updateStatus(`${Object.keys(driverMarkers).length} conductores en línea`, 'connected');
-
+        
     } catch (error) {
         console.error('❌ Error actualizando marcadores:', error);
     }
@@ -344,19 +344,19 @@ function updateTaxiMarkers(taxis) {
 // Función para abrir chat con conductor
 function openDriverChat(driverId) {
     console.log('💬 Abriendo chat con conductor:', driverId);
-
+    
     try {
         // Buscar el elemento del conductor en la lista
         const driverElement = document.querySelector(`[data-driver-id="${driverId}"]`);
         let driverName = `Conductor #${driverId}`;
-
+        
         if (driverElement) {
             const nameElement = driverElement.querySelector('span');
             if (nameElement) {
                 driverName = nameElement.textContent;
             }
         }
-
+        
         // Actualizar el header del chat
         const chatHeader = document.getElementById('chat-header');
         if (chatHeader) {
@@ -368,7 +368,7 @@ function openDriverChat(driverId) {
                 </div>
             `;
         }
-
+        
         // Limpiar mensajes anteriores y mostrar el chat
         // NO limpiar el chat log aquí - loadChatHistory lo hará y cargará el historial
         // Solo asegurarse de que el chat log existe
@@ -376,19 +376,19 @@ function openDriverChat(driverId) {
         if (!chatLog) {
             console.warn('⚠️ chat-log no encontrado');
         }
-
+        
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');
         if (inputContainer) {
             inputContainer.style.display = 'flex';
         }
-
+        
         // Ocultar el mensaje de "no chat seleccionado"
         const noChatSelected = document.getElementById('no-chat-selected');
         if (noChatSelected) {
             noChatSelected.style.display = 'none';
         }
-
+        
         // Configurar el input para este conductor
         const messageInput = document.getElementById('chat-message-input');
         if (messageInput) {
@@ -474,31 +474,31 @@ function openDriverChat(driverId) {
                 });
             }
         }, 100); // Pequeño delay para asegurar que el DOM esté listo
-
+        
         // Configurar el botón de envío
         const submitButton = document.getElementById('chat-message-submit');
         if (submitButton) {
             // Remover eventos anteriores
             submitButton.replaceWith(submitButton.cloneNode(true));
             const newSubmitButton = document.getElementById('chat-message-submit');
-
+            
             newSubmitButton.addEventListener('click', function () {
                 sendMessageToDriver(driverId);
             });
         }
-
+        
         // Configurar Enter en el input
         if (messageInput) {
             messageInput.replaceWith(messageInput.cloneNode(true));
             const newInput = document.getElementById('chat-message-input');
-
+            
             newInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     sendMessageToDriver(driverId);
                 }
             });
         }
-
+        
         // Hacer visible el chat window si está oculto
         const chatWindow = document.querySelector('.chat-window');
         if (chatWindow) {
@@ -507,12 +507,12 @@ function openDriverChat(driverId) {
         
         // Guardar el ID del conductor actual para guardar mensajes recibidos
         currentChatDriverId = driverId;
-
+        
         console.log(`✅ Chat iniciado con ${driverName} (ID: ${driverId})`);
-
+        
         // Cargar historial de chat (ahora con persistencia en localStorage)
         loadChatHistory(driverId);
-
+        
     } catch (error) {
         console.error('❌ Error abriendo chat:', error);
         alert('Error abriendo el chat. Por favor, intenta de nuevo.');
@@ -564,7 +564,7 @@ function loadChatHistoryFromStorage(driverId) {
     } catch (error) {
         console.error('❌ Error cargando historial desde localStorage:', error);
         return [];
-    }
+        }
 }
 
 // Función para agregar un mensaje al historial guardado
@@ -585,8 +585,8 @@ function renderMessages(messages) {
     console.log(`\n📝 ========================================`);
     console.log(`📝 renderMessages() llamada con ${messages ? messages.length : 0} mensajes`);
     console.log(`📝 Tipo de messages:`, typeof messages, Array.isArray(messages));
-    
-    const chatLog = document.getElementById('chat-log');
+        
+        const chatLog = document.getElementById('chat-log');
     if (!chatLog) {
         console.error('❌ chat-log no encontrado para renderizar mensajes');
         return;
@@ -601,7 +601,7 @@ function renderMessages(messages) {
     }
     
     // Limpiar chat log completamente
-    chatLog.innerHTML = '';
+        chatLog.innerHTML = '';
     
     // Asegurar que el chat log sea visible
     chatLog.style.display = 'block';
@@ -619,8 +619,8 @@ function renderMessages(messages) {
         `;
         return;
     }
-    
-    // Agregar mensajes al chat
+        
+        // Agregar mensajes al chat
     console.log(`📝 Renderizando ${messages.length} mensajes en el chat log...`);
     messages.forEach((msg, index) => {
         console.log(`📝 Mensaje ${index + 1}:`, {
@@ -635,7 +635,7 @@ function renderMessages(messages) {
         const timestamp = typeof msg.timestamp === 'string'
             ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
             : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+            
         // Detectar si el mensaje tiene media
         const messageType = msg.message_type || 'text';
         const hasMedia = messageType !== 'text' && msg.media_url;
@@ -683,7 +683,7 @@ function renderMessages(messages) {
 
         // Usar el mismo formato que en comunicacion_driver.html para consistencia
         // IMPORTANTE: Asegurar que los mensajes sean visibles con estilos inline
-        const messageHtml = `
+            const messageHtml = `
             <div class="message ${isSent ? 'sent' : 'received'}" 
                  style="display: block !important; 
                         visibility: visible !important; 
@@ -702,9 +702,9 @@ function renderMessages(messages) {
                 <div style="font-weight: bold; margin-bottom: 4px; display: block;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
                 ${messageContent}
                 <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
-            </div>
-        `;
-        chatLog.insertAdjacentHTML('beforeend', messageHtml);
+                </div>
+            `;
+            chatLog.insertAdjacentHTML('beforeend', messageHtml);
         
         // Log cada 10 mensajes para no saturar la consola
         if ((index + 1) % 10 === 0 || index === messages.length - 1) {
@@ -721,9 +721,9 @@ function renderMessages(messages) {
         console.error(`   chatLog.children:`, chatLog.children.length);
     }
     console.log(`📝 ========================================\n`);
-    
-    // Scroll al final
-    chatLog.scrollTop = chatLog.scrollHeight;
+        
+        // Scroll al final
+        chatLog.scrollTop = chatLog.scrollHeight;
 }
 
 // Cargar historial de chat con un conductor (CON PERSISTENCIA)
@@ -909,7 +909,7 @@ async function loadChatHistory(driverId) {
                 `;
             }
         }
-
+        
     } catch (error) {
         console.error('❌ Error cargando historial:', error);
         const chatLog = document.getElementById('chat-log');
@@ -983,7 +983,7 @@ async function sendMessageToDriver(driverId) {
     if (!message && !file) {
         return;
     }
-
+    
     console.log('📤 Enviando mensaje a conductor:', driverId, message || '(con archivo)');
 
     try {
@@ -1078,7 +1078,7 @@ async function sendMessageToDriver(driverId) {
                                  style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
                                  onclick="window.open('${mediaData.media_url}', '_blank')"
                                  alt="Imagen">
-                        </div>
+                </div>
                         ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
                     `;
                 } else if (messageType === 'video') {
@@ -1112,7 +1112,7 @@ async function sendMessageToDriver(driverId) {
             chatLog.scrollTop = chatLog.scrollHeight;
             console.log(`✅ Mensaje agregado al chat log: ${message || '(con media)'}`);
         }
-
+        
         // Enviar por WebSocket de Chat
         if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
             const wsMessage = {
@@ -1131,11 +1131,11 @@ async function sendMessageToDriver(driverId) {
             }
             
             chatSocket.send(JSON.stringify(wsMessage));
-
+            
             console.log('✅ Mensaje enviado por Chat WebSocket');
         } else {
             console.warn('⚠️ Chat WebSocket no disponible - mensaje no enviado');
-
+            
             // Mostrar error en el chat
             if (chatLog) {
                 const errorHtml = `
@@ -1146,14 +1146,14 @@ async function sendMessageToDriver(driverId) {
                 chatLog.insertAdjacentHTML('beforeend', errorHtml);
             }
         }
-
+        
         // Limpiar inputs
         if (input) input.value = '';
         if (fileInput) fileInput.value = '';
-
+        
     } catch (error) {
         console.error('❌ Error enviando mensaje:', error);
-
+        
         // Mostrar error en el chat
         const chatLog = document.getElementById('chat-log');
         if (chatLog) {
@@ -1199,7 +1199,7 @@ function setupWebSocket() {
 
     isConnecting = true;
     console.log('🔌 Iniciando WebSockets (Audio + Chat)...');
-
+    
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
     const host = window.location.host;
 
@@ -1220,7 +1220,7 @@ function setupWebSocket() {
         console.log('🔊 Audio WS Desconectado');
         isConnecting = false;
         updateConnectionStatus();
-
+        
         // Reconectar solo si no hay otro timeout pendiente
         if (wsReconnectAttempts < wsMaxReconnectAttempts && !reconnectTimeout) {
             wsReconnectAttempts++;
@@ -1268,7 +1268,7 @@ function setupWebSocket() {
     chatSocket.onclose = () => {
         console.log('💬 Chat WS Desconectado');
         updateConnectionStatus();
-
+        
         // Reconectar solo si no hay otro timeout pendiente
         if (!reconnectTimeout) {
             reconnectTimeout = setTimeout(() => {
@@ -1296,7 +1296,7 @@ function setupWebSocket() {
 // Manejar mensajes WebSocket
 function handleWebSocketMessage(data) {
     console.log('📨 Procesando mensaje:', data.type);
-
+    
     switch (data.type) {
         case 'audio_message':
         case 'central_audio':  // Audio de la central a conductores
@@ -1322,16 +1322,16 @@ function handleWebSocketMessage(data) {
 // Manejar mensaje de audio
 function handleAudioMessage(data) {
     console.log('🎵 Mensaje de audio recibido', data);
-
+    
     try {
         // Obtener audio_data de diferentes formatos posibles
         const audioData = data.audio_data || data.audio;
-
+        
         if (audioData) {
             // Determinar el origen del audio
             let sender = 'Desconocido';
             let senderId = 'unknown';
-
+            
             if (data.type === 'central_audio') {
                 // Audio de la central (no debería llegar aquí, pero por si acaso)
                 sender = 'Central';
@@ -1341,14 +1341,14 @@ function handleAudioMessage(data) {
                 senderId = data.senderId || data.sender_id || data.driver_id;
                 sender = data.senderName || data.sender_name || `Conductor #${senderId}`;
             }
-
+            
             console.log(`🎵 Reproduciendo audio de: ${sender} (${audioData.length} bytes)`);
-
+            
             // Reproducir audio inmediatamente usando el mismo método del conductor
             const audioBlob = base64ToBlob(audioData, 'audio/webm');
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
-
+            
             audio.play()
                 .then(() => {
                     console.log('✅ Audio reproducido correctamente');
@@ -1358,7 +1358,7 @@ function handleAudioMessage(data) {
                     console.error('❌ Error reproduciendo audio:', err);
                     updateAudioLog(`❌ Error reproduciendo audio de ${sender}`);
                 });
-
+            
         } else {
             console.warn('⚠️ Mensaje de audio sin datos. Keys disponibles:', Object.keys(data));
         }
@@ -1481,14 +1481,14 @@ function handleLocationUpdate(data) {
 // Manejar mensaje de chat
 function handleChatMessage(data) {
     console.log('💬 Mensaje de chat recibido:', data);
-
+    
     try {
         const chatLog = document.getElementById('chat-log');
         if (!chatLog) {
             console.warn('⚠️ chat-log no encontrado');
             return;
         }
-
+        
         // Extraer datos del mensaje (compatible con ambos formatos)
         const message = data.message || '';
         const senderId = data.sender_id || data.driver_id;
@@ -1497,19 +1497,19 @@ function handleChatMessage(data) {
         const mediaUrl = data.media_url;
         const thumbnailUrl = data.thumbnail_url;
         const metadata = data.metadata || {};
-
+        
         // Validar que haya mensaje o media
         if ((!message && !mediaUrl) || !senderId) {
             console.warn('⚠️ Mensaje incompleto:', data);
             return;
         }
-
+        
         // Solo mostrar mensajes de otros usuarios (no los míos)
         if (senderId == currentUser.id) {
             console.log('⏭️ Ignorando mensaje propio');
             return;
         }
-
+        
         console.log(`✅ Mostrando mensaje de ${senderName}: ${message || '(con media)'}`);
         
         // Crear objeto de mensaje para guardar en historial
@@ -1533,7 +1533,7 @@ function handleChatMessage(data) {
         if (currentChatDriverId && currentChatDriverId == senderId) {
             // El mensaje ya se está mostrando visualmente abajo, solo lo guardamos
         }
-
+        
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
         // Construir contenido según tipo de mensaje
@@ -1583,11 +1583,11 @@ function handleChatMessage(data) {
         `;
         chatLog.insertAdjacentHTML('beforeend', messageHtml);
         chatLog.scrollTop = chatLog.scrollHeight;
-
+        
         // Remover placeholder si existe
         const placeholder = chatLog.querySelector('div[style*="text-align: center"]');
         if (placeholder) placeholder.remove();
-
+        
     } catch (error) {
         console.error('❌ Error procesando mensaje de chat:', error);
     }
@@ -1596,7 +1596,7 @@ function handleChatMessage(data) {
 // Configurar sistema de audio
 function setupAudioSystem() {
     console.log('🎵 Configurando sistema de audio...');
-
+    
     try {
         // Configurar AudioContext
         if (window.AudioContext || window.webkitAudioContext) {
@@ -1605,10 +1605,10 @@ function setupAudioSystem() {
         } else {
             console.warn('⚠️ AudioContext no soportado');
         }
-
+        
         // Configurar botón de grabación
         setupRecordingButton();
-
+        
     } catch (error) {
         console.error('❌ Error configurando audio:', error);
     }
@@ -1621,9 +1621,9 @@ function setupRecordingButton() {
         console.warn('⚠️ Botón de grabación no encontrado');
         return;
     }
-
+    
     console.log('✅ Configurando botón de grabación...');
-
+    
     // Verificar que el elemento soporte eventos
     if (typeof btn.addEventListener === 'function') {
         btn.addEventListener('mousedown', startRecording);
@@ -1631,7 +1631,7 @@ function setupRecordingButton() {
         btn.addEventListener('mouseleave', stopRecording);
         btn.addEventListener('touchstart', startRecording);
         btn.addEventListener('touchend', stopRecording);
-
+        
         console.log('✅ Eventos de grabación configurados');
     } else {
         console.warn('⚠️ addEventListener no disponible en botón');
@@ -1641,38 +1641,38 @@ function setupRecordingButton() {
 // Iniciar grabación
 async function startRecording() {
     console.log('🎤 Iniciando grabación...');
-
+    
     try {
         updateStatus('Grabando...', 'recording');
-
+        
         // Cambiar estilo del botón
         const btn = safeGetElement('record-audio-btn');
         if (btn && btn.style) {
             btn.style.backgroundColor = '#FF5722';
         }
-
+        
         // Obtener acceso al micrófono
         centralAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
+        
         mediaRecorderCentral = new MediaRecorder(centralAudioStream);
         const audioChunks = [];
-
+        
         mediaRecorderCentral.ondataavailable = event => {
             audioChunks.push(event.data);
         };
-
+        
         mediaRecorderCentral.onstop = async () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
             await sendAudioToConductors(audioBlob);
         };
-
+        
         mediaRecorderCentral.start();
         console.log('✅ Grabación iniciada');
-
+        
     } catch (error) {
         console.error('❌ Error iniciando grabación:', error);
         updateStatus('Error en grabación', 'error');
-
+        
         // Restaurar botón
         const btn = safeGetElement('record-audio-btn');
         if (btn && btn.style) {
@@ -1684,27 +1684,27 @@ async function startRecording() {
 // Detener grabación
 function stopRecording() {
     console.log('🎤 Deteniendo grabación...');
-
+    
     try {
         if (mediaRecorderCentral && mediaRecorderCentral.state !== 'inactive') {
             mediaRecorderCentral.stop();
         }
-
+        
         if (centralAudioStream) {
             centralAudioStream.getTracks().forEach(track => track.stop());
         }
-
+        
         // Restaurar estado
         updateStatus('Listo', 'connected');
-
+        
         // Restaurar botón
         const btn = safeGetElement('record-audio-btn');
         if (btn && btn.style) {
             btn.style.backgroundColor = '';
         }
-
+        
         console.log('✅ Grabación detenida');
-
+        
     } catch (error) {
         console.error('❌ Error deteniendo grabación:', error);
     }
@@ -1714,12 +1714,12 @@ function stopRecording() {
 async function sendAudioToConductors(audioBlob) {
     try {
         console.log('📤 Enviando audio a conductores...');
-
+        
         // Convertir a base64
         const reader = new FileReader();
         reader.onload = function () {
             const base64Audio = reader.result.split(',')[1];
-
+            
             // Enviar por WebSocket
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
@@ -1727,16 +1727,16 @@ async function sendAudioToConductors(audioBlob) {
                     'audio_data': base64Audio,
                     'room_name': roomName
                 }));
-
+                
                 console.log('✅ Audio enviado');
                 updateAudioLog('Audio enviado a conductores');
             } else {
                 console.warn('⚠️ WebSocket no disponible');
             }
         };
-
+        
         reader.readAsDataURL(audioBlob);
-
+        
     } catch (error) {
         console.error('❌ Error enviando audio:', error);
     }
@@ -1746,7 +1746,7 @@ async function sendAudioToConductors(audioBlob) {
 function addAudioToQueue(audioData) {
     audioQueue.push(audioData);
     console.log('📋 Audio agregado a cola, total:', audioQueue.length);
-
+    
     if (!isPlayingAudio) {
         playNextAudio();
     }
@@ -1758,39 +1758,39 @@ async function playNextAudio() {
         isPlayingAudio = false;
         return;
     }
-
+    
     isPlayingAudio = true;
     const audioData = audioQueue.shift();
-
+    
     try {
         console.log('🔊 Reproduciendo audio...');
-
+        
         // Crear elemento de audio
         const audioPlayer = safeGetElement('audio-player');
         if (!audioPlayer) {
             console.error('❌ Reproductor de audio no encontrado');
             return;
         }
-
+        
         // Configurar audio
         audioPlayer.src = `data:audio/wav;base64,${audioData.audioData}`;
-
+        
         // Eventos de reproducción
         audioPlayer.onended = () => {
             console.log('✅ Audio terminado');
             isPlayingAudio = false;
             playNextAudio(); // Reproducir siguiente
         };
-
+        
         audioPlayer.onerror = (error) => {
             console.error('❌ Error reproduciendo audio:', error);
             isPlayingAudio = false;
             playNextAudio(); // Continuar con siguiente
         };
-
+        
         // Reproducir
         await audioPlayer.play();
-
+        
     } catch (error) {
         console.error('❌ Error en reproducción:', error);
         isPlayingAudio = false;
@@ -1806,29 +1806,29 @@ function updateAudioLog(message) {
             console.warn('⚠️ audio-log no encontrado');
             return;
         }
-
+        
         // Eliminar placeholder si existe
         const placeholder = audioLog.querySelector('.audio-log-empty');
         if (placeholder) {
             placeholder.remove();
         }
-
+        
         // Crear entrada de log
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const logEntry = document.createElement('div');
         logEntry.className = 'audio-log-entry';
         logEntry.style.cssText = 'padding: 8px 12px; margin-bottom: 5px; background: rgba(255,255,255,0.05); border-left: 3px solid #4CAF50; border-radius: 4px; font-size: 0.9rem;';
         logEntry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> ${message}`;
-
+        
         // Agregar al inicio del log
         audioLog.insertBefore(logEntry, audioLog.firstChild);
-
+        
         // Mantener solo las últimas 50 entradas
         const entries = audioLog.querySelectorAll('.audio-log-entry');
         if (entries.length > 50) {
             entries[entries.length - 1].remove();
         }
-
+        
         console.log('✅ Log de audio actualizado:', message);
     } catch (error) {
         console.error('❌ Error actualizando log:', error);
@@ -1838,26 +1838,26 @@ function updateAudioLog(message) {
 // Configurar eventos de click en la lista de conductores
 function setupDriverListEvents() {
     console.log('🔧 Configurando eventos de la lista de conductores...');
-
+    
     const driverItems = document.querySelectorAll('.user-item[data-driver-id]');
     console.log(`📋 Encontrados ${driverItems.length} elementos de conductor`);
-
+    
     driverItems.forEach(item => {
         const driverId = item.getAttribute('data-driver-id');
-        const driverName = item.getAttribute('data-driver-name') ||
-            item.querySelector('span')?.textContent ||
-            `Conductor #${driverId}`;
-
+        const driverName = item.getAttribute('data-driver-name') || 
+                           item.querySelector('span')?.textContent || 
+                           `Conductor #${driverId}`;
+        
         // Remover eventos anteriores
         item.replaceWith(item.cloneNode(true));
         const newItem = document.querySelector(`[data-driver-id="${driverId}"]`);
-
+        
         if (newItem) {
             newItem.addEventListener('click', function () {
                 console.log(`💬 Click en conductor: ${driverName} (ID: ${driverId})`);
                 openDriverChatFromList(driverId, driverName);
             });
-
+            
             // Estilo cursor
             newItem.style.cursor = 'pointer';
             
@@ -1880,32 +1880,32 @@ async function initSystem() {
         console.log('⚠️ Sistema ya inicializado');
         return;
     }
-
+    
     console.log('🎬 Iniciando sistema completo...');
-
+    
     try {
         // Asegurar elementos requeridos
         ensureRequiredElements();
-
+        
         // Inicializar componentes
         updateStatus('Inicializando...', 'connecting');
-
+        
         // Cargar Google Maps
         await loadGoogleMapsAPI();
-
+        
         // Configurar WebSocket
         setupWebSocket();
-
+        
         // Configurar sistema de audio
         setupAudioSystem();
-
+        
         // Configurar eventos de la lista de conductores
         setupDriverListEvents();
-
+        
         systemInitialized = true;
         updateStatus('Sistema listo', 'connected');
         console.log('✅ Sistema inicializado completamente');
-
+        
     } catch (error) {
         console.error('❌ Error inicializando sistema:', error);
         updateStatus('Error en inicialización', 'error');
@@ -1970,7 +1970,7 @@ function openDriverChatFromList(driverId, driverName) {
                 </div>
             `;
         }
-
+        
         // RENDERIZAR HISTORIAL DIRECTAMENTE EN EL HTML (igual que comunicacion_driver.html)
         // Esto es más confiable que hacer llamadas al servidor
         const chatLog = document.getElementById('chat-log');
@@ -2062,13 +2062,13 @@ function openDriverChatFromList(driverId, driverName) {
                 </div>
             `;
         }
-
+        
         // Mostrar el área de entrada de mensaje
         const inputContainer = document.getElementById('chat-input-container');
         if (inputContainer) {
             inputContainer.style.display = 'flex';
         }
-
+        
         // Configurar el input para este conductor
         const messageInput = document.getElementById('chat-message-input');
         if (messageInput) {
@@ -2152,30 +2152,30 @@ function openDriverChatFromList(driverId, driverName) {
                 });
             }
         }, 100); // Pequeño delay para asegurar que el DOM esté listo
-
+        
         // Configurar el botón de envío - clonar para remover eventos anteriores
         const submitButton = document.getElementById('chat-message-submit');
         if (submitButton) {
             const newSubmitButton = submitButton.cloneNode(true);
             submitButton.parentNode.replaceChild(newSubmitButton, submitButton);
-
+            
             newSubmitButton.addEventListener('click', function () {
                 sendMessageToDriver(driverId);
             });
         }
-
+        
         // Configurar Enter en el input - clonar para remover eventos anteriores
         if (messageInput) {
             const newInput = messageInput.cloneNode(true);
             messageInput.parentNode.replaceChild(newInput, messageInput);
-
+            
             newInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     sendMessageToDriver(driverId);
                 }
             });
         }
-
+        
         // Hacer visible el chat window si está oculto
         const chatWindow = document.querySelector('.chat-window');
         if (chatWindow) {
@@ -2185,13 +2185,13 @@ function openDriverChatFromList(driverId, driverName) {
         // Guardar el ID del conductor actual para guardar mensajes recibidos
         const previousDriverId = currentChatDriverId;
         currentChatDriverId = driverId;
-
+        
         // Resaltar el elemento seleccionado
         document.querySelectorAll('.user-item').forEach(item => {
             item.classList.remove('active');
         });
         document.querySelector(`[data-driver-id="${driverId}"]`)?.classList.add('active');
-
+        
         console.log(`✅ Chat iniciado desde lista: ${driverName} (ID: ${driverId})`);
         console.log(`📋 Conductor anterior: ${previousDriverId}, Conductor actual: ${driverId}`);
         
@@ -2235,7 +2235,7 @@ function openDriverChatFromList(driverId, driverName) {
                 console.error('❌ Error cargando desde localStorage:', e2);
             }
         }
-
+        
     } catch (error) {
         console.error('❌ Error abriendo chat desde lista:', error);
         alert('Error abriendo el chat. Por favor, intenta de nuevo.');
@@ -2245,7 +2245,7 @@ function openDriverChatFromList(driverId, driverName) {
 // Inicialización cuando DOM esté listo
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 DOM LISTO - Iniciando sistema completo...');
-
+    
     // Pequeña pausa para asegurar que todo esté cargado
     setTimeout(() => {
         initSystem();

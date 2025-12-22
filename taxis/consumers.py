@@ -128,7 +128,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     )
                     source_icon = '📱' if source == 'mobile' else '🌐'
                     print(f"{source_icon} Ubicación de {sender_id} ({source}) retransmitida: {latitude}, {longitude}")
-                    
+
                     # Guardar en base de datos
                     await self.save_driver_location(sender_id, latitude, longitude, source)
 
@@ -316,7 +316,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         message = data.get('message', '')  # Ahora es opcional si hay media
         recipient_id = data.get('recipient_id')
-        
+
         # Campos para media (nuevos)
         msg_type = data.get('message_type', 'text')  # Por defecto 'text' (compatible)
         media_url = data.get('media_url', None)
@@ -382,7 +382,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Obtener el conteo de badge actualizado
         # Solo obtener badge si el usuario está autenticado
         if self.user.is_authenticated:
-            badge_count = await self.get_badge_count(self.user.id)
+        badge_count = await self.get_badge_count(self.user.id)
         else:
             badge_count = 0
         

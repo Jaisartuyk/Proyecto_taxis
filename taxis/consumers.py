@@ -382,7 +382,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Obtener el conteo de badge actualizado
         # Solo obtener badge si el usuario está autenticado
         if self.user.is_authenticated:
-        badge_count = await self.get_badge_count(self.user.id)
+            badge_count = await self.get_badge_count(self.user.id)
         else:
             badge_count = 0
         

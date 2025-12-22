@@ -2154,6 +2154,7 @@ window.openDriverChatFromList = function(driverId, driverName) {
 console.log('✅ PARCHE APLICADO: openDriverChatFromList sobrescrita');
 
 // ==================== FUNCIONALIDAD DE ADJUNTAR ARCHIVOS ====================
+// Conectar el botón de adjuntar archivos con la funcionalidad existente
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📎 Configurando funcionalidad de adjuntar archivos...');
     
@@ -2164,11 +2165,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Cuando se hace clic en el botón, abrir el selector de archivos
         fileBtn.addEventListener('click', function() {
             console.log('📎 Botón de adjuntar clickeado');
+            
+            // Verificar que hay un conductor seleccionado
+            const messageInput = document.getElementById('chat-message-input');
+            const driverId = messageInput ? messageInput.getAttribute('data-driver-id') : null;
+            
+            if (!driverId) {
+                alert('Por favor selecciona un conductor primero');
+                return;
+            }
+            
             fileInput.click();
         });
         
-        // Cuando se selecciona un archivo
-        fileInput.addEventListener('change', function(e) {
+        // Cuando se selecciona un archivo, enviarlo automáticamente
+        fileInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) {
                 console.log('⚠️ No se seleccionó ningún archivo');
@@ -2177,10 +2188,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('📎 Archivo seleccionado:', file.name, file.type, file.size);
             
-            // Validar tamaño (máximo 5MB)
-            const maxSize = 5 * 1024 * 1024; // 5MB
+            // Validar tamaño (máximo 10MB - igual que el backend)
+            const maxSize = 10 * 1024 * 1024; // 10MB
             if (file.size > maxSize) {
-                alert('El archivo es demasiado grande. Máximo 5MB permitido.');
+                alert('El archivo es demasiado grande. Máximo 10MB permitido.');
                 fileInput.value = '';
                 return;
             }
@@ -2193,43 +2204,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Mostrar preview y confirmar envío
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const fileData = event.target.result;
-                
-                // Crear preview
-                let previewHTML = '';
-                if (file.type.startsWith('image/')) {
-                    previewHTML = `<img src="${fileData}" style="max-width: 200px; max-height: 200px; border-radius: 8px;">`;
-                } else if (file.type.startsWith('video/')) {
-                    previewHTML = `<video src="${fileData}" controls style="max-width: 200px; max-height: 200px; border-radius: 8px;"></video>`;
-                }
-                
-                // Mostrar confirmación
-                const confirmSend = confirm(`¿Enviar este archivo?\n\nNombre: ${file.name}\nTamaño: ${(file.size / 1024).toFixed(2)} KB\n\nNota: Esta funcionalidad está en desarrollo. Por ahora solo se mostrará un mensaje de confirmación.`);
-                
-                if (confirmSend) {
-                    console.log('✅ Usuario confirmó envío del archivo');
-                    
-                    // TODO: Implementar envío real del archivo
-                    // Por ahora, solo mostrar mensaje
-                    alert('Funcionalidad de envío de archivos en desarrollo.\n\nPróximamente podrás enviar:\n- Imágenes\n- Videos\n- Documentos\n\nEl archivo se subirá al servidor y se enviará por WebSocket.');
-                    
-                    // Aquí iría el código para:
-                    // 1. Subir el archivo al servidor via FormData
-                    // 2. Obtener la URL del archivo subido
-                    // 3. Enviar mensaje por WebSocket con la URL
-                    // 4. Mostrar el archivo en el chat
-                } else {
-                    console.log('❌ Usuario canceló envío del archivo');
-                }
-                
-                // Limpiar input
-                fileInput.value = '';
-            };
+            // Obtener ID del conductor actual
+            const messageInput = document.getElementById('chat-message-input');
+            const driverId = messageInput ? messageInput.getAttribute('data-driver-id') : null;
             
-            reader.readAsDataURL(file);
+            if (!driverId) {
+                alert('Por favor selecciona un conductor primero');
+                fileInput.value = '';
+                return;
+            }
+            
+            // Mostrar confirmación
+            const confirmSend = confirm(`¿Enviar este archivo?\n\nNombre: ${file.name}\nTamaño: ${(file.size / 1024).toFixed(2)} KB\nTipo: ${file.type.startsWith('image/') ? 'Imagen' : 'Video'}`);
+            
+            if (confirmSend) {
+                console.log('✅ Usuario confirmó envío del archivo');
+                
+                // La función sendMessageToDriver ya existe en comunicacion-completa.js
+                // y maneja automáticamente el envío de archivos desde fileInput
+                if (typeof sendMessageToDriver === 'function') {
+                    await sendMessageToDriver(driverId);
+                } else {
+                    console.error('❌ Función sendMessageToDriver no encontrada');
+                    alert('Error: No se pudo enviar el archivo. Por favor recarga la página.');
+                }
+            } else {
+                console.log('❌ Usuario canceló envío del archivo');
+                fileInput.value = '';
+            }
         });
         
         console.log('✅ Funcionalidad de adjuntar archivos configurada');

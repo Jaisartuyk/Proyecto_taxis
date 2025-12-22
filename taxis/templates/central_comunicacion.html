@@ -2351,9 +2351,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     
-                    // Cerrar modal
-                    modal.remove();
-                    console.log('🚪 Modal cerrado');
+                    // NO cerrar modal todavía - esperar a que se envíe el archivo
+                    console.log('⏳ Esperando envío del archivo...');
                     
                     // Enviar archivo (el fileInput todavía tiene el archivo)
                     console.log('📤 Verificando función sendMessageToDriver:', typeof sendMessageToDriver);
@@ -2365,6 +2364,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         } catch (error) {
                             console.error('❌ Error en sendMessageToDriver:', error);
                         }
+                        
+                        // Cerrar modal DESPUÉS de enviar
+                        modal.remove();
+                        console.log('🚪 Modal cerrado');
                         
                         // Limpiar input de archivo DESPUÉS de enviar
                         fileInput.value = '';
@@ -2379,6 +2382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         console.error('❌ Función sendMessageToDriver no encontrada');
                         alert('Error: No se pudo enviar el archivo. Por favor recarga la página.');
+                        modal.remove();
                         fileInput.value = '';
                     }
                 });

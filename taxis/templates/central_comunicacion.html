@@ -2120,13 +2120,49 @@ window.openDriverChatFromList = function(driverId, driverName) {
                     ${isSent ? 'margin-left: auto;' : 'margin-right: auto;'}
                 `;
                 
+                // Construir contenido según tipo de mensaje
+                let messageContent = '';
+                
+                // Si tiene media (imagen o video)
+                if (msg.media_url) {
+                    if (msg.message_type === 'image') {
+                        messageContent = `
+                            <div style="margin-bottom: 8px;">
+                                <img src="${msg.media_url}" 
+                                     style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; display: block;"
+                                     onclick="window.open('${msg.media_url}', '_blank')"
+                                     alt="Imagen">
+                            </div>
+                        `;
+                    } else if (msg.message_type === 'video') {
+                        const posterUrl = msg.thumbnail_url || '';
+                        messageContent = `
+                            <div style="margin-bottom: 8px;">
+                                <video controls 
+                                       style="max-width: 100%; max-height: 300px; border-radius: 8px; display: block;"
+                                       ${posterUrl ? `poster="${posterUrl}"` : ''}>
+                                    <source src="${msg.media_url}" type="video/mp4">
+                                    Tu navegador no soporta videos.
+                                </video>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Agregar mensaje de texto si existe
+                if (msg.message && msg.message.trim()) {
+                    messageContent += `
+                        <div style="word-wrap: break-word; ${msg.media_url ? 'margin-top: 8px;' : ''}">
+                            ${msg.message}
+                        </div>
+                    `;
+                }
+                
                 messageDiv.innerHTML = `
                     <div style="font-weight: bold; margin-bottom: 4px;">
                         ${isSent ? 'Tú' : msg.sender_name}
                     </div>
-                    <div style="word-wrap: break-word;">
-                        ${msg.message}
-                    </div>
+                    ${messageContent}
                     <div style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">
                         ${new Date(msg.timestamp).toLocaleString()}
                     </div>
@@ -2135,7 +2171,8 @@ window.openDriverChatFromList = function(driverId, driverName) {
                 chatLog.appendChild(messageDiv);
                 
                 if (index === 0 || index === history.length - 1) {
-                    console.log(`   ✅ Mensaje ${index + 1}:`, msg.message.substring(0, 30));
+                    const preview = msg.media_url ? `[${msg.message_type}]` : msg.message.substring(0, 30);
+                    console.log(`   ✅ Mensaje ${index + 1}:`, preview);
                 }
             });
             
@@ -2178,7 +2215,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fileInput.click();
         });
         
-        // Cuando se selecciona un archivo, enviarlo automáticamente
+        // Cuando se selecciona un archivo, mostrar preview con opción de mensaje
         fileInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) {
@@ -2214,24 +2251,131 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Mostrar confirmación
-            const confirmSend = confirm(`¿Enviar este archivo?\n\nNombre: ${file.name}\nTamaño: ${(file.size / 1024).toFixed(2)} KB\nTipo: ${file.type.startsWith('image/') ? 'Imagen' : 'Video'}`);
-            
-            if (confirmSend) {
-                console.log('✅ Usuario confirmó envío del archivo');
+            // Crear preview del archivo
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Crear modal de preview
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                `;
                 
-                // La función sendMessageToDriver ya existe en comunicacion-completa.js
-                // y maneja automáticamente el envío de archivos desde fileInput
-                if (typeof sendMessageToDriver === 'function') {
-                    await sendMessageToDriver(driverId);
-                } else {
-                    console.error('❌ Función sendMessageToDriver no encontrada');
-                    alert('Error: No se pudo enviar el archivo. Por favor recarga la página.');
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: white;
+                    border-radius: 12px;
+                    padding: 20px;
+                    max-width: 500px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                `;
+                
+                // Preview de la imagen/video
+                let previewHTML = '';
+                if (file.type.startsWith('image/')) {
+                    previewHTML = `
+                        <img src="${event.target.result}" 
+                             style="max-width: 100%; max-height: 300px; border-radius: 8px; display: block; margin: 0 auto;">
+                    `;
+                } else if (file.type.startsWith('video/')) {
+                    previewHTML = `
+                        <video src="${event.target.result}" controls 
+                               style="max-width: 100%; max-height: 300px; border-radius: 8px; display: block; margin: 0 auto;">
+                        </video>
+                    `;
                 }
-            } else {
-                console.log('❌ Usuario canceló envío del archivo');
-                fileInput.value = '';
-            }
+                
+                content.innerHTML = `
+                    <h3 style="margin: 0 0 15px 0; color: #333;">Enviar archivo</h3>
+                    ${previewHTML}
+                    <div style="margin: 15px 0; color: #666; font-size: 14px;">
+                        <strong>${file.name}</strong><br>
+                        Tamaño: ${(file.size / 1024).toFixed(2)} KB
+                    </div>
+                    <textarea id="file-message-input" 
+                              placeholder="Agregar mensaje (opcional)..." 
+                              style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; 
+                                     font-family: inherit; font-size: 14px; resize: vertical; min-height: 60px; box-sizing: border-box;">
+                    </textarea>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="send-file-btn" 
+                                style="flex: 1; padding: 12px; background: #007bff; color: white; border: none; 
+                                       border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold;">
+                            📤 Enviar
+                        </button>
+                        <button id="cancel-file-btn" 
+                                style="flex: 1; padding: 12px; background: #6c757d; color: white; border: none; 
+                                       border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                `;
+                
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                
+                // Focus en el textarea
+                setTimeout(() => {
+                    document.getElementById('file-message-input')?.focus();
+                }, 100);
+                
+                // Botón Enviar
+                document.getElementById('send-file-btn').addEventListener('click', async function() {
+                    console.log('✅ Usuario confirmó envío del archivo');
+                    
+                    // Obtener mensaje opcional
+                    const optionalMessage = document.getElementById('file-message-input').value.trim();
+                    if (optionalMessage) {
+                        // Poner el mensaje en el input principal
+                        const messageInput = document.getElementById('chat-message-input');
+                        if (messageInput) {
+                            messageInput.value = optionalMessage;
+                        }
+                    }
+                    
+                    // Cerrar modal
+                    modal.remove();
+                    
+                    // Enviar archivo
+                    if (typeof sendMessageToDriver === 'function') {
+                        await sendMessageToDriver(driverId);
+                    } else {
+                        console.error('❌ Función sendMessageToDriver no encontrada');
+                        alert('Error: No se pudo enviar el archivo. Por favor recarga la página.');
+                    }
+                    
+                    // Limpiar input de archivo
+                    fileInput.value = '';
+                });
+                
+                // Botón Cancelar
+                document.getElementById('cancel-file-btn').addEventListener('click', function() {
+                    console.log('❌ Usuario canceló envío del archivo');
+                    modal.remove();
+                    fileInput.value = '';
+                });
+                
+                // Cerrar al hacer clic fuera del contenido
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        console.log('❌ Usuario cerró el modal');
+                        modal.remove();
+                        fileInput.value = '';
+                    }
+                });
+            };
+            
+            reader.readAsDataURL(file);
         });
         
         console.log('✅ Funcionalidad de adjuntar archivos configurada');

@@ -972,21 +972,28 @@ function getCookie(name) {
 }
 
 // Función para enviar mensaje con o sin media
-async function sendMessageToDriver(driverId) {
+async function sendMessageToDriver(driverId, fileToSend = null) {
     const input = document.getElementById('chat-message-input');
     const fileInput = document.getElementById('chat-file-input');
     
     console.log('🔍 DEBUG sendMessageToDriver:');
+    console.log('  - driverId:', driverId);
+    console.log('  - fileToSend (parámetro):', fileToSend);
     console.log('  - input:', input);
     console.log('  - fileInput:', fileInput);
     console.log('  - fileInput.files:', fileInput ? fileInput.files : 'null');
     console.log('  - fileInput.files.length:', fileInput && fileInput.files ? fileInput.files.length : 0);
     
     const message = input ? input.value.trim() : '';
-    const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
+    
+    // Usar el archivo del parámetro si existe, sino buscar en fileInput
+    let file = fileToSend;
+    if (!file && fileInput && fileInput.files.length > 0) {
+        file = fileInput.files[0];
+    }
     
     console.log('  - message:', message);
-    console.log('  - file:', file);
+    console.log('  - file (final):', file);
     
     // Validar que haya mensaje o archivo
     if (!message && !file) {

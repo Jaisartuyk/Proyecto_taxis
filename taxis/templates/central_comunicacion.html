@@ -2354,12 +2354,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // NO cerrar modal todavía - esperar a que se envíe el archivo
                     console.log('⏳ Esperando envío del archivo...');
                     
-                    // Enviar archivo (el fileInput todavía tiene el archivo)
+                    // Enviar archivo pasándolo como parámetro
                     console.log('📤 Verificando función sendMessageToDriver:', typeof sendMessageToDriver);
                     if (typeof sendMessageToDriver === 'function') {
                         console.log('📤 Llamando a sendMessageToDriver con driverId:', driverId);
+                        console.log('📤 Pasando archivo:', file ? file.name : 'null');
                         try {
-                            await sendMessageToDriver(driverId);
+                            await sendMessageToDriver(driverId, file);
                             console.log('✅ sendMessageToDriver completado');
                         } catch (error) {
                             console.error('❌ Error en sendMessageToDriver:', error);

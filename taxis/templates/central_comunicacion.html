@@ -475,6 +475,11 @@
         white-space: nowrap;
         box-shadow: 0 3px 10px rgba(108, 117, 125, 0.3);
         font-size: 16px;
+        position: relative;
+        z-index: 10;
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
     #chat-file-btn:hover {
@@ -483,11 +488,24 @@
         background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
     }
 
+    #chat-file-btn:active {
+        transform: translateY(0);
+    }
+
     @media (max-width: 768px) {
         #chat-file-btn {
             width: auto;
             flex-shrink: 0;
         }
+    }
+    
+    /* Asegurar que el input de archivo esté accesible */
+    #chat-file-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
     }
 
     .audio-log-panel {

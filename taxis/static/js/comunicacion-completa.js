@@ -397,46 +397,83 @@ function openDriverChat(driverId) {
             messageInput.focus();
         }
 
-        // Configurar el botón de archivo
-        const fileBtn = document.getElementById('chat-file-btn');
-        const fileInput = document.getElementById('chat-file-input');
-        if (fileBtn && fileInput) {
-            // Clonar el botón para remover eventos anteriores
-            const newFileBtn = fileBtn.cloneNode(true);
-            fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+        // Configurar el botón de archivo (CONFIGURACIÓN MEJORADA)
+        setTimeout(() => {
+            const fileBtn = document.getElementById('chat-file-btn');
+            const fileInput = document.getElementById('chat-file-input');
             
-            // Agregar event listener al nuevo botón
-            newFileBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('📎 Botón de archivo clickeado');
-                // Obtener la referencia actual del input (puede haber cambiado)
+            console.log('🔍 Configurando botón de archivo...', {
+                fileBtn: !!fileBtn,
+                fileInput: !!fileInput,
+                containerVisible: inputContainer ? inputContainer.style.display !== 'none' : false
+            });
+            
+            if (fileBtn && fileInput) {
+                // Remover todos los event listeners anteriores clonando el botón
+                const newFileBtn = fileBtn.cloneNode(true);
+                fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+                
+                // Obtener la referencia actual después de clonar
+                const currentFileBtn = document.getElementById('chat-file-btn');
+                
+                // Agregar event listener con múltiples métodos para asegurar que funcione
+                if (currentFileBtn) {
+                    // Método 1: addEventListener
+                    currentFileBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('📎 [CLICK] Botón de archivo clickeado');
+                        
+                        const currentFileInput = document.getElementById('chat-file-input');
+                        if (currentFileInput) {
+                            console.log('📎 [CLICK] Input encontrado, abriendo selector...');
+                            try {
+                                currentFileInput.click();
+                                console.log('✅ [CLICK] Selector de archivos abierto');
+                            } catch (err) {
+                                console.error('❌ [CLICK] Error al abrir selector:', err);
+                            }
+                        } else {
+                            console.error('❌ [CLICK] No se encontró chat-file-input');
+                        }
+                    }, true); // Usar capture phase para mayor prioridad
+                    
+                    // Método 2: onclick directo como respaldo
+                    currentFileBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('📎 [ONCLICK] Botón de archivo clickeado (método directo)');
+                        const currentFileInput = document.getElementById('chat-file-input');
+                        if (currentFileInput) {
+                            currentFileInput.click();
+                        }
+                    };
+                    
+                    console.log('✅ Botón de archivo configurado correctamente');
+                }
+                
+                // Configurar el input de archivo
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
+                
                 const currentFileInput = document.getElementById('chat-file-input');
                 if (currentFileInput) {
-                    console.log('📎 Abriendo selector de archivos...');
-                    currentFileInput.click();
-                } else {
-                    console.error('❌ No se encontró chat-file-input');
+                    currentFileInput.addEventListener('change', function(e) {
+                        if (e.target.files && e.target.files.length > 0) {
+                            console.log('📎 Archivo seleccionado:', e.target.files[0].name, e.target.files[0].type);
+                            sendMessageToDriver(driverId);
+                        }
+                    });
+                    console.log('✅ Input de archivo configurado correctamente');
                 }
-            });
-            
-            // Clonar el input para remover eventos anteriores
-            const newFileInput = fileInput.cloneNode(true);
-            fileInput.parentNode.replaceChild(newFileInput, fileInput);
-            
-            // Agregar event listener al nuevo input
-            newFileInput.addEventListener('change', function(e) {
-                if (e.target.files && e.target.files.length > 0) {
-                    console.log('📎 Archivo seleccionado:', e.target.files[0].name);
-                    sendMessageToDriver(driverId);
-                }
-            });
-        } else {
-            console.warn('⚠️ No se encontraron elementos de archivo:', {
-                fileBtn: !!fileBtn,
-                fileInput: !!fileInput
-            });
-        }
+            } else {
+                console.error('❌ No se encontraron elementos de archivo:', {
+                    fileBtn: !!fileBtn,
+                    fileInput: !!fileInput,
+                    container: inputContainer ? inputContainer.id : 'no encontrado'
+                });
+            }
+        }, 100); // Pequeño delay para asegurar que el DOM esté listo
 
         // Configurar el botón de envío
         const submitButton = document.getElementById('chat-message-submit');
@@ -2040,46 +2077,81 @@ function openDriverChatFromList(driverId, driverName) {
             messageInput.focus();
         }
 
-        // Configurar el botón de archivo
-        const fileBtn = document.getElementById('chat-file-btn');
-        const fileInput = document.getElementById('chat-file-input');
-        if (fileBtn && fileInput) {
-            // Clonar el botón para remover eventos anteriores
-            const newFileBtn = fileBtn.cloneNode(true);
-            fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+        // Configurar el botón de archivo (CONFIGURACIÓN MEJORADA - desde lista)
+        setTimeout(() => {
+            const fileBtn = document.getElementById('chat-file-btn');
+            const fileInput = document.getElementById('chat-file-input');
             
-            // Agregar event listener al nuevo botón
-            newFileBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('📎 Botón de archivo clickeado (desde lista)');
-                // Obtener la referencia actual del input
-                const currentFileInput = document.getElementById('chat-file-input');
-                if (currentFileInput) {
-                    console.log('📎 Abriendo selector de archivos...');
-                    currentFileInput.click();
-                } else {
-                    console.error('❌ No se encontró chat-file-input');
-                }
-            });
-            
-            // Clonar el input para remover eventos anteriores
-            const newFileInput = fileInput.cloneNode(true);
-            fileInput.parentNode.replaceChild(newFileInput, fileInput);
-            
-            // Agregar event listener al nuevo input
-            newFileInput.addEventListener('change', function(e) {
-                if (e.target.files && e.target.files.length > 0) {
-                    console.log('📎 Archivo seleccionado:', e.target.files[0].name);
-                    sendMessageToDriver(driverId);
-                }
-            });
-        } else {
-            console.warn('⚠️ No se encontraron elementos de archivo (desde lista):', {
+            console.log('🔍 Configurando botón de archivo (desde lista)...', {
                 fileBtn: !!fileBtn,
                 fileInput: !!fileInput
             });
-        }
+            
+            if (fileBtn && fileInput) {
+                // Remover todos los event listeners anteriores clonando el botón
+                const newFileBtn = fileBtn.cloneNode(true);
+                fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+                
+                // Obtener la referencia actual después de clonar
+                const currentFileBtn = document.getElementById('chat-file-btn');
+                
+                // Agregar event listener con múltiples métodos para asegurar que funcione
+                if (currentFileBtn) {
+                    // Método 1: addEventListener
+                    currentFileBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('📎 [CLICK] Botón de archivo clickeado (desde lista)');
+                        
+                        const currentFileInput = document.getElementById('chat-file-input');
+                        if (currentFileInput) {
+                            console.log('📎 [CLICK] Input encontrado, abriendo selector...');
+                            try {
+                                currentFileInput.click();
+                                console.log('✅ [CLICK] Selector de archivos abierto');
+                            } catch (err) {
+                                console.error('❌ [CLICK] Error al abrir selector:', err);
+                            }
+                        } else {
+                            console.error('❌ [CLICK] No se encontró chat-file-input');
+                        }
+                    }, true); // Usar capture phase para mayor prioridad
+                    
+                    // Método 2: onclick directo como respaldo
+                    currentFileBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('📎 [ONCLICK] Botón de archivo clickeado (método directo)');
+                        const currentFileInput = document.getElementById('chat-file-input');
+                        if (currentFileInput) {
+                            currentFileInput.click();
+                        }
+                    };
+                    
+                    console.log('✅ Botón de archivo configurado correctamente (desde lista)');
+                }
+                
+                // Configurar el input de archivo
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
+                
+                const currentFileInput = document.getElementById('chat-file-input');
+                if (currentFileInput) {
+                    currentFileInput.addEventListener('change', function(e) {
+                        if (e.target.files && e.target.files.length > 0) {
+                            console.log('📎 Archivo seleccionado:', e.target.files[0].name, e.target.files[0].type);
+                            sendMessageToDriver(driverId);
+                        }
+                    });
+                    console.log('✅ Input de archivo configurado correctamente (desde lista)');
+                }
+            } else {
+                console.error('❌ No se encontraron elementos de archivo (desde lista):', {
+                    fileBtn: !!fileBtn,
+                    fileInput: !!fileInput
+                });
+            }
+        }, 100); // Pequeño delay para asegurar que el DOM esté listo
 
         // Configurar el botón de envío - clonar para remover eventos anteriores
         const submitButton = document.getElementById('chat-message-submit');

@@ -62,12 +62,24 @@ if __name__ == "__main__":
     print("VERIFICANDO ESTADO DE MIGRACIONES")
     print("="*60 + "\n")
     try:
-        subprocess.run(
+        result = subprocess.run(
             "python manage.py showmigrations --list",
             shell=True,
-            capture_output=False,
+            capture_output=True,
             text=True
         )
+        if result.returncode == 0:
+            print(result.stdout)
+            # Contar migraciones aplicadas
+            applied = result.stdout.count('[X]')
+            pending = result.stdout.count('[ ]')
+            print(f"\n[INFO] Migraciones aplicadas: {applied}")
+            if pending > 0:
+                print(f"[WARNING] Migraciones pendientes: {pending}")
+            else:
+                print(f"[OK] Todas las migraciones están aplicadas")
+        else:
+            print(f"[WARNING] Error ejecutando showmigrations: {result.stderr}")
         print("\n[OK] Verificación de migraciones completada")
     except Exception as e:
         print(f"[WARNING] No se pudo verificar migraciones: {e}")

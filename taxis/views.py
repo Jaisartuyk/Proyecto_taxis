@@ -23,6 +23,9 @@ from django.contrib import messages
 from django.core.cache import cache
 #from taxis.views import telegram_webhook  # cambia "tu_app" por el nombre real de tu app
 
+# Logger
+logger = logging.getLogger(__name__)
+
 # Cloudinary (opcional, para subir archivos)
 try:
     import cloudinary
@@ -31,9 +34,6 @@ try:
 except ImportError:
     CLOUDINARY_AVAILABLE = False
     logger.warning("Cloudinary no está instalado. La funcionalidad de subir archivos no estará disponible.")
-
-# Logger
-logger = logging.getLogger(__name__)
 
 #import requests
 

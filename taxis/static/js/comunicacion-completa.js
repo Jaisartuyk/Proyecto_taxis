@@ -397,6 +397,26 @@ function openDriverChat(driverId) {
             messageInput.focus();
         }
 
+        // Configurar el botón de archivo
+        const fileBtn = document.getElementById('chat-file-btn');
+        const fileInput = document.getElementById('chat-file-input');
+        if (fileBtn && fileInput) {
+            fileBtn.replaceWith(fileBtn.cloneNode(true));
+            const newFileBtn = document.getElementById('chat-file-btn');
+            newFileBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // Cuando se selecciona un archivo, enviarlo automáticamente
+            fileInput.replaceWith(fileInput.cloneNode(true));
+            const newFileInput = document.getElementById('chat-file-input');
+            newFileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    sendMessageToDriver(driverId);
+                }
+            });
+        }
+
         // Configurar el botón de envío
         const submitButton = document.getElementById('chat-message-submit');
         if (submitButton) {
@@ -552,11 +572,56 @@ function renderMessages(messages) {
             is_sent: msg.is_sent,
             timestamp: msg.timestamp
         });
-        // El backend devuelve: {sender_id, sender_name, message, timestamp, is_sent}
+        // El backend devuelve: {sender_id, sender_name, message, timestamp, is_sent, message_type, media_url, thumbnail_url, metadata}
         const isSent = msg.is_sent === true || msg.sender_id == 1;
         const timestamp = typeof msg.timestamp === 'string'
             ? (msg.timestamp.includes('T') ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : msg.timestamp)
             : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Detectar si el mensaje tiene media
+        const messageType = msg.message_type || 'text';
+        const hasMedia = messageType !== 'text' && msg.media_url;
+        
+        // Construir contenido del mensaje (texto o media)
+        let messageContent = '';
+        if (hasMedia) {
+            if (messageType === 'image') {
+                messageContent = `
+                    <div style="margin-bottom: 8px;">
+                        <img src="${msg.media_url}" 
+                             style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
+                             onclick="window.open('${msg.media_url}', '_blank')"
+                             alt="Imagen">
+                    </div>
+                    ${msg.message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${msg.message}</div>` : ''}
+                `;
+            } else if (messageType === 'video') {
+                messageContent = `
+                    <div style="margin-bottom: 8px;">
+                        <video controls 
+                               style="max-width: 100%; max-height: 300px; border-radius: 8px;"
+                               poster="${msg.thumbnail_url || ''}">
+                            <source src="${msg.media_url}" type="video/mp4">
+                            Tu navegador no soporta videos.
+                        </video>
+                    </div>
+                    ${msg.message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${msg.message}</div>` : ''}
+                `;
+            } else {
+                // Otros tipos de archivo
+                messageContent = `
+                    <div style="margin-bottom: 8px;">
+                        <a href="${msg.media_url}" target="_blank" style="color: ${isSent ? 'white' : '#007bff'}; text-decoration: underline;">
+                            📎 Ver archivo
+                        </a>
+                    </div>
+                    ${msg.message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${msg.message}</div>` : ''}
+                `;
+            }
+        } else {
+            // Mensaje de texto normal
+            messageContent = `<div style="display: block; word-wrap: break-word;">${msg.message || ''}</div>`;
+        }
 
         // Usar el mismo formato que en comunicacion_driver.html para consistencia
         // IMPORTANTE: Asegurar que los mensajes sean visibles con estilos inline
@@ -577,7 +642,7 @@ function renderMessages(messages) {
                         width: auto;
                         min-width: 100px;">
                 <div style="font-weight: bold; margin-bottom: 4px; display: block;">${isSent ? 'Central' : (msg.sender_name || 'Desconocido')}</div>
-                <div style="display: block; word-wrap: break-word;">${msg.message}</div>
+                ${messageContent}
                 <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
             </div>
         `;
@@ -802,29 +867,131 @@ async function loadChatHistory(driverId) {
 }
 
 // Función para enviar mensaje a conductor específico
-function sendMessageToDriver(driverId) {
+// Función para subir archivo a Cloudinary
+async function uploadChatMedia(file) {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Obtener CSRF token
+        const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        
+        const response = await fetch('/api/chat/upload/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Error subiendo archivo');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('❌ Error subiendo archivo:', error);
+        throw error;
+    }
+}
+
+// Función helper para obtener cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función para enviar mensaje con o sin media
+async function sendMessageToDriver(driverId) {
     const input = document.getElementById('chat-message-input');
-    if (!input || !input.value.trim()) {
+    const fileInput = document.getElementById('chat-file-input');
+    
+    const message = input ? input.value.trim() : '';
+    const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
+    
+    // Validar que haya mensaje o archivo
+    if (!message && !file) {
         return;
     }
 
-    const message = input.value.trim();
-    console.log('📤 Enviando mensaje a conductor:', driverId, message);
+    console.log('📤 Enviando mensaje a conductor:', driverId, message || '(con archivo)');
 
     try {
+        let mediaData = null;
+        let messageType = 'text';
+        
+        // Si hay archivo, subirlo primero
+        if (file) {
+            console.log('📤 Subiendo archivo:', file.name, file.type);
+            
+            // Mostrar indicador de carga
+            const chatLog = document.getElementById('chat-log');
+            if (chatLog) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'upload-loading';
+                loadingDiv.style.cssText = 'text-align: center; padding: 10px; color: #666; font-style: italic;';
+                loadingDiv.textContent = '⏳ Subiendo archivo...';
+                chatLog.appendChild(loadingDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+            
+            try {
+                mediaData = await uploadChatMedia(file);
+                messageType = mediaData.message_type;
+                console.log('✅ Archivo subido:', mediaData.media_url);
+                
+                // Remover indicador de carga
+                const loadingDiv = document.getElementById('upload-loading');
+                if (loadingDiv) loadingDiv.remove();
+            } catch (uploadError) {
+                console.error('❌ Error subiendo archivo:', uploadError);
+                
+                // Remover indicador de carga
+                const loadingDiv = document.getElementById('upload-loading');
+                if (loadingDiv) loadingDiv.remove();
+                
+                // Mostrar error
+                const chatLog = document.getElementById('chat-log');
+                if (chatLog) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'text-align: center; padding: 10px; color: #e74c3c; font-style: italic;';
+                    errorDiv.textContent = `❌ Error subiendo archivo: ${uploadError.message}`;
+                    chatLog.appendChild(errorDiv);
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                }
+                return; // No enviar mensaje si falla la subida
+            }
+        }
+        
         // Crear objeto de mensaje para guardar en historial
         const messageObj = {
             message: message,
             sender_name: 'Central',
             sender_id: 1,
             is_sent: true,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            message_type: messageType,
+            media_url: mediaData ? mediaData.media_url : null,
+            thumbnail_url: mediaData ? mediaData.thumbnail_url : null,
+            metadata: mediaData ? mediaData.metadata : {}
         };
         
         // Guardar mensaje en historial
         addMessageToHistory(driverId, messageObj);
         
-        // Agregar mensaje al chat log inmediatamente (usar la misma estructura que renderMessages)
+        // Agregar mensaje al chat log inmediatamente
         const chatLog = document.getElementById('chat-log');
         if (chatLog) {
             // Ocultar placeholder si existe
@@ -842,28 +1009,70 @@ function sendMessageToDriver(driverId) {
             }
             
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Construir contenido según tipo de mensaje
+            let messageContent = '';
+            if (mediaData && mediaData.media_url) {
+                if (messageType === 'image') {
+                    messageContent = `
+                        <div style="margin-bottom: 8px;">
+                            <img src="${mediaData.media_url}" 
+                                 style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
+                                 onclick="window.open('${mediaData.media_url}', '_blank')"
+                                 alt="Imagen">
+                        </div>
+                        ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
+                    `;
+                } else if (messageType === 'video') {
+                    messageContent = `
+                        <div style="margin-bottom: 8px;">
+                            <video controls 
+                                   style="max-width: 100%; max-height: 300px; border-radius: 8px;"
+                                   poster="${mediaData.thumbnail_url || ''}">
+                                <source src="${mediaData.media_url}" type="video/mp4">
+                                Tu navegador no soporta videos.
+                            </video>
+                        </div>
+                        ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
+                    `;
+                }
+            } else {
+                messageContent = `<div style="display: block; word-wrap: break-word;">${message}</div>`;
+            }
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message sent';
             messageDiv.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; margin-bottom: 10px; padding: 8px 12px; background: #007bff; color: white; border-radius: 8px; max-width: 70%; margin-left: auto; position: relative; z-index: 2;';
             
             messageDiv.innerHTML = `
                 <div style="font-weight: bold; margin-bottom: 4px; display: block;">Central</div>
-                <div style="display: block; word-wrap: break-word;">${message}</div>
+                ${messageContent}
                 <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
             `;
             
             chatLog.appendChild(messageDiv);
             chatLog.scrollTop = chatLog.scrollHeight;
-            console.log(`✅ Mensaje agregado al chat log: ${message}`);
+            console.log(`✅ Mensaje agregado al chat log: ${message || '(con media)'}`);
         }
 
         // Enviar por WebSocket de Chat
         if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-            chatSocket.send(JSON.stringify({
+            const wsMessage = {
+                'type': 'chat_message',
                 'message': message,
                 'recipient_id': driverId,
-                'sender_id': 'admin'
-            }));
+                'sender_id': 'admin',
+                'message_type': messageType
+            };
+            
+            // Agregar campos de media si existen
+            if (mediaData) {
+                wsMessage.media_url = mediaData.media_url;
+                wsMessage.thumbnail_url = mediaData.thumbnail_url;
+                wsMessage.metadata = mediaData.metadata;
+            }
+            
+            chatSocket.send(JSON.stringify(wsMessage));
 
             console.log('✅ Mensaje enviado por Chat WebSocket');
         } else {
@@ -880,8 +1089,9 @@ function sendMessageToDriver(driverId) {
             }
         }
 
-        // Limpiar input
-        input.value = '';
+        // Limpiar inputs
+        if (input) input.value = '';
+        if (fileInput) fileInput.value = '';
 
     } catch (error) {
         console.error('❌ Error enviando mensaje:', error);
@@ -1222,11 +1432,16 @@ function handleChatMessage(data) {
         }
 
         // Extraer datos del mensaje (compatible con ambos formatos)
-        const message = data.message;
+        const message = data.message || '';
         const senderId = data.sender_id || data.driver_id;
         const senderName = data.sender_name || `Conductor #${senderId}`;
+        const messageType = data.message_type || 'text';
+        const mediaUrl = data.media_url;
+        const thumbnailUrl = data.thumbnail_url;
+        const metadata = data.metadata || {};
 
-        if (!message || !senderId) {
+        // Validar que haya mensaje o media
+        if ((!message && !mediaUrl) || !senderId) {
             console.warn('⚠️ Mensaje incompleto:', data);
             return;
         }
@@ -1237,7 +1452,7 @@ function handleChatMessage(data) {
             return;
         }
 
-        console.log(`✅ Mostrando mensaje de ${senderName}: ${message}`);
+        console.log(`✅ Mostrando mensaje de ${senderName}: ${message || '(con media)'}`);
         
         // Crear objeto de mensaje para guardar en historial
         const messageObj = {
@@ -1245,7 +1460,11 @@ function handleChatMessage(data) {
             sender_name: senderName,
             sender_id: parseInt(senderId),
             is_sent: false,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            message_type: messageType,
+            media_url: mediaUrl,
+            thumbnail_url: thumbnailUrl,
+            metadata: metadata
         };
         
         // Guardar mensaje en historial (siempre, sin importar si hay chat activo)
@@ -1258,9 +1477,49 @@ function handleChatMessage(data) {
         }
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        // Construir contenido según tipo de mensaje
+        let messageContent = '';
+        if (mediaUrl) {
+            if (messageType === 'image') {
+                messageContent = `
+                    <div style="margin-bottom: 8px;">
+                        <img src="${mediaUrl}" 
+                             style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
+                             onclick="window.open('${mediaUrl}', '_blank')"
+                             alt="Imagen">
+                    </div>
+                    ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
+                `;
+            } else if (messageType === 'video') {
+                messageContent = `
+                    <div style="margin-bottom: 8px;">
+                        <video controls 
+                               style="max-width: 100%; max-height: 300px; border-radius: 8px;"
+                               poster="${thumbnailUrl || ''}">
+                            <source src="${mediaUrl}" type="video/mp4">
+                            Tu navegador no soporta videos.
+                        </video>
+                    </div>
+                    ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
+                `;
+            } else {
+                messageContent = `
+                    <div style="margin-bottom: 8px;">
+                        <a href="${mediaUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">
+                            📎 Ver archivo
+                        </a>
+                    </div>
+                    ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
+                `;
+            }
+        } else {
+            messageContent = `<div style="display: block; word-wrap: break-word;">${message}</div>`;
+        }
+        
         const messageHtml = `
             <div class="message incoming" style="margin-bottom: 10px; padding: 8px 12px; background: #e9ecef; color: black; border-radius: 8px; max-width: 70%; margin-right: auto;">
-                <strong>${senderName}:</strong> ${message}
+                <strong>${senderName}:</strong> ${messageContent}
                 <div style="font-size: 0.8em; opacity: 0.8;">${timestamp}</div>
             </div>
         `;
@@ -1758,6 +2017,31 @@ function openDriverChatFromList(driverId, driverName) {
             messageInput.setAttribute('data-driver-id', driverId);
             messageInput.placeholder = `Escribe un mensaje a ${driverName}...`;
             messageInput.focus();
+        }
+
+        // Configurar el botón de archivo
+        const fileBtn = document.getElementById('chat-file-btn');
+        const fileInput = document.getElementById('chat-file-input');
+        if (fileBtn && fileInput) {
+            const newFileBtn = fileBtn.cloneNode(true);
+            fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+            const finalFileBtn = document.getElementById('chat-file-btn');
+            
+            finalFileBtn.addEventListener('click', function() {
+                const finalFileInput = document.getElementById('chat-file-input');
+                if (finalFileInput) finalFileInput.click();
+            });
+            
+            // Cuando se selecciona un archivo, enviarlo automáticamente
+            const newFileInput = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+            const finalFileInput = document.getElementById('chat-file-input');
+            
+            finalFileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    sendMessageToDriver(driverId);
+                }
+            });
         }
 
         // Configurar el botón de envío - clonar para remover eventos anteriores

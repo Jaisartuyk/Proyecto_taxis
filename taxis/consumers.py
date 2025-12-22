@@ -314,13 +314,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Silenciosamente ignorar otros tipos de mensajes
             return
         
-        message = data.get('message')
+        message = data.get('message', '')  # Ahora es opcional si hay media
         recipient_id = data.get('recipient_id')
+        
+        # Campos para media (nuevos)
+        msg_type = data.get('message_type', 'text')  # Por defecto 'text' (compatible)
+        media_url = data.get('media_url', None)
+        thumbnail_url = data.get('thumbnail_url', None)
+        metadata = data.get('metadata', {})
 
-        if not message or not recipient_id:
-            # Solo mostrar error si parece ser un intento de mensaje de chat
+        # Validación: debe haber mensaje O media_url
+        if not message and not media_url:
             if not message_type or message_type == 'chat_message':
-                print("Error: Faltan datos en el mensaje de chat")
+                print("Error: Faltan datos en el mensaje de chat (necesita 'message' o 'media_url')")
+            return
+        
+        if not recipient_id:
+            print("Error: Falta recipient_id")
             return
 
         # Guardar mensaje en la base de datos
@@ -333,22 +343,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender_id = int(self.target_user_id)
             sender_name = f"Conductor {self.target_user_id}"
         
-        await self.save_message(sender_id, recipient_id, message)
+        await self.save_message(
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            message=message,
+            message_type=msg_type,
+            media_url=media_url,
+            thumbnail_url=thumbnail_url,
+            metadata=metadata
+        )
 
         # Grupo del destinatario
         recipient_group_name = f'chat_{recipient_id}'
 
-        # Preparar el payload del mensaje
+        # Preparar el payload del mensaje (incluyendo campos de media)
         chat_payload = {
             'type': 'chat_message',
             'message': message,
             'sender_id': sender_id,
             'sender_name': sender_name,
+            'message_type': msg_type,
+            'media_url': media_url,
+            'thumbnail_url': thumbnail_url,
+            'metadata': metadata,
         }
 
         # Enviar mensaje al destinatario
         await self.channel_layer.group_send(recipient_group_name, chat_payload)
-        print(f"Mensaje de {sender_id} enviado a {recipient_id}")
+        print(f"Mensaje de {sender_id} enviado a {recipient_id} (tipo: {msg_type})")
         
         # Enviar notificación push
         await self.send_chat_push_notification(sender_id, recipient_id, message)
@@ -364,24 +386,38 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             badge_count = 0
         
-        # Enviar el mensaje al cliente WebSocket con el conteo de badge
+        # Enviar el mensaje al cliente WebSocket con el conteo de badge y campos de media
         await self.send(text_data=json.dumps({
-            'type': 'chat_message',  # ← Agregar tipo de mensaje
-            'message': event['message'],
+            'type': 'chat_message',
+            'message': event.get('message', ''),
             'sender_id': event['sender_id'],
             'sender_name': event['sender_name'],
-            'badge_count': badge_count,  # Agregar conteo de badge
-            'update_badge': True
+            'badge_count': badge_count,
+            'update_badge': True,
+            # Campos de media (con valores por defecto para compatibilidad)
+            'message_type': event.get('message_type', 'text'),
+            'media_url': event.get('media_url'),
+            'thumbnail_url': event.get('thumbnail_url'),
+            'metadata': event.get('metadata', {}),
         }))
 
     @database_sync_to_async
-    def save_message(self, sender_id, recipient_id, message):
+    def save_message(self, sender_id, recipient_id, message, 
+                     message_type='text', media_url=None, thumbnail_url=None, metadata=None):
         from .models import ChatMessage, AppUser
         try:
             sender = AppUser.objects.get(id=sender_id)
             recipient = AppUser.objects.get(id=recipient_id)
-            ChatMessage.objects.create(sender=sender, recipient=recipient, message=message)
-            print(f"Mensaje guardado en BD: {sender} -> {recipient}")
+            ChatMessage.objects.create(
+                sender=sender,
+                recipient=recipient,
+                message=message,
+                message_type=message_type,
+                media_url=media_url,
+                thumbnail_url=thumbnail_url,
+                metadata=metadata or {}
+            )
+            print(f"Mensaje guardado en BD: {sender} -> {recipient} (tipo: {message_type})")
         except Exception as e:
             print(f"Error al guardar mensaje: {e}")
     

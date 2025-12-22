@@ -44,12 +44,33 @@ if __name__ == "__main__":
     
     # 2. Migraciones (PRIMERO, antes de collectstatic)
     # Esto asegura que la base de datos esté actualizada antes de servir archivos estáticos
+    print("\n" + "="*60)
+    print("APLICANDO MIGRACIONES DE BASE DE DATOS")
+    print("="*60 + "\n")
+    print("[INFO] Este paso actualiza la estructura de la base de datos")
+    print("[INFO] Se ejecuta automáticamente en cada despliegue\n")
+    
     run_command(
         # --noinput: no pide confirmación (automático)
         # --verbosity 1: muestra información básica sin saturar logs
         "python manage.py migrate --noinput --verbosity 1",
         "Aplicando migraciones de base de datos (AUTOMATICO)"
     )
+    
+    # Verificar estado de migraciones después de aplicarlas
+    print("\n" + "="*60)
+    print("VERIFICANDO ESTADO DE MIGRACIONES")
+    print("="*60 + "\n")
+    try:
+        subprocess.run(
+            "python manage.py showmigrations --list",
+            shell=True,
+            capture_output=False,
+            text=True
+        )
+        print("\n[OK] Verificación de migraciones completada")
+    except Exception as e:
+        print(f"[WARNING] No se pudo verificar migraciones: {e}")
     
     # 3. Verificar archivos estáticos y configuración de WhiteNoise
     # NOTA: collectstatic ya se ejecuta en el Pre-deploy Command (railway_pre_deploy.py)

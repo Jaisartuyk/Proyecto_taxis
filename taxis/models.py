@@ -456,6 +456,15 @@ class WhatsAppStats(models.Model):
 
 class ChatMessage(models.Model):
     """Mensajes de chat interno entre usuarios (Conductores <-> Central)"""
+    
+    MESSAGE_TYPE_CHOICES = [
+        ('text', 'Texto'),
+        ('image', 'Imagen'),
+        ('video', 'Video'),
+        ('audio', 'Audio'),
+        ('file', 'Archivo'),
+    ]
+    
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -469,11 +478,57 @@ class ChatMessage(models.Model):
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    
+    # Campos para soporte de media (imágenes, videos)
+    message_type = models.CharField(
+        max_length=20,
+        choices=MESSAGE_TYPE_CHOICES,
+        default='text',
+        help_text="Tipo de mensaje: texto, imagen, video, etc."
+    )
+    media_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="URL del archivo multimedia (imagen, video, etc.)"
+    )
+    thumbnail_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="URL del thumbnail (para videos o imágenes grandes)"
+    )
+    metadata = models.JSONField(
+        blank=True,
+        null=True,
+        default=dict,
+        help_text="Metadatos adicionales: {width, height, size, duration, format, etc.}"
+    )
 
     class Meta:
         ordering = ['timestamp']
         verbose_name = 'Mensaje de Chat Interno'
         verbose_name_plural = 'Mensajes de Chat Interno'
+        indexes = [
+            models.Index(fields=['sender', 'recipient', 'timestamp']),
+            models.Index(fields=['message_type']),
+        ]
 
     def __str__(self):
-        return f"De {self.sender} para {self.recipient}: {self.message[:20]}..."
+        msg_preview = self.message[:20] if self.message else "(sin texto)"
+        media_info = f" [{self.get_message_type_display()}]" if self.message_type != 'text' else ""
+        return f"De {self.sender} para {self.recipient}: {msg_preview}{media_info}..."
+    
+    def has_media(self):
+        """Verificar si el mensaje tiene archivo multimedia"""
+        return bool(self.media_url)
+    
+    def is_image(self):
+        """Verificar si es una imagen"""
+        return self.message_type == 'image'
+    
+    def is_video(self):
+        """Verificar si es un video"""
+        return self.message_type == 'video'
+    
+    def get_thumbnail(self):
+        """Obtener URL del thumbnail (o media_url si no hay thumbnail)"""
+        return self.thumbnail_url or self.media_url

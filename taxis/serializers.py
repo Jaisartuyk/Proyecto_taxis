@@ -302,7 +302,7 @@ class RatingCreateSerializer(serializers.ModelSerializer):
 # =====================================================
 
 class ChatMessageSerializer(serializers.ModelSerializer):
-    """Serializer de mensajes de chat"""
+    """Serializer de mensajes de chat con soporte de media"""
     sender_name = serializers.SerializerMethodField()
     recipient_name = serializers.SerializerMethodField()
     
@@ -310,7 +310,8 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         model = ChatMessage
         fields = [
             'id', 'sender', 'sender_name', 'recipient',
-            'recipient_name', 'message', 'timestamp', 'is_read'
+            'recipient_name', 'message', 'timestamp', 'is_read',
+            'message_type', 'media_url', 'thumbnail_url', 'metadata'  # Campos de media
         ]
         read_only_fields = ['id', 'timestamp', 'sender']
     

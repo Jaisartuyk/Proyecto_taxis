@@ -214,27 +214,30 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'taxis', 'static'),  # Archivos estáticos de la app taxis
 ]
 
-# Cloudinary Configuration
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-
-# Configuración de Cloudinary (se puede sobrescribir en settings_railway.py con variables de entorno)
+# Cloudinary Configuration (lazy import para evitar importación circular)
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY', ''),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
 }
 
-# Solo configurar Cloudinary si hay credenciales
+# Solo configurar Cloudinary si hay credenciales (lazy import)
 if CLOUDINARY_STORAGE['CLOUD_NAME']:
-    cloudinary.config(
-        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
-        api_key=CLOUDINARY_STORAGE['API_KEY'],
-        api_secret=CLOUDINARY_STORAGE['API_SECRET']
-    )
-    # Usar Cloudinary para almacenamiento de medios
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        import cloudinary.api
+        cloudinary.config(
+            cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+            api_key=CLOUDINARY_STORAGE['API_KEY'],
+            api_secret=CLOUDINARY_STORAGE['API_SECRET']
+        )
+        # Usar Cloudinary para almacenamiento de medios
+        DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    except (ImportError, AttributeError) as e:
+        print(f"[SETTINGS] ⚠️ Error configurando Cloudinary: {e}")
+        # Fallback a almacenamiento local si no hay Cloudinary configurado
+        DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 else:
     # Fallback a almacenamiento local si no hay Cloudinary configurado
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'

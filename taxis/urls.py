@@ -69,6 +69,9 @@ urlpatterns = [
     path('central-comunicacion/', views.chat_central, name='chat_central'),
     path('api/maps-key/', get_google_maps_key, name='get_maps_key'),
     
+    # Chat Media Upload
+    path('api/chat/upload/', views.upload_chat_media, name='upload_chat_media'),
+    
     # FCM - Firebase Cloud Messaging
     path('api/fcm/register/', api_views.register_fcm_token_view, name='register_fcm_token'),
     

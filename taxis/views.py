@@ -1871,7 +1871,12 @@ def get_chat_history(request, user_id):
         'sender_name': msg.sender.get_full_name() or msg.sender.username,
         'message': msg.message,
         'timestamp': msg.timestamp.strftime('%H:%M'),
-        'is_sent': msg.sender.id == request.user.id
+        'is_sent': msg.sender.id == request.user.id,
+        # Campos de media
+        'message_type': msg.message_type,
+        'media_url': msg.media_url,
+        'thumbnail_url': msg.thumbnail_url,
+        'metadata': msg.metadata or {},
     } for msg in messages]
     
     print(f"[CHAT_HISTORY] ✅ Retornando {len(data)} mensajes")
@@ -1916,7 +1921,12 @@ def get_driver_chat_history(request, driver_id):
             'sender_name': msg.sender.get_full_name() or msg.sender.username,
             'message': msg.message,
             'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'is_sent': msg.sender.id == driver.id
+            'is_sent': msg.sender.id == driver.id,
+            # Campos de media
+            'message_type': msg.message_type,
+            'media_url': msg.media_url,
+            'thumbnail_url': msg.thumbnail_url,
+            'metadata': msg.metadata or {},
         } for msg in messages]
         
         return JsonResponse({'messages': data})
@@ -1926,6 +1936,108 @@ def get_driver_chat_history(request, driver_id):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@api_view(['POST'])
+def upload_chat_media(request):
+    """
+    Endpoint para subir imágenes/videos a Cloudinary para el chat
+    
+    POST /api/chat/upload/
+    Content-Type: multipart/form-data
+    
+    Campos:
+    - file: Archivo (imagen o video)
+    - message_type: 'image' o 'video' (opcional, se detecta automáticamente)
+    """
+    try:
+        # Verificar que hay un archivo
+        if 'file' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'No se proporcionó ningún archivo'
+            }, status=400)
+        
+        file = request.FILES['file']
+        
+        # Validar tamaño (máximo 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if file.size > max_size:
+            return JsonResponse({
+                'success': False,
+                'error': f'El archivo es demasiado grande. Máximo: {max_size / (1024*1024):.1f}MB'
+            }, status=400)
+        
+        # Detectar tipo de archivo
+        file_type = request.POST.get('message_type', '').lower()
+        if not file_type:
+            # Detectar automáticamente por extensión
+            file_name = file.name.lower()
+            if any(file_name.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                file_type = 'image'
+            elif any(file_name.endswith(ext) for ext in ['.mp4', '.webm', '.mov', '.avi']):
+                file_type = 'video'
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Tipo de archivo no soportado. Use imágenes (jpg, png, gif) o videos (mp4, webm)'
+                }, status=400)
+        
+        # Configurar Cloudinary
+        import cloudinary
+        import cloudinary.uploader
+        
+        cloudinary.config(
+            cloud_name=getattr(settings, 'CLOUDINARY_CLOUD_NAME', None),
+            api_key=getattr(settings, 'CLOUDINARY_API_KEY', None),
+            api_secret=getattr(settings, 'CLOUDINARY_API_SECRET', None)
+        )
+        
+        # Subir a Cloudinary
+        upload_options = {
+            'folder': 'chat_media',
+            'resource_type': 'auto',
+        }
+        
+        # Para videos, generar thumbnail
+        if file_type == 'video':
+            upload_options['eager'] = [
+                {'width': 300, 'height': 300, 'crop': 'fill', 'format': 'jpg'}
+            ]
+        
+        result = cloudinary.uploader.upload(
+            file,
+            **upload_options
+        )
+        
+        # Preparar respuesta
+        response_data = {
+            'success': True,
+            'media_url': result['secure_url'],
+            'message_type': file_type,
+            'metadata': {
+                'width': result.get('width'),
+                'height': result.get('height'),
+                'format': result.get('format'),
+                'size': result.get('bytes'),
+                'duration': result.get('duration'),
+            }
+        }
+        
+        # Agregar thumbnail si es video
+        if file_type == 'video' and 'eager' in result and len(result['eager']) > 0:
+            response_data['thumbnail_url'] = result['eager'][0]['secure_url']
+        
+        return JsonResponse(response_data, status=200)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'Error subiendo archivo: {str(e)}'
+        }, status=500)
 
 
 # ============================================

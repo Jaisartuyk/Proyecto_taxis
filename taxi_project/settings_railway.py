@@ -8,7 +8,7 @@ print("="*60 + "\n")
 from .settings import *
 import os
 import dj_database_url
-import cloudinary
+# cloudinary se importa más abajo cuando se necesite (lazy import para evitar importación circular)
 
 # Configuración de Railway
 # Verificar múltiples formas de detectar Railway
@@ -55,15 +55,21 @@ if RAILWAY_ENVIRONMENT:
         'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
     }
     
-    # Configurar Cloudinary
-    cloudinary.config(
-        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
-        api_key=CLOUDINARY_STORAGE['API_KEY'],
-        api_secret=CLOUDINARY_STORAGE['API_SECRET']
-    )
-    
-    # Usar Cloudinary para almacenamiento de medios en producción
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    # Configurar Cloudinary (lazy import para evitar importación circular)
+    if CLOUDINARY_STORAGE['CLOUD_NAME']:
+        try:
+            import cloudinary
+            cloudinary.config(
+                cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+                api_key=CLOUDINARY_STORAGE['API_KEY'],
+                api_secret=CLOUDINARY_STORAGE['API_SECRET']
+            )
+            # Usar Cloudinary para almacenamiento de medios en producción
+            DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+        except (ImportError, AttributeError) as e:
+            print(f"[SETTINGS_RAILWAY] ⚠️ Error configurando Cloudinary: {e}")
+            # Fallback a almacenamiento local
+            DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     
     # Channels configuration - Redis optimizado para mejor rendimiento
     CHANNEL_LAYERS = {

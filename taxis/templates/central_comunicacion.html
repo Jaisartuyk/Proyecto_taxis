@@ -2332,31 +2332,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Botón Enviar
                 document.getElementById('send-file-btn').addEventListener('click', async function() {
                     console.log('✅ Usuario confirmó envío del archivo');
+                    console.log('📎 Verificando fileInput:', fileInput);
+                    console.log('📎 Archivos en fileInput:', fileInput.files.length);
+                    if (fileInput.files.length > 0) {
+                        console.log('📎 Archivo:', fileInput.files[0].name, fileInput.files[0].type);
+                    }
                     
                     // Obtener mensaje opcional
                     const optionalMessage = document.getElementById('file-message-input').value.trim();
+                    console.log('💬 Mensaje opcional:', optionalMessage || '(vacío)');
+                    
                     if (optionalMessage) {
                         // Poner el mensaje en el input principal
                         const messageInput = document.getElementById('chat-message-input');
                         if (messageInput) {
                             messageInput.value = optionalMessage;
+                            console.log('💬 Mensaje puesto en input principal');
                         }
                     }
                     
                     // Cerrar modal
                     modal.remove();
+                    console.log('🚪 Modal cerrado');
                     
                     // Enviar archivo (el fileInput todavía tiene el archivo)
+                    console.log('📤 Verificando función sendMessageToDriver:', typeof sendMessageToDriver);
                     if (typeof sendMessageToDriver === 'function') {
-                        await sendMessageToDriver(driverId);
+                        console.log('📤 Llamando a sendMessageToDriver con driverId:', driverId);
+                        try {
+                            await sendMessageToDriver(driverId);
+                            console.log('✅ sendMessageToDriver completado');
+                        } catch (error) {
+                            console.error('❌ Error en sendMessageToDriver:', error);
+                        }
                         
                         // Limpiar input de archivo DESPUÉS de enviar
                         fileInput.value = '';
+                        console.log('🧹 FileInput limpiado');
                         
                         // Limpiar mensaje del input principal
                         const messageInput = document.getElementById('chat-message-input');
                         if (messageInput) {
                             messageInput.value = '';
+                            console.log('🧹 Mensaje del input principal limpiado');
                         }
                     } else {
                         console.error('❌ Función sendMessageToDriver no encontrada');

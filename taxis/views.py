@@ -1939,7 +1939,6 @@ def get_driver_chat_history(request, driver_id):
 
 
 @login_required
-@api_view(['POST'])
 def upload_chat_media(request):
     """
     Endpoint para subir imágenes/videos a Cloudinary para el chat

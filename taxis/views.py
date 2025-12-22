@@ -23,6 +23,15 @@ from django.contrib import messages
 from django.core.cache import cache
 #from taxis.views import telegram_webhook  # cambia "tu_app" por el nombre real de tu app
 
+# Cloudinary (opcional, para subir archivos)
+try:
+    import cloudinary
+    import cloudinary.uploader
+    CLOUDINARY_AVAILABLE = True
+except ImportError:
+    CLOUDINARY_AVAILABLE = False
+    logger.warning("Cloudinary no está instalado. La funcionalidad de subir archivos no estará disponible.")
+
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -1983,10 +1992,14 @@ def upload_chat_media(request):
                     'error': 'Tipo de archivo no soportado. Use imágenes (jpg, png, gif) o videos (mp4, webm)'
                 }, status=400)
         
-        # Configurar Cloudinary
-        import cloudinary
-        import cloudinary.uploader
+        # Verificar que Cloudinary esté disponible
+        if not CLOUDINARY_AVAILABLE:
+            return JsonResponse({
+                'success': False,
+                'error': 'Servicio de subida de archivos no disponible. Contacte al administrador.'
+            }, status=503)
         
+        # Configurar Cloudinary
         cloudinary.config(
             cloud_name=getattr(settings, 'CLOUDINARY_CLOUD_NAME', None),
             api_key=getattr(settings, 'CLOUDINARY_API_KEY', None),

@@ -55,6 +55,11 @@ if RAILWAY_ENVIRONMENT:
         'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
     }
     
+    # Variables individuales para acceso directo desde views.py
+    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME', '')
+    CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY', '')
+    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET', '')
+    
     # Configurar Cloudinary (lazy import para evitar importación circular)
     if CLOUDINARY_STORAGE['CLOUD_NAME']:
         try:

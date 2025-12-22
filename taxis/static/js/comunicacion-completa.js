@@ -401,19 +401,40 @@ function openDriverChat(driverId) {
         const fileBtn = document.getElementById('chat-file-btn');
         const fileInput = document.getElementById('chat-file-input');
         if (fileBtn && fileInput) {
-            fileBtn.replaceWith(fileBtn.cloneNode(true));
-            const newFileBtn = document.getElementById('chat-file-btn');
-            newFileBtn.addEventListener('click', function() {
-                fileInput.click();
+            // Clonar el botón para remover eventos anteriores
+            const newFileBtn = fileBtn.cloneNode(true);
+            fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+            
+            // Agregar event listener al nuevo botón
+            newFileBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📎 Botón de archivo clickeado');
+                // Obtener la referencia actual del input (puede haber cambiado)
+                const currentFileInput = document.getElementById('chat-file-input');
+                if (currentFileInput) {
+                    console.log('📎 Abriendo selector de archivos...');
+                    currentFileInput.click();
+                } else {
+                    console.error('❌ No se encontró chat-file-input');
+                }
             });
             
-            // Cuando se selecciona un archivo, enviarlo automáticamente
-            fileInput.replaceWith(fileInput.cloneNode(true));
-            const newFileInput = document.getElementById('chat-file-input');
+            // Clonar el input para remover eventos anteriores
+            const newFileInput = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+            
+            // Agregar event listener al nuevo input
             newFileInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
+                if (e.target.files && e.target.files.length > 0) {
+                    console.log('📎 Archivo seleccionado:', e.target.files[0].name);
                     sendMessageToDriver(driverId);
                 }
+            });
+        } else {
+            console.warn('⚠️ No se encontraron elementos de archivo:', {
+                fileBtn: !!fileBtn,
+                fileInput: !!fileInput
             });
         }
 
@@ -2023,24 +2044,40 @@ function openDriverChatFromList(driverId, driverName) {
         const fileBtn = document.getElementById('chat-file-btn');
         const fileInput = document.getElementById('chat-file-input');
         if (fileBtn && fileInput) {
+            // Clonar el botón para remover eventos anteriores
             const newFileBtn = fileBtn.cloneNode(true);
             fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
-            const finalFileBtn = document.getElementById('chat-file-btn');
             
-            finalFileBtn.addEventListener('click', function() {
-                const finalFileInput = document.getElementById('chat-file-input');
-                if (finalFileInput) finalFileInput.click();
+            // Agregar event listener al nuevo botón
+            newFileBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📎 Botón de archivo clickeado (desde lista)');
+                // Obtener la referencia actual del input
+                const currentFileInput = document.getElementById('chat-file-input');
+                if (currentFileInput) {
+                    console.log('📎 Abriendo selector de archivos...');
+                    currentFileInput.click();
+                } else {
+                    console.error('❌ No se encontró chat-file-input');
+                }
             });
             
-            // Cuando se selecciona un archivo, enviarlo automáticamente
+            // Clonar el input para remover eventos anteriores
             const newFileInput = fileInput.cloneNode(true);
             fileInput.parentNode.replaceChild(newFileInput, fileInput);
-            const finalFileInput = document.getElementById('chat-file-input');
             
-            finalFileInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
+            // Agregar event listener al nuevo input
+            newFileInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files.length > 0) {
+                    console.log('📎 Archivo seleccionado:', e.target.files[0].name);
                     sendMessageToDriver(driverId);
                 }
+            });
+        } else {
+            console.warn('⚠️ No se encontraron elementos de archivo (desde lista):', {
+                fileBtn: !!fileBtn,
+                fileInput: !!fileInput
             });
         }
 

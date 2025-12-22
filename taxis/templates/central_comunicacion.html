@@ -2175,22 +2175,33 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
             }
         }
         
-        // Crear objeto de mensaje para guardar en historial
-        const messageObj = {
-            message: message,
-            sender_name: 'Central',
-            sender_id: 1,
-            is_sent: true,
-            timestamp: new Date().toISOString(),
-            message_type: messageType,
-            media_url: mediaData ? mediaData.media_url : null,
-            thumbnail_url: mediaData ? mediaData.thumbnail_url : null,
-            metadata: mediaData ? mediaData.metadata : {}
-        };
-        
-        // Guardar mensaje en historial
-        if (originalAddMessageToHistory) {
-            originalAddMessageToHistory(driverId, messageObj);
+        // Mostrar imagen en el chat inmediatamente
+        const chatLog = document.getElementById('chat-log');
+        if (chatLog && mediaData) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message sent';
+            messageDiv.style.cssText = 'text-align: right; margin: 10px 0;';
+            
+            let mediaHTML = '';
+            if (messageType === 'image') {
+                mediaHTML = `<img src="${mediaData.media_url}" alt="Imagen" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open('${mediaData.media_url}', '_blank')">`;
+            } else if (messageType === 'video') {
+                mediaHTML = `<video controls style="max-width: 200px; max-height: 200px; border-radius: 8px;"><source src="${mediaData.media_url}" type="video/mp4"></video>`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div style="display: inline-block; background: #dcf8c6; padding: 8px 12px; border-radius: 8px; max-width: 70%;">
+                    ${mediaHTML}
+                    ${message ? `<div style="margin-top: 5px;">${message}</div>` : ''}
+                    <div style="font-size: 0.75em; color: #666; margin-top: 5px;">
+                        ${new Date().toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit'})}
+                    </div>
+                </div>
+            `;
+            
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+            console.log('✅ Imagen mostrada en el chat');
         }
         
         // Enviar por WebSocket

@@ -2047,6 +2047,133 @@
 <!-- FORZAR RECARGA: Cambiar versión manualmente si es necesario -->
 <script src="{% static 'js/comunicacion-completa.js' %}?v=20251222-1625-FORCE&cb={{ timestamp }}"></script>
 
+<!-- PARCHE CRÍTICO: Sobrescribir sendMessageToDriver para aceptar archivo como parámetro -->
+<script>
+console.log('🔧 PARCHE CRÍTICO: Sobrescribiendo sendMessageToDriver...');
+
+// Guardar referencia a uploadChatMedia y otras funciones necesarias
+const originalUploadChatMedia = window.uploadChatMedia;
+const originalAddMessageToHistory = window.addMessageToHistory;
+const originalGetCsrfToken = window.getCookie;
+
+// Sobrescribir sendMessageToDriver con versión que acepta fileToSend
+window.sendMessageToDriver = async function(driverId, fileToSend = null) {
+    const input = document.getElementById('chat-message-input');
+    const fileInput = document.getElementById('chat-file-input');
+    
+    console.log('🔍 DEBUG sendMessageToDriver (PARCHE):');
+    console.log('  - driverId:', driverId);
+    console.log('  - fileToSend (parámetro):', fileToSend);
+    
+    const message = input ? input.value.trim() : '';
+    
+    // Usar el archivo del parámetro si existe, sino buscar en fileInput
+    let file = fileToSend;
+    if (!file && fileInput && fileInput.files.length > 0) {
+        file = fileInput.files[0];
+    }
+    
+    console.log('  - message:', message);
+    console.log('  - file (final):', file);
+    
+    // Validar que haya mensaje o archivo
+    if (!message && !file) {
+        console.log('❌ No hay mensaje ni archivo, saliendo...');
+        return;
+    }
+    
+    console.log('📤 Enviando mensaje a conductor:', driverId, file ? `(con archivo: ${file.name})` : message);
+
+    try {
+        let mediaData = null;
+        let messageType = 'text';
+        
+        // Si hay archivo, subirlo primero
+        if (file) {
+            console.log('📤 Subiendo archivo:', file.name, file.type);
+            
+            // Mostrar indicador de carga
+            const chatLog = document.getElementById('chat-log');
+            if (chatLog) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'upload-loading';
+                loadingDiv.style.cssText = 'text-align: center; padding: 10px; color: #666; font-style: italic;';
+                loadingDiv.textContent = '⏳ Subiendo archivo...';
+                chatLog.appendChild(loadingDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+            
+            try {
+                mediaData = await originalUploadChatMedia(file);
+                messageType = mediaData.message_type;
+                console.log('✅ Archivo subido:', mediaData.media_url);
+                
+                // Remover indicador de carga
+                const loadingDiv = document.getElementById('upload-loading');
+                if (loadingDiv) loadingDiv.remove();
+            } catch (uploadError) {
+                console.error('❌ Error subiendo archivo:', uploadError);
+                
+                // Remover indicador de carga
+                const loadingDiv = document.getElementById('upload-loading');
+                if (loadingDiv) loadingDiv.remove();
+                
+                // Mostrar error
+                const chatLog = document.getElementById('chat-log');
+                if (chatLog) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'text-align: center; padding: 10px; color: #e74c3c; font-style: italic;';
+                    errorDiv.textContent = `❌ Error subiendo archivo: ${uploadError.message}`;
+                    chatLog.appendChild(errorDiv);
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                }
+                return; // No enviar mensaje si falla la subida
+            }
+        }
+        
+        // Crear objeto de mensaje para guardar en historial
+        const messageObj = {
+            message: message,
+            sender_name: 'Central',
+            sender_id: 1,
+            is_sent: true,
+            timestamp: new Date().toISOString(),
+            message_type: messageType,
+            media_url: mediaData ? mediaData.media_url : null,
+            thumbnail_url: mediaData ? mediaData.thumbnail_url : null,
+            metadata: mediaData ? mediaData.metadata : {}
+        };
+        
+        // Guardar mensaje en historial
+        if (originalAddMessageToHistory) {
+            originalAddMessageToHistory(driverId, messageObj);
+        }
+        
+        // Enviar por WebSocket
+        if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+            window.chatSocket.send(JSON.stringify({
+                type: 'chat_message',
+                message: message,
+                recipient_id: driverId,
+                message_type: messageType,
+                media_url: mediaData ? mediaData.media_url : null,
+                thumbnail_url: mediaData ? mediaData.thumbnail_url : null,
+                metadata: mediaData ? mediaData.metadata : {}
+            }));
+            console.log('✅ Mensaje enviado por Chat WebSocket');
+        }
+        
+        // Limpiar input
+        if (input) input.value = '';
+        
+    } catch (error) {
+        console.error('❌ Error en sendMessageToDriver:', error);
+    }
+};
+
+console.log('✅ PARCHE APLICADO: sendMessageToDriver ahora acepta fileToSend como parámetro');
+</script>
+
 <!-- PARCHE TEMPORAL: Sobrescribir función para mostrar historial desde data-initial-history -->
 <script>
 console.log('🔧 PARCHE: Sobrescribiendo openDriverChatFromList para cargar historial...');

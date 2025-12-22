@@ -158,3 +158,4 @@ La **mejor verificación** es:
 2. ✅ Probar la funcionalidad
 3. ✅ Verificar directamente en la BD
 
+

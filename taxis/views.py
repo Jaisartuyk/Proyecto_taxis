@@ -1947,7 +1947,7 @@ def get_driver_chat_history(request, driver_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@login_required
+@csrf_exempt
 def upload_chat_media(request):
     """
     Endpoint para subir imágenes/videos a Cloudinary para el chat
@@ -1958,6 +1958,8 @@ def upload_chat_media(request):
     Campos:
     - file: Archivo (imagen o video)
     - message_type: 'image' o 'video' (opcional, se detecta automáticamente)
+    
+    Nota: Usa @csrf_exempt porque el token CSRF se envía en el header X-CSRFToken
     """
     try:
         # Verificar que hay un archivo

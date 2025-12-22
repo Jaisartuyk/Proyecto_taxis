@@ -129,3 +129,4 @@ Si ves los 4 campos, las migraciones están aplicadas.
 
 **Desplázate hacia abajo en los logs** o busca `APLICANDO MIGRACIONES` para encontrarlas.
 
+

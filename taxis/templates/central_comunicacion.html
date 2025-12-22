@@ -2346,16 +2346,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Cerrar modal
                     modal.remove();
                     
-                    // Enviar archivo
+                    // Enviar archivo (el fileInput todavía tiene el archivo)
                     if (typeof sendMessageToDriver === 'function') {
                         await sendMessageToDriver(driverId);
+                        
+                        // Limpiar input de archivo DESPUÉS de enviar
+                        fileInput.value = '';
+                        
+                        // Limpiar mensaje del input principal
+                        const messageInput = document.getElementById('chat-message-input');
+                        if (messageInput) {
+                            messageInput.value = '';
+                        }
                     } else {
                         console.error('❌ Función sendMessageToDriver no encontrada');
                         alert('Error: No se pudo enviar el archivo. Por favor recarga la página.');
+                        fileInput.value = '';
                     }
-                    
-                    // Limpiar input de archivo
-                    fileInput.value = '';
                 });
                 
                 // Botón Cancelar

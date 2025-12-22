@@ -976,11 +976,21 @@ async function sendMessageToDriver(driverId) {
     const input = document.getElementById('chat-message-input');
     const fileInput = document.getElementById('chat-file-input');
     
+    console.log('🔍 DEBUG sendMessageToDriver:');
+    console.log('  - input:', input);
+    console.log('  - fileInput:', fileInput);
+    console.log('  - fileInput.files:', fileInput ? fileInput.files : 'null');
+    console.log('  - fileInput.files.length:', fileInput && fileInput.files ? fileInput.files.length : 0);
+    
     const message = input ? input.value.trim() : '';
     const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
     
+    console.log('  - message:', message);
+    console.log('  - file:', file);
+    
     // Validar que haya mensaje o archivo
     if (!message && !file) {
+        console.log('❌ No hay mensaje ni archivo, saliendo...');
         return;
     }
     

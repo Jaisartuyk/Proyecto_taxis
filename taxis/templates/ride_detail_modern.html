@@ -661,12 +661,33 @@
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function appendMessage(text, isSent, time = null) {
+    function appendMessage(text, isSent) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-        const timeStr = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         msgDiv.innerHTML = `
-            ${text}
+            <div class="message-text">${text}</div>
+            <div class="message-time">${timeStr}</div>
+        `;
+        chatMessages.appendChild(msgDiv);
+        scrollToBottom();
+    }
+
+    function appendImageMessage(imageUrl, caption, isSent) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        msgDiv.innerHTML = `
+            <div class="message-text">
+                <img src="${imageUrl}" 
+                     style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; display: block; margin-bottom: 8px;"
+                     onclick="window.open('${imageUrl}', '_blank')"
+                     alt="Imagen"
+                     onerror="this.style.display='none'; this.parentElement.innerHTML+='<p style=color:red;>Error al cargar imagen</p>'">
+                ${caption ? `<div style="margin-top: 8px;">${caption}</div>` : ''}
+            </div>
             <div class="message-time">${timeStr}</div>
         `;
         chatMessages.appendChild(msgDiv);
@@ -695,7 +716,13 @@
                     // Opcional: Sonido de notificación
                 }
 
-                appendMessage(data.message, isSent);
+                // Verificar si es un mensaje con imagen
+                if (data.message_type === 'image' && data.media_url) {
+                    console.log('📸 Mensaje con imagen recibido:', data.media_url);
+                    appendImageMessage(data.media_url, data.message, isSent);
+                } else {
+                    appendMessage(data.message, isSent);
+                }
             }
         };
 

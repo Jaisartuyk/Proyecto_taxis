@@ -232,10 +232,21 @@ class AudioConsumer(AsyncWebsocketConsumer):
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        print(f"\n{'='*60}")
+        print(f"🔌 ChatConsumer.connect() - INICIO")
+        print(f"{'='*60}")
+        print(f"📋 Scope keys: {list(self.scope.keys())}")
+        print(f"📋 URL route: {self.scope.get('url_route')}")
+        print(f"📋 Path: {self.scope.get('path')}")
+        print(f"📋 Headers: {dict(self.scope.get('headers', []))}")
+        
         self.user = self.scope['user']
+        print(f"👤 Usuario: {self.user}")
+        print(f"👤 Autenticado: {self.user.is_authenticated if hasattr(self.user, 'is_authenticated') else 'N/A'}")
         
         # Soportar user_id desde URL (para Android) o desde usuario autenticado (para Web)
         url_user_id = self.scope.get('url_route', {}).get('kwargs', {}).get('user_id')
+        print(f"📱 URL user_id: {url_user_id}")
         
         if url_user_id:
             # Conexión desde Android con user_id en URL

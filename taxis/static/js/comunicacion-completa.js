@@ -2,9 +2,10 @@
 // SISTEMA WALKIE-TALKIE COMPLETO - VERSIÓN CORREGIDA
 // ✅ CON SOPORTE PARA UBICACIONES EN TIEMPO REAL
 // =====================================================
-console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN CON CREACIÓN AUTOMÁTICA DE MARCADORES v2.1');
+console.log('🚀 LOADING comunicacion-completa.js - VERSIÓN CON window.chatSocket GLOBAL v2.2');
 console.log('✅✅✅ VERIFICACIÓN: Si ves este mensaje, el código NUEVO está cargado ✅✅✅');
 console.log('📅 Timestamp de carga:', new Date().toISOString());
+console.log('🔍 window.chatSocket inicial:', window.chatSocket);
 
 // Variables globales
 let map;
@@ -1276,9 +1277,13 @@ function setupWebSocket() {
     const chatWsUrl = `${wsProtocol}${host}/ws/chat/`;
     console.log('💬 URL del Chat WS:', chatWsUrl);
     window.chatSocket = new WebSocket(chatWsUrl);
+    console.log('🔍 window.chatSocket creado:', window.chatSocket);
+    console.log('🔍 window.chatSocket.readyState:', window.chatSocket.readyState);
 
     window.chatSocket.onopen = () => {
         console.log('✅ Chat WS Conectado exitosamente');
+        console.log('🔍 window.chatSocket.readyState después de conectar:', window.chatSocket.readyState);
+        console.log('🔍 window.chatSocket accesible globalmente?', !!window.chatSocket);
         updateConnectionStatus();
     };
 

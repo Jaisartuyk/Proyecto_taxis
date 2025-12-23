@@ -1907,16 +1907,24 @@ async function initSystem() {
     
     try {
         // Asegurar elementos requeridos
+        console.log('📋 Paso 1: Asegurando elementos requeridos...');
         ensureRequiredElements();
+        console.log('✅ Paso 1 completado');
         
         // Inicializar componentes
+        console.log('📋 Paso 2: Actualizando estado...');
         updateStatus('Inicializando...', 'connecting');
+        console.log('✅ Paso 2 completado');
         
         // Cargar Google Maps
+        console.log('📋 Paso 3: Cargando Google Maps API...');
         await loadGoogleMapsAPI();
+        console.log('✅ Paso 3 completado');
         
         // Configurar WebSocket
+        console.log('📋 Paso 4: Configurando WebSocket...');
         setupWebSocket();
+        console.log('✅ Paso 4 completado - window.chatSocket:', window.chatSocket);
         
         // Configurar sistema de audio
         setupAudioSystem();

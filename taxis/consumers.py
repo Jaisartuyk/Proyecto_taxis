@@ -306,16 +306,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"Usuario desconectado (sin channel_layer): código {close_code}")
 
     async def receive(self, text_data):
+        print(f"📥 ChatConsumer.receive: Mensaje recibido")
+        print(f"📥 Raw data: {text_data}")
         data = json.loads(text_data)
+        print(f"📥 Parsed data: {data}")
         
         # Ignorar mensajes que no sean de chat (ej: location, audio, etc.)
         message_type = data.get('type')
         if message_type and message_type != 'chat_message':
             # Silenciosamente ignorar otros tipos de mensajes
+            print(f"⏭️ Ignorando mensaje tipo: {message_type}")
             return
         
         message = data.get('message', '')  # Ahora es opcional si hay media
         recipient_id = data.get('recipient_id')
+        print(f"📥 Mensaje: '{message}', Destinatario: {recipient_id}")
 
         # Campos para media (nuevos)
         msg_type = data.get('message_type', 'text')  # Por defecto 'text' (compatible)
@@ -355,6 +360,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Grupo del destinatario
         recipient_group_name = f'chat_{recipient_id}'
+        print(f"📤 Grupo destinatario: {recipient_group_name}")
 
         # Preparar el payload del mensaje (incluyendo campos de media)
         chat_payload = {
@@ -367,16 +373,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'thumbnail_url': thumbnail_url,
             'metadata': metadata,
         }
+        print(f"📤 Payload preparado: {chat_payload}")
 
         # Enviar mensaje al destinatario
+        print(f"📤 Enviando a grupo: {recipient_group_name}")
         await self.channel_layer.group_send(recipient_group_name, chat_payload)
-        print(f"Mensaje de {sender_id} enviado a {recipient_id} (tipo: {msg_type})")
+        print(f"✅ Mensaje de {sender_id} ({sender_name}) enviado a grupo {recipient_group_name} (tipo: {msg_type})")
         
         # Enviar notificación push
         await self.send_chat_push_notification(sender_id, recipient_id, message)
 
         # Enviar mensaje de vuelta al remitente para actualizar su UI
+        print(f"📤 Enviando de vuelta al remitente: {self.room_group_name}")
         await self.channel_layer.group_send(self.room_group_name, chat_payload)
+        print(f"✅ Mensaje enviado de vuelta al remitente")
 
     async def chat_message(self, event):
         # Obtener el conteo de badge actualizado

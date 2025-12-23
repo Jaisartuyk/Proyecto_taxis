@@ -899,9 +899,19 @@ def ride_detail_api_view(request, ride_id):
         # Preparar respuesta
         ride_data = {
             'id': ride.id,
-            'customer': ride.customer.username,
-            'customer_phone': getattr(ride.customer, 'phone', 'N/A'),
-            'driver': ride.driver.username if ride.driver else None,
+            'customer': {
+                'id': ride.customer.id,
+                'username': ride.customer.username,
+                'name': ride.customer.get_full_name() or ride.customer.username,
+                'phone': getattr(ride.customer, 'phone_number', 'N/A'),
+            },
+            'customer_phone': getattr(ride.customer, 'phone_number', 'N/A'),
+            'driver': {
+                'id': ride.driver.id,
+                'username': ride.driver.username,
+                'name': ride.driver.get_full_name() or ride.driver.username,
+                'phone': getattr(ride.driver, 'phone_number', 'N/A'),
+            } if ride.driver else None,
             'origin': ride.origin,
             'origin_latitude': ride.origin_latitude,
             'origin_longitude': ride.origin_longitude,

@@ -2106,6 +2106,20 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
     console.log('  - driverId:', driverId);
     console.log('  - fileToSend (parámetro):', fileToSend);
     
+    // ESPERAR a que window.chatSocket esté disponible (máximo 5 segundos)
+    let attempts = 0;
+    while (!window.chatSocket && attempts < 50) {
+        console.log('⏳ Esperando a que window.chatSocket se inicialice... intento', attempts + 1);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+    
+    if (!window.chatSocket) {
+        console.error('❌ window.chatSocket no se inicializó después de 5 segundos');
+        alert('Error: No se pudo conectar al chat. Recarga la página.');
+        return;
+    }
+    
     const message = input ? input.value.trim() : '';
     
     // Usar el archivo del parámetro si existe, sino buscar en fileInput

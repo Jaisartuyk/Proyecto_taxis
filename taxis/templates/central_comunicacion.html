@@ -2272,6 +2272,58 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
 console.log('✅ PARCHE APLICADO: sendMessageToDriver con soporte completo para archivos');
 </script>
 
+<!-- PARCHE: Interceptar mensajes recibidos para mostrar imágenes del conductor -->
+<script>
+console.log('🔧 PARCHE: Interceptando handleChatMessage para mostrar imágenes del conductor...');
+
+// Esperar a que handleChatMessage esté disponible
+setTimeout(() => {
+    if (window.handleChatMessage && typeof window.handleChatMessage === 'function') {
+        const originalHandleChatMessage = window.handleChatMessage;
+        
+        window.handleChatMessage = function(data) {
+            console.log('🔍 PARCHE: Mensaje de chat interceptado:', data);
+            
+            // Si es un mensaje con imagen del conductor, mostrarlo
+            if (data.message_type === 'image' && data.media_url) {
+                console.log('📸 PARCHE: Mensaje con imagen detectado del conductor');
+                
+                const chatLog = document.getElementById('chat-log');
+                if (chatLog && window.currentChatDriverId && window.currentChatDriverId == data.sender_id) {
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const senderName = data.sender_name || `Conductor #${data.sender_id}`;
+                    
+                    const messageHtml = `
+                        <div class="message received" style="display: block !important; margin-bottom: 10px; padding: 8px 12px; background: #e9ecef; color: black; border-radius: 8px; max-width: 70%; margin-right: auto;">
+                            <div style="font-weight: bold; margin-bottom: 4px;">${senderName}</div>
+                            <div style="margin-bottom: 8px;">
+                                <img src="${data.media_url}" 
+                                     style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
+                                     onclick="window.open('${data.media_url}', '_blank')"
+                                     alt="Imagen">
+                            </div>
+                            ${data.message ? `<div style="margin-top: 8px;">${data.message}</div>` : ''}
+                            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">${timestamp}</div>
+                        </div>
+                    `;
+                    
+                    chatLog.insertAdjacentHTML('beforeend', messageHtml);
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                    console.log('✅ PARCHE: Imagen del conductor mostrada en el chat');
+                }
+            }
+            
+            // Llamar a la función original
+            originalHandleChatMessage.call(this, data);
+        };
+        
+        console.log('✅ PARCHE APLICADO: handleChatMessage interceptado');
+    } else {
+        console.warn('⚠️ handleChatMessage no disponible aún');
+    }
+}, 1000);
+</script>
+
 <!-- PARCHE TEMPORAL: Sobrescribir función para mostrar historial desde data-initial-history -->
 <script>
 console.log('🔧 PARCHE: Sobrescribiendo openDriverChatFromList para cargar historial...');

@@ -2240,6 +2240,11 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
         }
         
         // Enviar por WebSocket de Chat
+        console.log('🔍 DEBUG WebSocket:');
+        console.log('  - window.chatSocket existe?', !!window.chatSocket);
+        console.log('  - chatSocket.readyState:', window.chatSocket?.readyState);
+        console.log('  - WebSocket.OPEN:', WebSocket.OPEN);
+        
         if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
             const wsMessage = {
                 'type': 'chat_message',
@@ -2256,8 +2261,14 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
                 wsMessage.metadata = mediaData.metadata;
             }
             
+            console.log('📤 Enviando por WebSocket:', wsMessage);
             window.chatSocket.send(JSON.stringify(wsMessage));
             console.log('✅ Mensaje enviado por Chat WebSocket');
+        } else {
+            console.error('❌ Chat WebSocket NO está conectado!');
+            console.error('  - chatSocket existe?', !!window.chatSocket);
+            console.error('  - readyState:', window.chatSocket?.readyState);
+            console.error('  - Estados: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
         }
         
         // Limpiar inputs

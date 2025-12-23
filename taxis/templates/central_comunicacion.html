@@ -2044,8 +2044,8 @@
 <!-- FIN SCRIPT INLINE COMENTADO -->
 
 <!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA (archivo presente en staticfiles) -->
-<!-- FORZAR RECARGA: Cambiar versión manualmente si es necesario -->
-<script src="{% static 'js/comunicacion-completa.js' %}?v=20251222-1845-FINAL&cb={{ timestamp }}"></script>
+<!-- CACHE BUSTING: Timestamp dinámico para forzar recarga en cada despliegue -->
+<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
 
 <!-- PARCHE CRÍTICO: Sobrescribir sendMessageToDriver con versión actualizada -->
 <script>

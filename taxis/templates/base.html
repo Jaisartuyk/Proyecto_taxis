@@ -105,7 +105,11 @@
 
     <!-- User Authentication Flag -->
     {% if user.is_authenticated %}
-    <div data-user-authenticated="true" style="display:none;"></div>
+    <div data-user-authenticated="true" 
+         data-user-is-driver="{% if user.is_driver %}true{% else %}false{% endif %}"
+         data-user-is-superuser="{% if user.is_superuser %}true{% else %}false{% endif %}"
+         data-user-id="{{ user.id }}"
+         style="display:none;"></div>
     {% endif %}
 
 </head>

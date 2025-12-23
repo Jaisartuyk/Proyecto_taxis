@@ -43,6 +43,21 @@ function initFloatingAudioButton() {
         return;
     }
     
+    // SOLO mostrar para conductores (is_driver=true) o admin (is_superuser=true)
+    // NO mostrar para clientes normales
+    const isDriverElement = document.querySelector('[data-user-is-driver]');
+    const isSuperuserElement = document.querySelector('[data-user-is-superuser]');
+    
+    const isDriver = isDriverElement && isDriverElement.getAttribute('data-user-is-driver') === 'true';
+    const isSuperuser = isSuperuserElement && isSuperuserElement.getAttribute('data-user-is-superuser') === 'true';
+    
+    if (!isDriver && !isSuperuser) {
+        console.log('[FLOATING AUDIO] Usuario no es conductor ni admin, no se inicializa');
+        return;
+    }
+    
+    console.log('[FLOATING AUDIO] Usuario es conductor o admin, inicializando...');
+    
     // Crear el HTML del botón flotante si no existe
     if (!document.getElementById('floating-audio-container')) {
         createFloatingButtonHTML();

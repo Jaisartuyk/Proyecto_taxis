@@ -2172,6 +2172,23 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
             }
         }
         
+        // Guardar mensaje en el historial
+        if (window.addMessageToHistory && typeof window.addMessageToHistory === 'function') {
+            const messageObj = {
+                message: message,
+                sender_name: 'Central',
+                sender_id: 1,
+                is_sent: true,
+                timestamp: new Date().toISOString(),
+                message_type: messageType,
+                media_url: mediaData ? mediaData.media_url : null,
+                thumbnail_url: mediaData ? mediaData.thumbnail_url : null,
+                metadata: mediaData ? mediaData.metadata : {}
+            };
+            window.addMessageToHistory(driverId, messageObj);
+            console.log('💾 Mensaje guardado en historial');
+        }
+        
         // Agregar mensaje al chat log inmediatamente
         const chatLog = document.getElementById('chat-log');
         if (chatLog) {

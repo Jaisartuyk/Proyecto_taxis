@@ -2106,19 +2106,46 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
     console.log('  - driverId:', driverId);
     console.log('  - fileToSend (parámetro):', fileToSend);
     
-    // ESPERAR a que window.chatSocket esté disponible (máximo 5 segundos)
-    let attempts = 0;
-    while (!window.chatSocket && attempts < 50) {
-        console.log('⏳ Esperando a que window.chatSocket se inicialice... intento', attempts + 1);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
+    // BUSCAR chatSocket - puede estar en window.chatSocket o en el scope del archivo JS
+    let chatSocketToUse = window.chatSocket;
+    
+    // Si window.chatSocket no existe, intentar buscar en el scope global
+    if (!chatSocketToUse) {
+        console.log('⚠️ window.chatSocket no existe, buscando en otros scopes...');
+        
+        // Esperar un poco por si se está inicializando
+        let attempts = 0;
+        while (!window.chatSocket && attempts < 20) {
+            console.log('⏳ Esperando... intento', attempts + 1);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+            
+            // Intentar acceder al chatSocket del archivo JS
+            if (typeof chatSocket !== 'undefined') {
+                chatSocketToUse = chatSocket;
+                console.log('✅ Encontrado chatSocket en scope global');
+                break;
+            }
+            
+            if (window.chatSocket) {
+                chatSocketToUse = window.chatSocket;
+                console.log('✅ Encontrado window.chatSocket');
+                break;
+            }
+        }
+    } else {
+        chatSocketToUse = window.chatSocket;
     }
     
-    if (!window.chatSocket) {
-        console.error('❌ window.chatSocket no se inicializó después de 5 segundos');
+    if (!chatSocketToUse) {
+        console.error('❌ No se pudo encontrar chatSocket después de 2 segundos');
+        console.error('❌ window.chatSocket:', window.chatSocket);
+        console.error('❌ typeof chatSocket:', typeof chatSocket);
         alert('Error: No se pudo conectar al chat. Recarga la página.');
         return;
     }
+    
+    console.log('✅ chatSocket encontrado:', chatSocketToUse);
     
     const message = input ? input.value.trim() : '';
     
@@ -2255,11 +2282,11 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
         
         // Enviar por WebSocket de Chat
         console.log('🔍 DEBUG WebSocket:');
-        console.log('  - window.chatSocket existe?', !!window.chatSocket);
-        console.log('  - chatSocket.readyState:', window.chatSocket?.readyState);
+        console.log('  - chatSocketToUse existe?', !!chatSocketToUse);
+        console.log('  - chatSocket.readyState:', chatSocketToUse?.readyState);
         console.log('  - WebSocket.OPEN:', WebSocket.OPEN);
         
-        if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+        if (chatSocketToUse && chatSocketToUse.readyState === WebSocket.OPEN) {
             const wsMessage = {
                 'type': 'chat_message',
                 'message': message,
@@ -2276,12 +2303,12 @@ window.sendMessageToDriver = async function(driverId, fileToSend = null) {
             }
             
             console.log('📤 Enviando por WebSocket:', wsMessage);
-            window.chatSocket.send(JSON.stringify(wsMessage));
+            chatSocketToUse.send(JSON.stringify(wsMessage));
             console.log('✅ Mensaje enviado por Chat WebSocket');
         } else {
             console.error('❌ Chat WebSocket NO está conectado!');
-            console.error('  - chatSocket existe?', !!window.chatSocket);
-            console.error('  - readyState:', window.chatSocket?.readyState);
+            console.error('  - chatSocketToUse existe?', !!chatSocketToUse);
+            console.error('  - readyState:', chatSocketToUse?.readyState);
             console.error('  - Estados: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
         }
         

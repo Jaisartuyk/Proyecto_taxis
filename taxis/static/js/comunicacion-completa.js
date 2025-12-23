@@ -9,7 +9,7 @@ console.log('📅 Timestamp de carga:', new Date().toISOString());
 // Variables globales
 let map;
 let socket;
-let chatSocket;  // WebSocket para chat
+window.chatSocket = null;  // WebSocket para chat (global para acceso desde parches inline)
 let driverMarkers = {};
 let audioContext;
 let audioQueue = [];
@@ -140,7 +140,7 @@ function updateStatus(message, className = 'connected') {
 // Actualizar estado de conexión basado en ambos WebSockets
 function updateConnectionStatus() {
     const audioConnected = socket && socket.readyState === WebSocket.OPEN;
-    const chatConnected = chatSocket && chatSocket.readyState === WebSocket.OPEN;
+    const chatConnected = window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN;
     
     console.log('🔍 Estado WebSockets - Audio:', audioConnected, 'Chat:', chatConnected);
     
@@ -1131,7 +1131,7 @@ async function sendMessageToDriver(driverId, fileToSend = null) {
         }
         
         // Enviar por WebSocket de Chat
-        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+        if (window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
             const wsMessage = {
                 'type': 'chat_message',
                 'message': message,
@@ -1147,7 +1147,7 @@ async function sendMessageToDriver(driverId, fileToSend = null) {
                 wsMessage.metadata = mediaData.metadata;
             }
             
-            chatSocket.send(JSON.stringify(wsMessage));
+            window.chatSocket.send(JSON.stringify(wsMessage));
             
             console.log('✅ Mensaje enviado por Chat WebSocket');
         } else {
@@ -1209,9 +1209,9 @@ function setupWebSocket() {
         console.log('🔌 Cerrando Audio WebSocket anterior...');
         socket.close();
     }
-    if (chatSocket && chatSocket.readyState !== WebSocket.CLOSED) {
+    if (window.chatSocket && window.chatSocket.readyState !== WebSocket.CLOSED) {
         console.log('🔌 Cerrando Chat WebSocket anterior...');
-        chatSocket.close();
+        window.chatSocket.close();
     }
 
     isConnecting = true;
@@ -1275,14 +1275,14 @@ function setupWebSocket() {
     console.log('💬 Conectando Chat WebSocket...');
     const chatWsUrl = `${wsProtocol}${host}/ws/chat/`;
     console.log('💬 URL del Chat WS:', chatWsUrl);
-    chatSocket = new WebSocket(chatWsUrl);
+    window.chatSocket = new WebSocket(chatWsUrl);
 
-    chatSocket.onopen = () => {
+    window.chatSocket.onopen = () => {
         console.log('✅ Chat WS Conectado exitosamente');
         updateConnectionStatus();
     };
 
-    chatSocket.onclose = () => {
+    window.chatSocket.onclose = () => {
         console.log('💬 Chat WS Desconectado');
         updateConnectionStatus();
         
@@ -1295,11 +1295,11 @@ function setupWebSocket() {
         }
     };
 
-    chatSocket.onerror = (error) => {
+    window.chatSocket.onerror = (error) => {
         console.error('💬 Chat WS Error:', error);
     };
 
-    chatSocket.onmessage = (e) => {
+    window.chatSocket.onmessage = (e) => {
         console.log('💬 Mensaje recibido:', e.data);
         try {
             const data = JSON.parse(e.data);

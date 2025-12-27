@@ -133,6 +133,69 @@ class Organization(models.Model):
         blank=True
     )
     
+    # ============================================
+    # CAMPOS FASE 3: PANEL DE ADMINISTRACIÓN
+    # ============================================
+    
+    # Estado y suspensión
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si la organización está activa"
+    )
+    suspended_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de suspensión"
+    )
+    suspension_reason = models.TextField(
+        blank=True,
+        help_text="Razón de la suspensión"
+    )
+    
+    # Branding adicional
+    welcome_message = models.TextField(
+        blank=True,
+        help_text="Mensaje de bienvenida personalizado"
+    )
+    contact_phone_display = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Teléfono de contacto para mostrar"
+    )
+    
+    # Facturación
+    billing_email = models.EmailField(
+        blank=True,
+        help_text="Email para facturación"
+    )
+    billing_address = models.TextField(
+        blank=True,
+        help_text="Dirección de facturación"
+    )
+    tax_id = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="RUC o identificación fiscal"
+    )
+    
+    # Estadísticas (se actualizan automáticamente)
+    total_rides = models.IntegerField(
+        default=0,
+        help_text="Total de carreras completadas"
+    )
+    total_revenue = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Ingresos totales generados"
+    )
+    total_commission = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Comisiones totales cobradas"
+    )
+    
     class Meta:
         verbose_name = 'Organización'
         verbose_name_plural = 'Organizaciones'
@@ -776,3 +839,110 @@ class ChatMessage(models.Model):
     def get_thumbnail(self):
         """Obtener URL del thumbnail (o media_url si no hay thumbnail)"""
         return self.thumbnail_url or self.media_url
+
+# ============================================
+# MODELO DE FACTURACIÓN (FASE 3)
+# ============================================
+
+class Invoice(models.Model):
+    """Facturas mensuales para organizaciones"""
+    STATUS_CHOICES = [
+        ('pending', 'Pendiente'),
+        ('paid', 'Pagada'),
+        ('overdue', 'Vencida'),
+        ('cancelled', 'Cancelada'),
+    ]
+    
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='invoices',
+        help_text="Cooperativa facturada"
+    )
+    invoice_number = models.CharField(
+        max_length=50,
+        unique=True,
+        help_text="Número de factura único (ej: INV-2025-001)"
+    )
+    
+    # Período facturado
+    period_start = models.DateField(
+        help_text="Inicio del período facturado"
+    )
+    period_end = models.DateField(
+        help_text="Fin del período facturado"
+    )
+    
+    # Montos
+    subscription_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Tarifa de suscripción mensual"
+    )
+    commission_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Comisiones cobradas en el período"
+    )
+    total_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Monto total a pagar"
+    )
+    
+    # Estado y fechas
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    issued_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Fecha de emisión"
+    )
+    due_date = models.DateField(
+        help_text="Fecha de vencimiento"
+    )
+    paid_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de pago"
+    )
+    
+    # Archivo PDF
+    pdf_file = models.FileField(
+        upload_to='invoices/',
+        null=True,
+        blank=True,
+        help_text="Archivo PDF de la factura"
+    )
+    
+    # Notas
+    notes = models.TextField(
+        blank=True,
+        help_text="Notas adicionales"
+    )
+    
+    class Meta:
+        verbose_name = 'Factura'
+        verbose_name_plural = 'Facturas'
+        ordering = ['-issued_at']
+    
+    def __str__(self):
+        return f"{self.invoice_number} - {self.organization.name}"
+    
+    def is_overdue(self):
+        """Verifica si la factura está vencida"""
+        from django.utils import timezone
+        if self.status == 'pending' and self.due_date < timezone.now().date():
+            return True
+        return False
+    
+    def mark_as_paid(self):
+        """Marca la factura como pagada"""
+        from django.utils import timezone
+        self.status = 'paid'
+        self.paid_at = timezone.now()
+        self.save()
+

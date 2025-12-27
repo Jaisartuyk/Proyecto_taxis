@@ -902,15 +902,22 @@ def request_ride(request):
                 origin_lng = float(origin_lng)
                 price = float(price)
 
-                # Crear la solicitud de carrera
+                # ✅ MULTI-TENANT: Asignar organización del cliente
                 ride = Ride.objects.create(
                     customer=request.user,
+                    organization=request.user.organization,  # Asignar organización
                     origin=origin,
                     origin_latitude=origin_lat,
                     origin_longitude=origin_lng,
                     price=price,
                     status='requested',
                 )
+                
+                # ✅ Calcular comisión automáticamente
+                if ride.organization and ride.price:
+                    commission_rate = ride.organization.commission_rate / 100
+                    ride.commission_amount = ride.price * commission_rate
+                    ride.save(update_fields=['commission_amount'])
 
                 # Crear destinos asociados
                 for i, destination in enumerate(destinations):

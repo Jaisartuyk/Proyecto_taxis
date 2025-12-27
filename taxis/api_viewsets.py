@@ -214,17 +214,26 @@ class RideViewSet(viewsets.ModelViewSet):
         """Filtrar carreras según el rol del usuario"""
         user = self.request.user
         
+        # ✅ MULTI-TENANT: Base queryset filtrado por organización
+        if user.organization:
+            base_queryset = Ride.objects.filter(organization=user.organization)
+        else:
+            base_queryset = Ride.objects.none()
+        
         if user.role == 'driver':
-            # Conductores ven carreras asignadas o disponibles
-            return Ride.objects.filter(
+            # Conductores ven carreras asignadas o disponibles de su organización
+            return base_queryset.filter(
                 Q(driver=user) | Q(status='requested')
             ).order_by('-created_at')
         elif user.role == 'customer':
             # Clientes solo ven sus propias carreras
-            return Ride.objects.filter(customer=user).order_by('-created_at')
-        else:
-            # Admins ven todas
+            return base_queryset.filter(customer=user).order_by('-created_at')
+        elif user.is_superuser:
+            # Super admin ve todas las carreras de todas las organizaciones
             return Ride.objects.all().order_by('-created_at')
+        else:
+            # Admins de cooperativa ven todas de su organización
+            return base_queryset.order_by('-created_at')
     
     def get_serializer_class(self):
         """Usar diferentes serializers según la acción"""
@@ -237,8 +246,18 @@ class RideViewSet(viewsets.ModelViewSet):
         return RideDetailSerializer
     
     def perform_create(self, serializer):
-        """Crear carrera asignando el customer automáticamente"""
-        serializer.save(customer=self.request.user)
+        """Crear carrera asignando el customer y organización automáticamente"""
+        # ✅ MULTI-TENANT: Asignar organización del cliente
+        ride = serializer.save(
+            customer=self.request.user,
+            organization=self.request.user.organization
+        )
+        
+        # ✅ Calcular comisión automáticamente
+        if ride.organization and ride.price:
+            commission_rate = ride.organization.commission_rate / 100
+            ride.commission_amount = ride.price * commission_rate
+            ride.save(update_fields=['commission_amount'])
     
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):

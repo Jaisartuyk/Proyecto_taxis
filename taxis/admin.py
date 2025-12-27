@@ -318,19 +318,20 @@ class OrganizationAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('name', 'logo', 'primary_color', 'secondary_color')
+            'fields': ('name', 'slug', 'description', 'logo', 'primary_color', 'secondary_color')
         }),
         ('Plan y Comisiones', {
-            'fields': ('plan', 'commission_rate', 'max_drivers', 'monthly_fee')
+            'fields': ('plan', 'status', 'commission_rate', 'max_drivers', 'monthly_fee')
         }),
         ('Contacto', {
-            'fields': ('contact_email', 'contact_phone', 'address')
+            'fields': ('phone', 'email', 'address', 'city', 'country')
         }),
         ('Facturación', {
             'fields': ('billing_address', 'tax_id', 'billing_email')
         }),
-        ('Estado', {
-            'fields': ('is_active', 'created_at', 'updated_at')
+        ('Fechas', {
+            'fields': ('trial_ends_at', 'subscription_starts_at', 'subscription_ends_at', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )
 

@@ -101,9 +101,7 @@ urlpatterns = [
     
     # Limpiar Caché
     path('clear-cache/', views.clear_cache, name='clear_cache'),
-
-]
-
+    
     # ============================================
     # PANEL DE ADMINISTRACIÓN (FASE 3)
     # ============================================
@@ -128,4 +126,5 @@ urlpatterns = [
     path('admin/invoices/', admin_views.InvoiceListView.as_view(), name='admin_invoices'),
     path('admin/invoices/create/', admin_views.InvoiceCreateView.as_view(), name='admin_invoice_create'),
     path('admin/invoices/<int:pk>/mark-paid/', admin_views.InvoiceMarkPaidView.as_view(), name='admin_invoice_mark_paid'),
+]
 

@@ -145,7 +145,42 @@ if __name__ == "__main__":
             "Recopilando archivos estaticos (silencioso, ignorando Cloudinary)"
         )
     
-    # 4. Iniciar servidor
+    # 4. Verificar URLs del panel admin antes de iniciar servidor
+    print("\n" + "="*60)
+    print("VERIFICANDO URLS DEL PANEL ADMIN")
+    print("="*60 + "\n")
+    
+    try:
+        from django.urls import reverse
+        
+        # Intentar resolver las URLs del panel admin
+        admin_urls_to_test = [
+            'admin_dashboard',
+            'admin_organizations',
+            'admin_drivers_pending',
+        ]
+        
+        print("[INFO] Verificando que las URLs del panel admin estén cargadas...")
+        all_urls_ok = True
+        for url_name in admin_urls_to_test:
+            try:
+                url = reverse(url_name)
+                print(f"  ✅ {url_name:30} → {url}")
+            except Exception as e:
+                print(f"  ❌ {url_name:30} → ERROR: {e}")
+                all_urls_ok = False
+        
+        if all_urls_ok:
+            print("\n[OK] URLs del panel admin cargadas correctamente en el servidor")
+        else:
+            print("\n[WARNING] Algunas URLs del panel admin no se pudieron cargar")
+            print("[INFO] El servidor se iniciará de todos modos...")
+            
+    except Exception as e:
+        print(f"[WARNING] No se pudo verificar URLs: {e}")
+        print("[INFO] El servidor se iniciará de todos modos...")
+    
+    # 5. Iniciar servidor
     print("\n" + "="*60)
     print("INICIANDO SERVIDOR DAPHNE")
     print("="*60 + "\n")

@@ -1149,6 +1149,10 @@
     <!-- MAPA DE UBICACIONES EN TIEMPO REAL -->
     <div class="map-container">
         <div id="map"></div>
+        <!-- Botón flotante para controlar tráfico -->
+        <button id="traffic-toggle" onclick="toggleTraffic()" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; border: 2px solid #4CAF50; border-radius: 8px; padding: 10px 15px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-weight: bold; color: #4CAF50;">
+            🚦 Tráfico: ON
+        </button>
     </div>
 
     <div class="content-layout">
@@ -1949,11 +1953,12 @@
             ]
         });
 
-        // Agregar capa de tráfico
-        const trafficLayer = new google.maps.TrafficLayer();
-        trafficLayer.setMap(map);
+        // Agregar capa de tráfico (variable global para poder controlarla)
+        window.trafficLayer = new google.maps.TrafficLayer();
+        window.trafficLayer.setMap(map);
+        window.trafficEnabled = true;
 
-        console.log('🗺️ Mapa de Google Maps inicializado');
+        console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
 
         // Obtener ubicaciones iniciales
         fetchDriverLocations();
@@ -2030,6 +2035,28 @@
                 markers[taxiId] = marker;
             }
         });
+    }
+
+    // Función para activar/desactivar la capa de tráfico
+    function toggleTraffic() {
+        const button = document.getElementById('traffic-toggle');
+        if (window.trafficEnabled) {
+            // Desactivar tráfico
+            window.trafficLayer.setMap(null);
+            window.trafficEnabled = false;
+            button.textContent = '🚦 Tráfico: OFF';
+            button.style.borderColor = '#9E9E9E';
+            button.style.color = '#9E9E9E';
+            console.log('🚦 Capa de tráfico desactivada');
+        } else {
+            // Activar tráfico
+            window.trafficLayer.setMap(map);
+            window.trafficEnabled = true;
+            button.textContent = '🚦 Tráfico: ON';
+            button.style.borderColor = '#4CAF50';
+            button.style.color = '#4CAF50';
+            console.log('🚦 Capa de tráfico activada');
+        }
     }
 
     // DEBUGGING: Verificar archivo que se está cargando

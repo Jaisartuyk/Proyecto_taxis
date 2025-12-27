@@ -3,8 +3,6 @@ Middleware para autenticación de WebSockets con Token
 """
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
-from django.contrib.auth.models import AnonymousUser
-from rest_framework.authtoken.models import Token
 from urllib.parse import parse_qs
 
 
@@ -35,6 +33,8 @@ class TokenAuthMiddleware(BaseMiddleware):
         if token_key:
             scope['user'] = await self.get_user_from_token(token_key)
         else:
+            # Importar aquí para evitar AppRegistryNotReady
+            from django.contrib.auth.models import AnonymousUser
             scope['user'] = AnonymousUser()
         
         return await super().__call__(scope, receive, send)
@@ -42,6 +42,10 @@ class TokenAuthMiddleware(BaseMiddleware):
     @database_sync_to_async
     def get_user_from_token(self, token_key):
         """Obtener usuario desde el token"""
+        # Importar aquí para evitar AppRegistryNotReady
+        from django.contrib.auth.models import AnonymousUser
+        from rest_framework.authtoken.models import Token
+        
         try:
             token = Token.objects.select_related('user').get(key=token_key)
             return token.user

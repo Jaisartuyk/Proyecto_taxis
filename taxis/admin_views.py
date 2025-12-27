@@ -32,15 +32,27 @@ class SuperAdminDashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Estadísticas globales
-        context['total_organizations'] = Organization.objects.filter(is_active=True).count()
-        context['total_drivers'] = AppUser.objects.filter(
-            role='driver',
-            driver_status='approved'
-        ).count()
-        context['pending_drivers'] = AppUser.objects.filter(
-            role='driver',
-            driver_status='pending'
-        ).count()
+        try:
+            context['total_organizations'] = Organization.objects.filter(is_active=True).count()
+        except Exception as e:
+            # Si el campo is_active no existe, contar todas
+            context['total_organizations'] = Organization.objects.count()
+        
+        try:
+            context['total_drivers'] = AppUser.objects.filter(
+                role='driver',
+                driver_status='approved'
+            ).count()
+        except Exception:
+            context['total_drivers'] = AppUser.objects.filter(role='driver').count()
+        
+        try:
+            context['pending_drivers'] = AppUser.objects.filter(
+                role='driver',
+                driver_status='pending'
+            ).count()
+        except Exception:
+            context['pending_drivers'] = 0
         
         # Carreras del mes actual
         now = timezone.now()

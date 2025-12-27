@@ -2,6 +2,7 @@ from django.urls import path, re_path
 from django.contrib.auth import views as auth_views
 from . import views
 from . import api_views
+from . import admin_views  # Panel de administración Fase 3
 from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
 from .views import get_google_maps_key
 
@@ -102,3 +103,29 @@ urlpatterns = [
     path('clear-cache/', views.clear_cache, name='clear_cache'),
 
 ]
+
+    # ============================================
+    # PANEL DE ADMINISTRACIÓN (FASE 3)
+    # ============================================
+    path('admin/dashboard/', admin_views.SuperAdminDashboardView.as_view(), name='admin_dashboard'),
+    
+    # Cooperativas
+    path('admin/organizations/', admin_views.OrganizationListView.as_view(), name='admin_organizations'),
+    path('admin/organizations/create/', admin_views.OrganizationCreateView.as_view(), name='admin_organization_create'),
+    path('admin/organizations/<int:pk>/edit/', admin_views.OrganizationUpdateView.as_view(), name='admin_organization_edit'),
+    path('admin/organizations/<int:pk>/', admin_views.OrganizationDetailView.as_view(), name='admin_organization_detail'),
+    path('admin/organizations/<int:pk>/suspend/', admin_views.OrganizationSuspendView.as_view(), name='admin_organization_suspend'),
+    
+    # Conductores
+    path('admin/drivers/pending/', admin_views.DriverApprovalListView.as_view(), name='admin_drivers_pending'),
+    path('admin/drivers/<int:pk>/approve/', admin_views.DriverApproveView.as_view(), name='admin_driver_approve'),
+    path('admin/drivers/<int:pk>/reject/', admin_views.DriverRejectView.as_view(), name='admin_driver_reject'),
+    
+    # Reportes
+    path('admin/reports/financial/', admin_views.FinancialReportsView.as_view(), name='admin_reports_financial'),
+    
+    # Facturas
+    path('admin/invoices/', admin_views.InvoiceListView.as_view(), name='admin_invoices'),
+    path('admin/invoices/create/', admin_views.InvoiceCreateView.as_view(), name='admin_invoice_create'),
+    path('admin/invoices/<int:pk>/mark-paid/', admin_views.InvoiceMarkPaidView.as_view(), name='admin_invoice_mark_paid'),
+

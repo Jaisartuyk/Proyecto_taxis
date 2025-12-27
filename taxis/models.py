@@ -12,12 +12,176 @@ from cloudinary.models import CloudinaryField
 
 #from django.utils.timezone import now
 
+# ============================================
+# MODELO DE ORGANIZACIÓN (MULTI-TENANT)
+# ============================================
+
+class Organization(models.Model):
+    """
+    Cooperativa o grupo de taxis.
+    Cada organización tiene sus propios conductores, carreras y configuración.
+    """
+    PLAN_CHOICES = [
+        ('owner', 'Propietario'),  # Plan especial para "De Aquí Pa'llá"
+        ('basic', 'Básico'),
+        ('standard', 'Estándar'),
+        ('premium', 'Premium'),
+        ('enterprise', 'Enterprise'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('trial', 'Prueba'),
+        ('active', 'Activo'),
+        ('suspended', 'Suspendido'),
+        ('canceled', 'Cancelado'),
+    ]
+    
+    # Información básica
+    name = models.CharField(
+        max_length=200,
+        help_text="Nombre de la cooperativa"
+    )
+    slug = models.SlugField(
+        unique=True,
+        help_text="URL única: deaquipalla.com/taxi-oro"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Descripción de la cooperativa"
+    )
+    
+    # Branding
+    logo = CloudinaryField(
+        'image',
+        folder='org_logos',
+        blank=True,
+        null=True,
+        help_text="Logo de la cooperativa"
+    )
+    primary_color = models.CharField(
+        max_length=7,
+        default='#FFD700',
+        help_text="Color primario en formato hexadecimal (#FFD700)"
+    )
+    secondary_color = models.CharField(
+        max_length=7,
+        default='#000000',
+        help_text="Color secundario en formato hexadecimal (#000000)"
+    )
+    
+    # Contacto
+    phone = models.CharField(max_length=20)
+    email = models.EmailField()
+    address = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, default='Ecuador')
+    
+    # Suscripción y facturación
+    plan = models.CharField(
+        max_length=20,
+        choices=PLAN_CHOICES,
+        default='basic'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='trial'
+    )
+    max_drivers = models.IntegerField(
+        default=10,
+        help_text="Número máximo de conductores permitidos"
+    )
+    monthly_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=29.00,
+        help_text="Tarifa mensual en USD"
+    )
+    commission_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        help_text="Porcentaje de comisión por carrera (0-100)"
+    )
+    
+    # Fechas importantes
+    trial_ends_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de fin del período de prueba"
+    )
+    subscription_starts_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de inicio de la suscripción"
+    )
+    subscription_ends_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de fin de la suscripción"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Admin de la cooperativa (se asignará después de crear AppUser)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_organizations',
+        null=True,  # Temporal para la migración
+        blank=True
+    )
+    
+    class Meta:
+        verbose_name = 'Organización'
+        verbose_name_plural = 'Organizaciones'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+    
+    def is_active(self):
+        """Verifica si la organización está activa"""
+        return self.status == 'active'
+    
+    def can_add_driver(self):
+        """Verifica si se pueden agregar más conductores"""
+        current_drivers = self.users.filter(role='driver').count()
+        return current_drivers < self.max_drivers
+    
+    def get_driver_count(self):
+        """Retorna el número de conductores activos"""
+        return self.users.filter(role='driver').count()
+    
+    def get_active_rides_count(self):
+        """Retorna el número de carreras activas"""
+        return self.rides.filter(status__in=['requested', 'accepted', 'in_progress']).count()
+    
+    def get_total_revenue(self):
+        """Retorna los ingresos totales de carreras completadas"""
+        from django.db.models import Sum
+        total = self.rides.filter(
+            status='completed',
+            price__isnull=False
+        ).aggregate(total=Sum('price'))['total']
+        return total or 0
+
+
 class AppUser(AbstractUser):
     ROLE_CHOICES = [
         ('customer', 'Cliente'),
         ('driver', 'Taxista'),
         ('admin', 'Administrador'),
     ]
+    
+    DRIVER_STATUS_CHOICES = [
+        ('pending', 'Pendiente de Aprobación'),
+        ('approved', 'Aprobado'),
+        ('suspended', 'Suspendido'),
+        ('rejected', 'Rechazado'),
+    ]
+    
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
     phone_number = models.CharField(max_length=15, default='', blank=True, null=True)  # Número de celular
     national_id = models.CharField(max_length=20, default='', blank=True, null=True)  # Número de cédula
@@ -25,12 +189,69 @@ class AppUser(AbstractUser):
     telegram_chat_id = models.CharField(max_length=255, null=True, blank=True)  # ID de Telegram para mensajes directos
     last_latitude = models.FloatField(null=True, blank=True)
     last_longitude = models.FloatField(null=True, blank=True)
+    
+    # ============================================
+    # CAMPOS MULTI-TENANT Y GESTIÓN DE CONDUCTORES
+    # ============================================
+    
+    # Organización a la que pertenece
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='users',
+        null=True,  # ⚠️ IMPORTANTE: null=True para migración segura
+        blank=True,
+        help_text="Cooperativa a la que pertenece el usuario"
+    )
+    
+    # Número de unidad del conductor (001, 002, 003, etc.)
+    driver_number = models.CharField(
+        max_length=10,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Número de unidad del conductor (ej: 001, 002, 003)"
+    )
+    
+    # Estado de aprobación del conductor
+    driver_status = models.CharField(
+        max_length=20,
+        choices=DRIVER_STATUS_CHOICES,
+        default='pending',
+        help_text="Estado de aprobación del conductor"
+    )
+    
+    # Fecha de aprobación
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha en que el conductor fue aprobado"
+    )
+    
+    # Admin que aprobó al conductor
+    approved_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='drivers_approved',
+        help_text="Administrador que aprobó al conductor"
+    )
+    
     def clean(self):
         if not self.first_name or not self.last_name:
             raise ValidationError('Los nombres completos (nombre y apellido) son obligatorios.')
 
     def __str__(self):
         return f'{self.get_full_name()} ({self.role})'  # Muestra el nombre completo y rol
+    
+    def is_active_driver(self):
+        """Verifica si el conductor está aprobado y activo"""
+        return self.role == 'driver' and self.driver_status == 'approved' and self.is_active
+    
+    def can_accept_rides(self):
+        """Verifica si el conductor puede aceptar carreras"""
+        return self.is_active_driver() and self.organization and self.organization.is_active()
 
 class Taxi(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -106,7 +327,30 @@ class Ride(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='requested')
     created_at = models.DateTimeField(auto_now_add=True)
-    notified = models.BooleanField(default=False)  # <-- Nuevo campo
+    notified = models.BooleanField(default=False)
+    
+    # ============================================
+    # CAMPOS MULTI-TENANT
+    # ============================================
+    
+    # Organización que gestiona esta carrera
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='rides',
+        null=True,  # ⚠️ IMPORTANTE: null=True para migración segura
+        blank=True,
+        help_text="Cooperativa que gestiona esta carrera"
+    )
+    
+    # Comisión cobrada por la plataforma
+    commission_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Comisión cobrada por la plataforma (calculada automáticamente)"
+    )
 
     def __str__(self):
         return f'Carrera de {self.customer.username} desde {self.origin} ({self.get_status_display()})'

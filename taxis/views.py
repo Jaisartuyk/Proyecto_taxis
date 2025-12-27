@@ -1317,6 +1317,17 @@ def ride_detail(request, ride_id):
                     Q(sender=other_user, recipient=request.user)
                 ).order_by('timestamp')
 
+        # Verificar si el usuario ya calificó este viaje
+        user_rating = None
+        has_rated = False
+        if ride.status == 'completed':
+            from .models import Rating
+            user_rating = Rating.objects.filter(
+                ride=ride,
+                rater=request.user
+            ).first()
+            has_rated = user_rating is not None
+        
         context = {
             'ride': ride,
             'client_lat': client_lat,
@@ -1330,6 +1341,8 @@ def ride_detail(request, ride_id):
             'chat_history': chat_history,
             'other_user_id': other_user_id,
             'other_user_name': other_user_name,
+            'has_rated': has_rated,
+            'user_rating': user_rating,
         }
 
         return render(request, 'ride_detail_modern.html', context)

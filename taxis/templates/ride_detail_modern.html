@@ -596,6 +596,22 @@
         </form>
         {% endif %}
         {% endif %}
+        
+        <!-- Botón de calificación para carreras completadas -->
+        {% if ride.status == 'completed' %}
+            {% if request.user == ride.customer or request.user == ride.driver %}
+                {% comment %}Verificar si ya calificó{% endcomment %}
+                {% if has_rated %}
+                    <div style="display: inline-block; margin-left: 10px; padding: 10px 20px; background: #f0f0f0; border-radius: 8px; color: #666;">
+                        ✅ Ya calificaste con {{ user_rating.rating }} estrellas
+                    </div>
+                {% else %}
+                    <a href="{% url 'rate_ride' ride.id %}" class="btn-action" style="background: #FFB800; margin-left: 10px;">
+                        ⭐ Calificar {% if request.user == ride.customer %}Conductor{% else %}Cliente{% endif %}
+                    </a>
+                {% endif %}
+            {% endif %}
+        {% endif %}
     </div>
 
     <!-- Chat Widget - Solo disponible cuando la carrera está aceptada o en progreso -->

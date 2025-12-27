@@ -1527,7 +1527,7 @@ function handleChatMessage(data) {
         }
         
         // Solo mostrar mensajes de otros usuarios (no los míos)
-        if (senderId == currentUser.id) {
+        if (window.currentUser && senderId == window.currentUser.id) {
             console.log('⏭️ Ignorando mensaje propio');
             return;
         }

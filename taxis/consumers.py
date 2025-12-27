@@ -5,41 +5,106 @@ from channels.layers import get_channel_layer
 
 class AudioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_group_name = 'audio_conductores'
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
-        print(f"✅ WebSocket conectado: {self.channel_name}")
+        # ✅ MULTI-TENANT: Obtener organización del usuario
+        self.user = self.scope['user']
+        
+        if self.user.is_authenticated:
+            # Obtener organization_id del usuario
+            organization_id = await self.get_user_organization()
+            
+            if organization_id:
+                # ✅ Grupo por organización: audio_org_1, audio_org_2, etc.
+                self.room_group_name = f'audio_org_{organization_id}'
+                await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+                await self.accept()
+                print(f"✅ WebSocket conectado: {self.channel_name} → Grupo: {self.room_group_name}")
+            else:
+                # Usuario sin organización, rechazar conexión
+                print(f"❌ Usuario {self.user.username} sin organización, rechazando conexión")
+                await self.close()
+        else:
+            # Usuario no autenticado, rechazar
+            print(f"❌ Usuario no autenticado, rechazando conexión")
+            await self.close()
+    
+    @database_sync_to_async
+    def get_user_organization(self):
+        """Obtener organization_id del usuario"""
+        try:
+            if hasattr(self.user, 'organization') and self.user.organization:
+                return self.user.organization.id
+            return None
+        except Exception as e:
+            print(f"Error obteniendo organización: {e}")
+            return None
 
     @database_sync_to_async
     def send_audio_push_to_drivers(self, sender_id):
-        """Send push notification to all drivers when admin sends audio"""
-        from taxis.push_notifications import send_push_to_all_drivers
+        """Send push notification to drivers of the same organization"""
+        from taxis.models import FCMToken
         from django.contrib.auth import get_user_model
+        import firebase_admin
+        from firebase_admin import messaging
+        
         User = get_user_model()
         try:
             sender = User.objects.get(id=sender_id)
             sender_name = sender.get_full_name() or "Central"
+            
+            # ✅ MULTI-TENANT: Solo enviar a conductores de la misma organización
+            if not sender.organization:
+                print(f"⚠️ Sender {sender_name} no tiene organización, no se envían notificaciones")
+                return
+            
+            # Obtener tokens FCM de conductores de la misma organización
+            driver_tokens = FCMToken.objects.filter(
+                user__role='driver',
+                user__organization=sender.organization,
+                is_active=True
+            ).values_list('token', flat=True)
+            
+            if not driver_tokens:
+                print(f"ℹ️ No hay conductores con FCM token en la organización {sender.organization.name}")
+                return
             
             # Datos específicos para audio walkie-talkie
             audio_data = {
                 "type": "walkie_talkie_audio",
                 "sender_id": str(sender_id),
                 "sender_name": sender_name,
-                "timestamp": int(__import__('time').time() * 1000),
-                "urgent": True,
-                "requires_immediate_attention": True,
+                "organization_id": str(sender.organization.id),
+                "timestamp": str(int(__import__('time').time() * 1000)),
+                "urgent": "true",
+                "requires_immediate_attention": "true",
                 "sound": "walkie_talkie",
-                "vibrate": [200, 100, 200],
                 "action": "open_audio_channel"
             }
             
-            # Notificación tipo walkie-talkie
-            send_push_to_all_drivers(
-                title=f"📻 {sender_name}",
-                body="🎤 Mensaje de audio - Toca para escuchar",
-                data=audio_data
-            )
-            print(f"📻 Push de audio walkie-talkie enviado por {sender_name}")
+            # Enviar notificación a cada token
+            success_count = 0
+            for token in driver_tokens:
+                try:
+                    message = messaging.Message(
+                        notification=messaging.Notification(
+                            title=f"📻 {sender_name}",
+                            body="🎤 Mensaje de audio - Toca para escuchar"
+                        ),
+                        data=audio_data,
+                        token=token,
+                        android=messaging.AndroidConfig(
+                            priority='high',
+                            notification=messaging.AndroidNotification(
+                                sound='default',
+                                channel_id='audio_channel'
+                            )
+                        )
+                    )
+                    messaging.send(message)
+                    success_count += 1
+                except Exception as e:
+                    print(f"Error enviando push a token {token[:20]}...: {e}")
+            
+            print(f"📻 Push de audio enviado por {sender_name} a {success_count} conductores de {sender.organization.name}")
         except Exception as e:
             print(f"Error sending walkie-talkie push notification: {e}")
 
@@ -349,6 +414,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print("Error: Falta recipient_id")
             return
 
+        # ✅ MULTI-TENANT: Validar que sender y recipient sean de la misma organización
+        sender_org_id = await self.get_user_organization_by_id(
+            int(self.target_user_id) if not self.user.is_authenticated else self.user.id
+        )
+        recipient_org_id = await self.get_user_organization_by_id(int(recipient_id))
+        
+        if sender_org_id != recipient_org_id:
+            print(f"❌ Chat bloqueado: sender org={sender_org_id}, recipient org={recipient_org_id}")
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'No puedes enviar mensajes a usuarios de otra cooperativa'
+            }))
+            return
+
         # Guardar mensaje en la base de datos
         # Determinar sender_id: usar self.user.id si está autenticado, sino usar target_user_id
         if self.user.is_authenticated:
@@ -540,4 +619,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"❌ Error general al enviar notificación push: {e}")
             import traceback
             traceback.print_exc()
+    
+    @database_sync_to_async
+    def get_user_organization_by_id(self, user_id):
+        """Obtener organization_id de un usuario por su ID"""
+        from .models import AppUser
+        try:
+            user = AppUser.objects.get(id=user_id)
+            if hasattr(user, 'organization') and user.organization:
+                return user.organization.id
+            return None
+        except AppUser.DoesNotExist:
+            print(f"❌ Usuario {user_id} no existe")
+            return None
+        except Exception as e:
+            print(f"Error obteniendo organización de usuario {user_id}: {e}")
+            return None
 

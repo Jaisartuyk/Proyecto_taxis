@@ -49,6 +49,7 @@ print("="*60 + "\n")
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
+from taxis.middleware import TokenAuthMiddlewareStack  # ✅ Middleware personalizado para tokens
 import taxis.routing
 
 # Initialize Django (esto cargará el settings configurado arriba)
@@ -58,7 +59,7 @@ print("[ASGI] ✅ Django application inicializado")
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
-    "websocket": AuthMiddlewareStack(
+    "websocket": TokenAuthMiddlewareStack(  # ✅ Usar TokenAuthMiddlewareStack en lugar de AuthMiddlewareStack
         URLRouter(
             taxis.routing.websocket_urlpatterns  # Aquí enlazamos las rutas de WebSocket de 'gestion'
         )

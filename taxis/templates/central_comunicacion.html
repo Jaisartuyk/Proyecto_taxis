@@ -1911,7 +1911,7 @@
     // Función global para inicializar el mapa
     window.initMap = function () {
         // Centro en Guayaquil, Ecuador
-        map = new google.maps.Map(document.getElementById('map'), {
+        window.map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: -2.1894, lng: -79.8890 },
             zoom: 13,
             styles: [
@@ -1955,7 +1955,7 @@
 
         // Agregar capa de tráfico (variable global para poder controlarla)
         window.trafficLayer = new google.maps.TrafficLayer();
-        window.trafficLayer.setMap(map);
+        window.trafficLayer.setMap(window.map);
         window.trafficEnabled = true;
 
         console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
@@ -2005,7 +2005,7 @@
                 console.log('📍 Creando nuevo marcador:', taxi.nombre);
                 const marker = new google.maps.Marker({
                     position: position,
-                    map: map,
+                    map: window.map,
                     title: taxi.nombre,
                     icon: {
                         url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
@@ -2079,6 +2079,14 @@
 // Función para activar/desactivar la capa de tráfico
 function toggleTraffic() {
     const button = document.getElementById('traffic-toggle');
+    
+    // Verificar que el mapa y la capa de tráfico existan
+    if (!window.trafficLayer || !window.map) {
+        console.error('❌ Mapa o capa de tráfico no inicializados');
+        alert('El mapa aún no está listo. Por favor espera unos segundos.');
+        return;
+    }
+    
     if (window.trafficEnabled) {
         // Desactivar tráfico
         window.trafficLayer.setMap(null);
@@ -2089,7 +2097,7 @@ function toggleTraffic() {
         console.log('🚦 Capa de tráfico desactivada');
     } else {
         // Activar tráfico
-        window.trafficLayer.setMap(map);
+        window.trafficLayer.setMap(window.map);
         window.trafficEnabled = true;
         button.textContent = '🚦 Tráfico: ON';
         button.style.borderColor = '#4CAF50';

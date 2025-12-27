@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     AppUser, Taxi, TaxiRoute, Ride, RideDestination,
     WhatsAppConversation, WhatsAppMessage, WhatsAppStats, WebPushSubscription,
-    FCMToken
+    FCMToken, Organization, Invoice
 )
 
 
@@ -292,6 +292,82 @@ class WebPushSubscriptionAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         # No permitir agregar manualmente
+        return False
+
+
+# ============================================
+# ADMIN DE ORGANIZATION (FASE 3)
+# ============================================
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'plan',
+        'commission_rate',
+        'max_drivers',
+        'is_active',
+        'created_at'
+    )
+    list_filter = ('plan', 'is_active', 'created_at')
+    search_fields = ('name', 'contact_email', 'contact_phone')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('name', 'logo', 'primary_color', 'secondary_color')
+        }),
+        ('Plan y Comisiones', {
+            'fields': ('plan', 'commission_rate', 'max_drivers', 'monthly_fee')
+        }),
+        ('Contacto', {
+            'fields': ('contact_email', 'contact_phone', 'address')
+        }),
+        ('Facturación', {
+            'fields': ('billing_address', 'tax_id', 'billing_email')
+        }),
+        ('Estado', {
+            'fields': ('is_active', 'created_at', 'updated_at')
+        }),
+    )
+
+
+# ============================================
+# ADMIN DE INVOICE (FASE 3)
+# ============================================
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        'invoice_number',
+        'organization',
+        'amount',
+        'status',
+        'issue_date',
+        'due_date',
+        'paid_date'
+    )
+    list_filter = ('status', 'issue_date', 'due_date')
+    search_fields = ('invoice_number', 'organization__name')
+    readonly_fields = ('invoice_number', 'created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Información de la Factura', {
+            'fields': ('invoice_number', 'organization', 'period_start', 'period_end')
+        }),
+        ('Montos', {
+            'fields': ('amount', 'tax_amount', 'total_amount')
+        }),
+        ('Fechas', {
+            'fields': ('issue_date', 'due_date', 'paid_date')
+        }),
+        ('Estado', {
+            'fields': ('status', 'notes', 'created_at', 'updated_at')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        # Las facturas se crean desde el panel personalizado
         return False
 
 

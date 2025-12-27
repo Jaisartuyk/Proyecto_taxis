@@ -57,6 +57,31 @@ print("[ASGI] Inicializando Django application...")
 django_asgi_app = get_asgi_application()
 print("[ASGI] ✅ Django application inicializado")
 
+# Forzar carga de URLs del panel admin
+print("\n[ASGI] Verificando URLs del panel admin...")
+try:
+    from django.urls import reverse
+    from django.conf import settings
+    
+    # Forzar importación de admin_views
+    from taxis import admin_views
+    print(f"[ASGI] ✅ admin_views importado: {admin_views}")
+    
+    # Intentar resolver URLs
+    admin_urls_test = ['admin_dashboard', 'admin_organizations']
+    for url_name in admin_urls_test:
+        try:
+            url = reverse(url_name)
+            print(f"[ASGI] ✅ {url_name} → {url}")
+        except Exception as e:
+            print(f"[ASGI] ❌ {url_name} → ERROR: {e}")
+    
+    print("[ASGI] ✅ Verificación de URLs completada")
+except Exception as e:
+    print(f"[ASGI] ⚠️  Error verificando URLs: {e}")
+    import traceback
+    traceback.print_exc()
+
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(  # ✅ Primero AuthMiddleware para sesiones

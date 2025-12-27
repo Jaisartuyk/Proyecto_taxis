@@ -2,19 +2,16 @@
 
 ## 📋 TAREAS CRÍTICAS
 
-### **4. Dashboard de Admin** ⏳
-- [ ] Distinguir entre super admin y admin de cooperativa
-- [ ] Filtrar datos por organización
-
 ### **5. WebSockets (CRÍTICO)** ✅
 - ✅ Agrupar audio por organización (audio_org_1, audio_org_2...)
 - ✅ Validar organización en ChatConsumer
 - ✅ Push notifications filtradas por organización
 - ✅ Rechazar conexiones sin organización
 
-### **6. Crear Carrera** ⏳
-- [ ] Asignar organización al crear carrera
-- [ ] Calcular comisión automáticamente
+### **6. Crear Carrera** ✅
+- ✅ Asignar organización al crear carrera (web y API)
+- ✅ Calcular comisión automáticamente
+- ✅ Filtrar RideViewSet por organización
 
 ---
 
@@ -42,12 +39,12 @@
 ## 📊 PROGRESO GENERAL
 
 - Fase 1: ✅ 100%
-- Fase 2: ⏳ 80% (4 de 5 tareas completadas)
+- **Fase 2: ✅ 100% (COMPLETADA)**
   - ✅ Carreras disponibles filtradas
   - ✅ Aceptar carrera validado
   - ✅ Dashboard conductor filtrado
   - ✅ WebSockets segregados
-  - ⏳ Crear carrera (asignar org)
+  - ✅ Crear carrera con organización y comisión
 
 ---
 

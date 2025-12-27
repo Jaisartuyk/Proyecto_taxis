@@ -1,0 +1,227 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Editar Cooperativa - Panel de Administración{% endblock %}
+{% block page_title %}Editar Cooperativa{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'admin_organizations' %}">Cooperativas</a></li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+    <h1>Editar Cooperativa</h1>
+    <p>Modifique la información de la cooperativa</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="table-card">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Información Básica -->
+                <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Información Básica</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre de la Cooperativa *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Slug (URL) *</label>
+                        {{ form.slug }}
+                        <small class="text-muted">Ej: taxi-oro, cooperativa-norte</small>
+                        {% if form.slug.errors %}
+                            <div class="text-danger small">{{ form.slug.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripción</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Branding -->
+                <h5 class="mb-3"><i class="fas fa-palette me-2"></i>Branding</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Logo</label>
+                        {{ form.logo }}
+                        {% if form.logo.errors %}
+                            <div class="text-danger small">{{ form.logo.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Color Primario</label>
+                        {{ form.primary_color }}
+                        {% if form.primary_color.errors %}
+                            <div class="text-danger small">{{ form.primary_color.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Color Secundario</label>
+                        {{ form.secondary_color }}
+                        {% if form.secondary_color.errors %}
+                            <div class="text-danger small">{{ form.secondary_color.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Mensaje de Bienvenida</label>
+                        {{ form.welcome_message }}
+                        {% if form.welcome_message.errors %}
+                            <div class="text-danger small">{{ form.welcome_message.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Contacto -->
+                <h5 class="mb-3"><i class="fas fa-address-book me-2"></i>Información de Contacto</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Teléfono *</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="text-danger small">{{ form.phone.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email *</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Ciudad *</label>
+                        {{ form.city }}
+                        {% if form.city.errors %}
+                            <div class="text-danger small">{{ form.city.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Dirección</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                            <div class="text-danger small">{{ form.address.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Plan y Configuración -->
+                <h5 class="mb-3"><i class="fas fa-cog me-2"></i>Plan y Configuración</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Plan *</label>
+                        {{ form.plan }}
+                        {% if form.plan.errors %}
+                            <div class="text-danger small">{{ form.plan.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Máximo de Conductores *</label>
+                        {{ form.max_drivers }}
+                        {% if form.max_drivers.errors %}
+                            <div class="text-danger small">{{ form.max_drivers.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tarifa Mensual (USD) *</label>
+                        {{ form.monthly_fee }}
+                        {% if form.monthly_fee.errors %}
+                            <div class="text-danger small">{{ form.monthly_fee.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Tasa de Comisión (%) *</label>
+                        {{ form.commission_rate }}
+                        <small class="text-muted">Porcentaje que se cobrará por cada carrera</small>
+                        {% if form.commission_rate.errors %}
+                            <div class="text-danger small">{{ form.commission_rate.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Facturación -->
+                <h5 class="mb-3"><i class="fas fa-file-invoice-dollar me-2"></i>Información de Facturación</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Email de Facturación</label>
+                        {{ form.billing_email }}
+                        {% if form.billing_email.errors %}
+                            <div class="text-danger small">{{ form.billing_email.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">RUC / ID Fiscal</label>
+                        {{ form.tax_id }}
+                        {% if form.tax_id.errors %}
+                            <div class="text-danger small">{{ form.tax_id.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Dirección de Facturación</label>
+                        {{ form.billing_address }}
+                        {% if form.billing_address.errors %}
+                            <div class="text-danger small">{{ form.billing_address.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'admin_organizations' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Actualizar Cooperativa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Sidebar de Ayuda -->
+    <div class="col-lg-4">
+        <div class="table-card">
+            <h5><i class="fas fa-question-circle me-2"></i>Ayuda</h5>
+            <div class="mt-3">
+                <h6>Planes Disponibles:</h6>
+                <ul class="small">
+                    <li><strong>Owner:</strong> $0/mes, 0% comisión, ilimitado</li>
+                    <li><strong>Basic:</strong> $99/mes, 5% comisión, 50 conductores</li>
+                    <li><strong>Premium:</strong> $299/mes, 3% comisión, 200 conductores</li>
+                    <li><strong>Enterprise:</strong> $999/mes, 1% comisión, ilimitado</li>
+                </ul>
+                
+                <h6 class="mt-3">Campos Requeridos:</h6>
+                <p class="small">Los campos marcados con (*) son obligatorios.</p>
+                
+                <h6 class="mt-3">Slug:</h6>
+                <p class="small">El slug se usa en la URL. Debe ser único y solo contener letras, números y guiones.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-generar slug desde el nombre
+    document.querySelector('[name="name"]').addEventListener('input', function(e) {
+        const slug = e.target.value
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        document.querySelector('[name="slug"]').value = slug;
+    });
+</script>
+{% endblock %}

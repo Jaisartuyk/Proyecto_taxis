@@ -2074,6 +2074,31 @@
 <!-- CACHE BUSTING: Timestamp dinámico para forzar recarga en cada despliegue -->
 <script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
 
+<!-- CONTROL DE CAPA DE TRÁFICO -->
+<script>
+// Función para activar/desactivar la capa de tráfico
+function toggleTraffic() {
+    const button = document.getElementById('traffic-toggle');
+    if (window.trafficEnabled) {
+        // Desactivar tráfico
+        window.trafficLayer.setMap(null);
+        window.trafficEnabled = false;
+        button.textContent = '🚦 Tráfico: OFF';
+        button.style.borderColor = '#9E9E9E';
+        button.style.color = '#9E9E9E';
+        console.log('🚦 Capa de tráfico desactivada');
+    } else {
+        // Activar tráfico
+        window.trafficLayer.setMap(map);
+        window.trafficEnabled = true;
+        button.textContent = '🚦 Tráfico: ON';
+        button.style.borderColor = '#4CAF50';
+        button.style.color = '#4CAF50';
+        console.log('🚦 Capa de tráfico activada');
+    }
+}
+</script>
+
 <!-- PARCHE CRÍTICO: Sobrescribir sendMessageToDriver con versión actualizada -->
 <script>
 console.log('🔧 PARCHE CRÍTICO: Sobrescribiendo sendMessageToDriver con soporte para archivos...');

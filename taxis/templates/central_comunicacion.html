@@ -2071,12 +2071,68 @@
 </script>
 -->
 <!-- FIN SCRIPT INLINE COMENTADO -->
-
-<!-- Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA (archivo presente en staticfiles) -->
 <!-- CACHE BUSTING: Timestamp dinámico para forzar recarga en cada despliegue -->
 <script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
 
-<!-- CONTROL DE CAPA DE TRÁFICO -->
+<!-- Funciones globales para controlar paneles -->
+<script>
+// Función para limpiar historial de audio
+window.clearHistory = function () {
+    console.log('🗑️ Limpiando historial...');
+    const audioLog = document.getElementById('audio-log');
+    if (audioLog) {
+        audioLog.innerHTML = '<div class="audio-log-empty">No hay comunicaciones de audio aún</div>';
+    }
+    // Mostrar notificación si la función existe
+    if (typeof showNotification === 'function') {
+        showNotification('🗑️ Historial limpiado', 'info');
+    }
+};
+
+// Función para mostrar/ocultar chat
+window.toggleChat = function () {
+    const chatWindow = document.querySelector('.chat-window');
+    const floatingBtn = document.getElementById('floating-chat-btn');
+
+    if (chatWindow && chatWindow.classList.contains('hidden')) {
+        chatWindow.classList.remove('hidden');
+        if (floatingBtn) floatingBtn.classList.remove('visible');
+        if (typeof showNotification === 'function') {
+            showNotification('💬 Chat activado', 'success');
+        }
+    } else if (chatWindow) {
+        chatWindow.classList.add('hidden');
+        if (floatingBtn) floatingBtn.classList.add('visible');
+        if (typeof showNotification === 'function') {
+            showNotification('💬 Chat oculto', 'info');
+        }
+    }
+};
+
+// Función para mostrar/ocultar registro de audio
+window.toggleAudioLog = function () {
+    const audioPanel = document.querySelector('.audio-log-panel');
+    const floatingBtn = document.getElementById('floating-audio-btn');
+
+    if (audioPanel && audioPanel.classList.contains('hidden')) {
+        audioPanel.classList.remove('hidden');
+        if (floatingBtn) floatingBtn.classList.remove('visible');
+        if (typeof showNotification === 'function') {
+            showNotification('📻 Registro de audio activado', 'success');
+        }
+    } else if (audioPanel) {
+        audioPanel.classList.add('hidden');
+        if (floatingBtn) floatingBtn.classList.add('visible');
+        if (typeof showNotification === 'function') {
+            showNotification('📻 Registro de audio oculto', 'info');
+        }
+    }
+};
+
+console.log('✅ Funciones globales cargadas: toggleChat, toggleAudioLog, clearHistory');
+</script>
+
+<!-- Función para activar/desactivar la capa de tráfico -->
 <script>
 // Función para activar/desactivar la capa de tráfico
 function toggleTraffic() {

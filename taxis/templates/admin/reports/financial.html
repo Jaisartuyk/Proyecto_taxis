@@ -1,0 +1,264 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Reportes Financieros - Panel de Administración{% endblock %}
+{% block page_title %}Reportes Financieros{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Reportes Financieros</li>
+        </ol>
+    </nav>
+    <h1>Reportes Financieros</h1>
+    <p>Análisis de ingresos y comisiones del sistema</p>
+</div>
+
+<!-- Filtros de Período -->
+<div class="table-card mb-4">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Período</label>
+            <select name="period" class="form-select">
+                <option value="week" {% if period == 'week' %}selected{% endif %}>Última semana</option>
+                <option value="month" {% if period == 'month' %}selected{% endif %}>Este mes</option>
+                <option value="year" {% if period == 'year' %}selected{% endif %}>Este año</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search me-2"></i>Generar Reporte
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Estadísticas Globales -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card primary">
+            <div class="icon">
+                <i class="fas fa-car"></i>
+            </div>
+            <h3>{{ total_rides }}</h3>
+            <p>Carreras Completadas</p>
+            <small class="text-muted">Desde {{ start_date|date:"d/m/Y" }}</small>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="stat-card success">
+            <div class="icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <h3>${{ total_revenue|floatformat:2 }}</h3>
+            <p>Ingresos Totales</p>
+            <small class="text-muted">Suma de todas las carreras</small>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="stat-card warning">
+            <div class="icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <h3>${{ total_commission|floatformat:2 }}</h3>
+            <p>Comisiones Generadas</p>
+            <small class="text-muted">Ingresos del sistema</small>
+        </div>
+    </div>
+</div>
+
+<!-- Reporte por Cooperativa -->
+<div class="table-card">
+    <h5 class="mb-3"><i class="fas fa-building me-2"></i>Desglose por Cooperativa</h5>
+    
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Cooperativa</th>
+                    <th>Plan</th>
+                    <th>Carreras</th>
+                    <th>Ingresos</th>
+                    <th>Comisión (%)</th>
+                    <th>Comisión ($)</th>
+                    <th>Ganancia Neta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in by_organization %}
+                <tr>
+                    <td>
+                        <strong>{{ org.name }}</strong><br>
+                        <small class="text-muted">{{ org.city }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">{{ org.get_plan_display }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">{{ org.rides_count|default:0 }}</span>
+                    </td>
+                    <td>
+                        <strong>${{ org.revenue|default:0|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        {{ org.commission_rate }}%
+                    </td>
+                    <td>
+                        <strong class="text-success">${{ org.commission|default:0|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        {% widthratio org.revenue 1 1 as revenue_float %}
+                        {% widthratio org.commission 1 1 as commission_float %}
+                        ${{ org.revenue|default:0|floatformat:2|add:"-"|add:org.commission|default:0|floatformat:2 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No hay datos para el período seleccionado
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <th colspan="2">TOTALES</th>
+                    <th><span class="badge bg-primary">{{ total_rides }}</span></th>
+                    <th><strong>${{ total_revenue|floatformat:2 }}</strong></th>
+                    <th>-</th>
+                    <th><strong class="text-success">${{ total_commission|floatformat:2 }}</strong></th>
+                    <th>
+                        {% widthratio total_revenue 1 1 as total_rev %}
+                        {% widthratio total_commission 1 1 as total_com %}
+                        <strong>${{ total_revenue|floatformat:2|add:"-"|add:total_commission|floatformat:2 }}</strong>
+                    </th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Gráfico de Ingresos (Placeholder para Chart.js) -->
+<div class="row g-4 mt-4">
+    <div class="col-md-6">
+        <div class="table-card">
+            <h5 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Ingresos por Cooperativa</h5>
+            <canvas id="revenueChart" height="200"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="table-card">
+            <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Distribución de Comisiones</h5>
+            <canvas id="commissionChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Botones de Acción -->
+<div class="table-card mt-4">
+    <div class="d-flex justify-content-between">
+        <button class="btn btn-secondary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Imprimir Reporte
+        </button>
+        <button class="btn btn-success" onclick="exportToExcel()">
+            <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Datos para gráficos
+const organizationNames = [
+    {% for org in by_organization %}'{{ org.name }}',{% endfor %}
+];
+
+const revenueData = [
+    {% for org in by_organization %}{{ org.revenue|default:0 }},{% endfor %}
+];
+
+const commissionData = [
+    {% for org in by_organization %}{{ org.commission|default:0 }},{% endfor %}
+];
+
+// Gráfico de Ingresos
+const revenueCtx = document.getElementById('revenueChart');
+if (revenueCtx) {
+    new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+            labels: organizationNames,
+            datasets: [{
+                label: 'Ingresos ($)',
+                data: revenueData,
+                backgroundColor: 'rgba(40, 167, 69, 0.5)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Gráfico de Comisiones
+const commissionCtx = document.getElementById('commissionChart');
+if (commissionCtx) {
+    new Chart(commissionCtx, {
+        type: 'pie',
+        data: {
+            labels: organizationNames,
+            datasets: [{
+                data: commissionData,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(153, 102, 255, 0.5)',
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': $' + context.parsed.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Función para exportar a Excel (placeholder)
+function exportToExcel() {
+    alert('Funcionalidad de exportación en desarrollo');
+    // Aquí se implementaría la exportación real
+}
+</script>
+{% endblock %}

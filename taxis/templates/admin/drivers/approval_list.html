@@ -1,0 +1,241 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Conductores Pendientes - Panel de Administración{% endblock %}
+{% block page_title %}Aprobación de Conductores{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Conductores</li>
+        </ol>
+    </nav>
+    <h1>Gestión de Conductores</h1>
+    <p>Aprobar o rechazar solicitudes de conductores</p>
+</div>
+
+<!-- Filtros -->
+<div class="table-card mb-4">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <select name="status" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pendientes</option>
+                <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Aprobados</option>
+                <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rechazados</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-2"></i>Filtrar
+            </button>
+            <a href="{% url 'admin_drivers_pending' %}" class="btn btn-secondary">
+                <i class="fas fa-redo me-2"></i>Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Estadísticas Rápidas -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card warning">
+            <div class="icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3>{{ drivers|length }}</h3>
+            <p>Total en esta vista</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Conductores -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Conductor</th>
+                    <th>Cooperativa</th>
+                    <th>Contacto</th>
+                    <th>Documento</th>
+                    <th>Estado</th>
+                    <th>Fecha Registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for driver in drivers %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% if driver.profile_picture %}
+                                <img src="{{ driver.profile_picture.url }}" alt="{{ driver.get_full_name }}" 
+                                     class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px; background: #007bff; color: white;">
+                                    {{ driver.first_name|slice:":1" }}{{ driver.last_name|slice:":1" }}
+                                </div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ driver.get_full_name }}</strong><br>
+                                <small class="text-muted">@{{ driver.username }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if driver.organization %}
+                            <span class="badge bg-info">{{ driver.organization.name }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Sin asignar</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <i class="fas fa-envelope me-1"></i>{{ driver.email }}<br>
+                        <i class="fas fa-phone me-1"></i>{{ driver.phone_number|default:"-" }}
+                    </td>
+                    <td>{{ driver.national_id|default:"-" }}</td>
+                    <td>
+                        {% if driver.driver_status == 'pending' %}
+                            <span class="badge bg-warning">Pendiente</span>
+                        {% elif driver.driver_status == 'approved' %}
+                            <span class="badge bg-success">Aprobado</span>
+                            {% if driver.driver_number %}
+                                <br><small class="text-muted">Unidad: {{ driver.driver_number }}</small>
+                            {% endif %}
+                        {% elif driver.driver_status == 'rejected' %}
+                            <span class="badge bg-danger">Rechazado</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ driver.get_driver_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ driver.date_joined|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if driver.driver_status == 'pending' %}
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-success" 
+                                        data-bs-toggle="modal" data-bs-target="#approveModal{{ driver.pk }}" title="Aprobar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#rejectModal{{ driver.pk }}" title="Rechazar">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                
+                <!-- Modal Aprobar -->
+                <div class="modal fade" id="approveModal{{ driver.pk }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">Aprobar Conductor</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="post" action="{% url 'admin_driver_approve' driver.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    <p>¿Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor?</p>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Número de Unidad *</label>
+                                        <input type="text" name="driver_number" class="form-control" 
+                                               placeholder="Ej: 101, A-25, etc." required>
+                                        <small class="text-muted">Identificador único del vehículo</small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Notas de aprobación</label>
+                                        <textarea name="approval_notes" class="form-control" rows="3" 
+                                                  placeholder="Observaciones opcionales..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-2"></i>Aprobar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Rechazar -->
+                <div class="modal fade" id="rejectModal{{ driver.pk }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">Rechazar Conductor</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="post" action="{% url 'admin_driver_reject' driver.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    <p>¿Rechazar la solicitud de <strong>{{ driver.get_full_name }}</strong>?</p>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Razón del rechazo *</label>
+                                        <textarea name="reason" class="form-control" rows="3" 
+                                                  placeholder="Explique por qué se rechaza..." required></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-times me-2"></i>Rechazar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="fas fa-user-check fa-3x mb-3 d-block"></i>
+                        No hay conductores en este estado
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Primera</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Anterior</a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Siguiente</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Última</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Crear Factura - Panel de Administración{% endblock %}
+{% block page_title %}Crear Nueva Factura{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'admin_invoices' %}">Facturas</a></li>
+            <li class="breadcrumb-item active">Crear</li>
+        </ol>
+    </nav>
+    <h1>Crear Nueva Factura</h1>
+    <p>Generar factura para una cooperativa</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="table-card">
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Cooperativa -->
+                <h5 class="mb-3"><i class="fas fa-building me-2"></i>Cooperativa</h5>
+                <div class="mb-4">
+                    <label class="form-label">Seleccionar Cooperativa *</label>
+                    {{ form.organization }}
+                    {% if form.organization.errors %}
+                        <div class="text-danger small">{{ form.organization.errors }}</div>
+                    {% endif %}
+                    <small class="text-muted">La factura se generará para esta cooperativa</small>
+                </div>
+
+                <!-- Período -->
+                <h5 class="mb-3"><i class="fas fa-calendar me-2"></i>Período Facturado</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha Inicio *</label>
+                        {{ form.period_start }}
+                        {% if form.period_start.errors %}
+                            <div class="text-danger small">{{ form.period_start.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha Fin *</label>
+                        {{ form.period_end }}
+                        {% if form.period_end.errors %}
+                            <div class="text-danger small">{{ form.period_end.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Montos -->
+                <h5 class="mb-3"><i class="fas fa-dollar-sign me-2"></i>Montos</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Tarifa de Suscripción (USD) *</label>
+                        {{ form.subscription_fee }}
+                        <small class="text-muted">Tarifa mensual del plan</small>
+                        {% if form.subscription_fee.errors %}
+                            <div class="text-danger small">{{ form.subscription_fee.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Comisiones del Período (USD) *</label>
+                        {{ form.commission_amount }}
+                        <small class="text-muted">Comisiones generadas en el período</small>
+                        {% if form.commission_amount.errors %}
+                            <div class="text-danger small">{{ form.commission_amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Total a facturar:</strong> Se calculará automáticamente como la suma de la suscripción + comisiones
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vencimiento -->
+                <h5 class="mb-3"><i class="fas fa-clock me-2"></i>Vencimiento</h5>
+                <div class="mb-4">
+                    <label class="form-label">Fecha de Vencimiento *</label>
+                    {{ form.due_date }}
+                    <small class="text-muted">Fecha límite para el pago</small>
+                    {% if form.due_date.errors %}
+                        <div class="text-danger small">{{ form.due_date.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Notas -->
+                <h5 class="mb-3"><i class="fas fa-sticky-note me-2"></i>Notas</h5>
+                <div class="mb-4">
+                    <label class="form-label">Notas Adicionales</label>
+                    {{ form.notes }}
+                    <small class="text-muted">Información adicional para la factura (opcional)</small>
+                    {% if form.notes.errors %}
+                        <div class="text-danger small">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Botones -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'admin_invoices' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Crear Factura
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Sidebar de Ayuda -->
+    <div class="col-lg-4">
+        <div class="table-card">
+            <h5><i class="fas fa-question-circle me-2"></i>Ayuda</h5>
+            <div class="mt-3">
+                <h6>Número de Factura:</h6>
+                <p class="small">Se generará automáticamente con el formato: <code>INV-2025-0001</code></p>
+                
+                <h6 class="mt-3">Cálculo del Total:</h6>
+                <p class="small">Total = Suscripción + Comisiones</p>
+                
+                <h6 class="mt-3">Estado Inicial:</h6>
+                <p class="small">La factura se creará con estado "Pendiente"</p>
+                
+                <h6 class="mt-3">Fecha de Emisión:</h6>
+                <p class="small">Se establecerá automáticamente a la fecha actual</p>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Importante:</strong> Verifica los montos antes de crear la factura.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calculadora Rápida -->
+        <div class="table-card mt-3">
+            <h5><i class="fas fa-calculator me-2"></i>Calculadora</h5>
+            <div class="mt-3">
+                <div class="mb-2">
+                    <label class="form-label small">Suscripción:</label>
+                    <input type="number" id="calc_subscription" class="form-control form-control-sm" 
+                           placeholder="0.00" step="0.01">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Comisiones:</label>
+                    <input type="number" id="calc_commission" class="form-control form-control-sm" 
+                           placeholder="0.00" step="0.01">
+                </div>
+                <hr>
+                <div>
+                    <strong>Total:</strong>
+                    <span id="calc_total" class="float-end">$0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Calculadora rápida
+document.getElementById('calc_subscription').addEventListener('input', calculateTotal);
+document.getElementById('calc_commission').addEventListener('input', calculateTotal);
+
+function calculateTotal() {
+    const subscription = parseFloat(document.getElementById('calc_subscription').value) || 0;
+    const commission = parseFloat(document.getElementById('calc_commission').value) || 0;
+    const total = subscription + commission;
+    document.getElementById('calc_total').textContent = '$' + total.toFixed(2);
+}
+
+// Auto-completar fecha de vencimiento (30 días desde hoy)
+const dueDateInput = document.querySelector('[name="due_date"]');
+if (dueDateInput && !dueDateInput.value) {
+    const today = new Date();
+    const dueDate = new Date(today.setDate(today.getDate() + 30));
+    const year = dueDate.getFullYear();
+    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const day = String(dueDate.getDate()).padStart(2, '0');
+    dueDateInput.value = `${year}-${month}-${day}`;
+}
+</script>
+{% endblock %}

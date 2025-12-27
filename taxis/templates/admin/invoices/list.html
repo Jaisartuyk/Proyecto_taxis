@@ -1,0 +1,166 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Facturas - Panel de Administración{% endblock %}
+{% block page_title %}Gestión de Facturas{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Facturas</li>
+            </ol>
+        </nav>
+        <h1>Gestión de Facturas</h1>
+        <p>Administra las facturas de todas las cooperativas</p>
+    </div>
+    <div>
+        <a href="{% url 'admin_invoice_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nueva Factura
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="table-card mb-4">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <select name="status" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pendientes</option>
+                <option value="paid" {% if request.GET.status == 'paid' %}selected{% endif %}>Pagadas</option>
+                <option value="overdue" {% if request.GET.status == 'overdue' %}selected{% endif %}>Vencidas</option>
+                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Canceladas</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-2"></i>Filtrar
+            </button>
+            <a href="{% url 'admin_invoices' %}" class="btn btn-secondary">
+                <i class="fas fa-redo me-2"></i>Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla de Facturas -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Cooperativa</th>
+                    <th>Período</th>
+                    <th>Suscripción</th>
+                    <th>Comisión</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                    <th>Vencimiento</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>
+                        <strong>{{ invoice.invoice_number }}</strong><br>
+                        <small class="text-muted">{{ invoice.issued_at|date:"d/m/Y" }}</small>
+                    </td>
+                    <td>
+                        <strong>{{ invoice.organization.name }}</strong><br>
+                        <small class="text-muted">{{ invoice.organization.get_plan_display }}</small>
+                    </td>
+                    <td>
+                        {{ invoice.period_start|date:"d/m/Y" }}<br>
+                        <small class="text-muted">al {{ invoice.period_end|date:"d/m/Y" }}</small>
+                    </td>
+                    <td>${{ invoice.subscription_fee|floatformat:2 }}</td>
+                    <td>${{ invoice.commission_amount|floatformat:2 }}</td>
+                    <td>
+                        <strong>${{ invoice.total_amount|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        {% if invoice.status == 'pending' %}
+                            <span class="badge bg-warning">Pendiente</span>
+                        {% elif invoice.status == 'paid' %}
+                            <span class="badge bg-success">Pagada</span>
+                            {% if invoice.paid_at %}
+                                <br><small class="text-muted">{{ invoice.paid_at|date:"d/m/Y" }}</small>
+                            {% endif %}
+                        {% elif invoice.status == 'overdue' %}
+                            <span class="badge bg-danger">Vencida</span>
+                        {% elif invoice.status == 'cancelled' %}
+                            <span class="badge bg-secondary">Cancelada</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ invoice.due_date|date:"d/m/Y" }}
+                        {% if invoice.is_overdue and invoice.status == 'pending' %}
+                            <br><span class="badge bg-danger">Vencida</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            {% if invoice.status == 'pending' %}
+                                <form method="post" action="{% url 'admin_invoice_mark_paid' invoice.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Marcar como pagada">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                            {% if invoice.pdf_file %}
+                                <a href="{{ invoice.pdf_file.url }}" class="btn btn-sm btn-primary" 
+                                   target="_blank" title="Ver PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-5">
+                        <i class="fas fa-file-invoice-dollar fa-3x mb-3 d-block"></i>
+                        No hay facturas registradas
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Primera</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Anterior</a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Siguiente</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Última</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+{% endblock %}

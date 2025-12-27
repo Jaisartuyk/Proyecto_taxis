@@ -1,0 +1,74 @@
+
+
+# ============================================
+# FORMULARIOS FASE 3: PANEL DE ADMINISTRACIÓN
+# ============================================
+
+from .models import Organization, Invoice
+
+class OrganizationForm(forms.ModelForm):
+    """Formulario para crear/editar cooperativas"""
+    class Meta:
+        model = Organization
+        fields = [
+            'name', 'slug', 'description',
+            'logo', 'primary_color', 'secondary_color',
+            'phone', 'email', 'address', 'city',
+            'plan', 'max_drivers', 'monthly_fee', 'commission_rate',
+            'billing_email', 'billing_address', 'tax_id',
+            'welcome_message'
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'billing_address': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'welcome_message': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'primary_color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control'}),
+            'secondary_color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'slug': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'plan': forms.Select(attrs={'class': 'form-control'}),
+            'max_drivers': forms.NumberInput(attrs={'class': 'form-control'}),
+            'monthly_fee': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'commission_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'billing_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'tax_id': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+class DriverApprovalForm(forms.ModelForm):
+    """Formulario para aprobar/rechazar conductores"""
+    approval_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        required=False,
+        label="Notas de aprobación"
+    )
+    
+    class Meta:
+        model = AppUser
+        fields = ['driver_status', 'driver_number']
+        widgets = {
+            'driver_status': forms.Select(attrs={'class': 'form-control'}),
+            'driver_number': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+class InvoiceForm(forms.ModelForm):
+    """Formulario para crear facturas"""
+    class Meta:
+        model = Invoice
+        fields = [
+            'organization', 'period_start', 'period_end',
+            'subscription_fee', 'commission_amount',
+            'due_date', 'notes'
+        ]
+        widgets = {
+            'organization': forms.Select(attrs={'class': 'form-control'}),
+            'period_start': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'period_end': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'subscription_fee': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'commission_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }

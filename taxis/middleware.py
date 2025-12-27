@@ -1,18 +1,22 @@
 """
-Middleware para autenticación de WebSockets con Token
+Middleware para autenticación de WebSockets con Token y Sesiones
 """
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
+from channels.auth import AuthMiddlewareStack
 from urllib.parse import parse_qs
 
 
 class TokenAuthMiddleware(BaseMiddleware):
     """
-    Middleware para autenticar WebSockets usando Token de DRF
+    Middleware para autenticar WebSockets usando:
+    1. Token de DRF (para apps móviles)
+    2. Sesiones de Django (para web)
     
     Busca el token en:
     1. Query string: ?token=xxxxx
     2. Headers: Authorization: Token xxxxx
+    3. Sesión de Django (fallback para web)
     """
     
     async def __call__(self, scope, receive, send):
@@ -29,15 +33,36 @@ class TokenAuthMiddleware(BaseMiddleware):
             if auth_header.startswith('Token '):
                 token_key = auth_header.split(' ')[1]
         
-        # Autenticar usuario con el token
+        # Si hay token, autenticar con token
         if token_key:
             scope['user'] = await self.get_user_from_token(token_key)
+        # Si no hay token, intentar con sesión de Django (para web)
+        elif 'session' in scope:
+            # Usar AuthMiddleware de Channels para sesiones
+            scope['user'] = await self.get_user_from_session(scope)
         else:
-            # Importar aquí para evitar AppRegistryNotReady
+            # Sin token ni sesión
             from django.contrib.auth.models import AnonymousUser
             scope['user'] = AnonymousUser()
         
         return await super().__call__(scope, receive, send)
+    
+    @database_sync_to_async
+    def get_user_from_session(self, scope):
+        """Obtener usuario desde la sesión de Django"""
+        from django.contrib.auth.models import AnonymousUser
+        from channels.auth import _get_user_session_key
+        
+        try:
+            session_key = _get_user_session_key(scope.get('session', {}))
+            if session_key:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                return User.objects.get(pk=session_key)
+        except Exception as e:
+            print(f"⚠️ Error obteniendo usuario de sesión: {e}")
+        
+        return AnonymousUser()
     
     @database_sync_to_async
     def get_user_from_token(self, token_key):

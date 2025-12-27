@@ -433,11 +433,17 @@ def available_rides_view(request):
                 'error': 'Token inválido'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        # Obtener carreras solicitadas (sin conductor asignado)
-        rides = Ride.objects.filter(
-            status='requested',
-            driver__isnull=True
-        ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
+        # ✅ MULTI-TENANT: Filtrar por organización
+        if user.organization:
+            # Conductor ve solo carreras de su organización
+            rides = Ride.objects.filter(
+                status='requested',
+                driver__isnull=True,
+                organization=user.organization
+            ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
+        else:
+            # Usuario sin organización no ve nada
+            rides = Ride.objects.none()
         
         rides_data = []
         for ride in rides:
@@ -599,6 +605,18 @@ def accept_ride_view(request, ride_id):
                 'error': 'Solo conductores pueden aceptar carreras'
             }, status=status.HTTP_403_FORBIDDEN)
         
+        # ✅ VALIDAR: Conductor debe estar aprobado
+        if not user.is_active_driver():
+            return Response({
+                'error': 'Tu cuenta debe estar aprobada para aceptar carreras. Contacta al administrador.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # ✅ VALIDAR: Conductor debe tener organización
+        if not user.organization:
+            return Response({
+                'error': 'No tienes una organización asignada. Contacta al administrador.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         # Obtener la carrera
         try:
             ride = Ride.objects.get(id=ride_id, status='requested', driver__isnull=True)
@@ -606,6 +624,12 @@ def accept_ride_view(request, ride_id):
             return Response({
                 'error': 'Carrera no disponible'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+        # ✅ VALIDAR: Carrera debe ser de la misma organización
+        if ride.organization and ride.organization != user.organization:
+            return Response({
+                'error': 'No puedes aceptar carreras de otra cooperativa'
+            }, status=status.HTTP_403_FORBIDDEN)
         
         # Asignar conductor y cambiar estado
         ride.driver = user

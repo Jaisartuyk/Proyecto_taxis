@@ -220,11 +220,17 @@ def driver_dashboard(request):
     except Taxi.DoesNotExist:
         taxi = None
     
+    # ✅ MULTI-TENANT: Base queryset filtrado por organización
+    if request.user.organization:
+        rides_queryset = Ride.objects.filter(organization=request.user.organization)
+    else:
+        rides_queryset = Ride.objects.none()
+    
     # Obtener estadísticas del conductor
-    total_rides = Ride.objects.filter(driver=request.user).count()
-    completed_rides = Ride.objects.filter(driver=request.user, status='completed').count()
-    canceled_rides = Ride.objects.filter(driver=request.user, status='canceled').count()
-    active_rides_count = Ride.objects.filter(
+    total_rides = rides_queryset.filter(driver=request.user).count()
+    completed_rides = rides_queryset.filter(driver=request.user, status='completed').count()
+    canceled_rides = rides_queryset.filter(driver=request.user, status='canceled').count()
+    active_rides_count = rides_queryset.filter(
         driver=request.user, 
         status__in=['accepted', 'in_progress']
     ).count()
@@ -234,7 +240,7 @@ def driver_dashboard(request):
     today = now().date()
     
     # Ganancias del día
-    today_earnings = Ride.objects.filter(
+    today_earnings = rides_queryset.filter(
         driver=request.user, 
         status='completed',
         created_at__date=today,
@@ -242,7 +248,7 @@ def driver_dashboard(request):
     ).aggregate(total=Sum('price'))['total'] or 0
     
     # Ganancias del mes
-    month_earnings = Ride.objects.filter(
+    month_earnings = rides_queryset.filter(
         driver=request.user, 
         status='completed',
         created_at__year=today.year,
@@ -251,33 +257,33 @@ def driver_dashboard(request):
     ).aggregate(total=Sum('price'))['total'] or 0
     
     # Ganancias totales
-    total_earnings = Ride.objects.filter(
+    total_earnings = rides_queryset.filter(
         driver=request.user, 
         status='completed',
         price__isnull=False
     ).aggregate(total=Sum('price'))['total'] or 0
     
     # Carreras de hoy
-    today_rides_count = Ride.objects.filter(
+    today_rides_count = rides_queryset.filter(
         driver=request.user, 
         status='completed',
         created_at__date=today
     ).count()
     
-    # Obtener carreras disponibles (sin conductor asignado)
-    available_rides_list = Ride.objects.filter(
+    # ✅ Obtener carreras disponibles (sin conductor asignado, de su organización)
+    available_rides_list = rides_queryset.filter(
         status='requested',
         driver__isnull=True
     ).select_related('customer').order_by('-created_at')[:10]
     
     # Obtener carreras activas del conductor
-    active_rides_list = Ride.objects.filter(
+    active_rides_list = rides_queryset.filter(
         driver=request.user,
         status__in=['accepted', 'in_progress']
     ).select_related('customer').prefetch_related('destinations').order_by('-created_at')
     
     # Obtener últimas carreras completadas
-    recent_completed = Ride.objects.filter(
+    recent_completed = rides_queryset.filter(
         driver=request.user,
         status='completed'
     ).select_related('customer').order_by('-created_at')[:5]
@@ -1142,8 +1148,19 @@ def available_rides(request):
     if not request.user.is_superuser and request.user.role != 'driver':
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
 
-    # Obtener las solicitudes de taxi
-    rides = Ride.objects.filter(status='requested').order_by('created_at')
+    # ✅ MULTI-TENANT: Filtrar por organización
+    if request.user.is_superuser:
+        # Super admin ve todas las carreras
+        rides = Ride.objects.filter(status='requested').order_by('created_at')
+    elif request.user.organization:
+        # Conductor ve solo carreras de su organización
+        rides = Ride.objects.filter(
+            status='requested',
+            organization=request.user.organization
+        ).order_by('created_at')
+    else:
+        # Usuario sin organización no ve nada
+        rides = Ride.objects.none()
 
     # Si es un POST, es para actualizar el precio
     if request.method == 'POST':

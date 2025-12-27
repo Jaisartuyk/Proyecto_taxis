@@ -284,6 +284,90 @@ if __name__ == "__main__":
                 print("\n[WARNING] Algunos archivos no se copiaron correctamente")
                 print("[INFO] Esto puede deberse a archivos duplicados en STATICFILES_DIRS")
             
+            # Verificar panel de administración
+            print("\n" + "="*60)
+            print("🔍 VERIFICANDO PANEL DE ADMINISTRACIÓN")
+            print("="*60 + "\n")
+            
+            try:
+                from django.urls import reverse
+                from django.contrib.auth import get_user_model
+                
+                # Verificar URLs del panel admin
+                admin_urls = [
+                    'admin_dashboard',
+                    'admin_organizations',
+                    'admin_drivers_pending',
+                    'admin_reports_financial',
+                    'admin_invoices',
+                ]
+                
+                print("[INFO] Verificando URLs del panel admin...")
+                urls_ok = True
+                for url_name in admin_urls:
+                    try:
+                        url = reverse(url_name)
+                        print(f"  ✅ {url_name:30} → {url}")
+                    except Exception as e:
+                        print(f"  ❌ {url_name:30} → ERROR: {e}")
+                        urls_ok = False
+                
+                if urls_ok:
+                    print("\n[OK] Todas las URLs del panel admin están configuradas")
+                else:
+                    print("\n[WARNING] Algunas URLs del panel admin tienen problemas")
+                
+                # Verificar superusuarios
+                print("\n[INFO] Verificando superusuarios...")
+                User = get_user_model()
+                superusers = User.objects.filter(is_superuser=True)
+                if superusers.exists():
+                    print(f"  ✅ Encontrados {superusers.count()} superusuario(s):")
+                    for user in superusers:
+                        print(f"     - {user.username} ({user.email})")
+                else:
+                    print("  ⚠️  No hay superusuarios creados")
+                    print("     Crea uno con: railway run python manage.py createsuperuser")
+                
+                # Verificar templates
+                print("\n[INFO] Verificando templates del panel admin...")
+                templates_to_check = [
+                    'admin/base_admin.html',
+                    'admin/dashboard.html',
+                    'admin/organizations/list.html',
+                ]
+                
+                templates_ok = True
+                for template_path in templates_to_check:
+                    template_file = os.path.join(settings.BASE_DIR, 'taxis', 'templates', template_path)
+                    if os.path.exists(template_file):
+                        print(f"  ✅ {template_path}")
+                    else:
+                        print(f"  ❌ {template_path} - NO ENCONTRADO")
+                        templates_ok = False
+                
+                if templates_ok:
+                    print("\n[OK] Templates del panel admin verificados")
+                else:
+                    print("\n[WARNING] Algunos templates del panel admin faltan")
+                
+                print("\n" + "="*60)
+                print("📊 RESUMEN DE VERIFICACIÓN:")
+                print("="*60)
+                print(f"  URLs del panel:    {'✅ OK' if urls_ok else '❌ ERROR'}")
+                print(f"  Superusuarios:     {'✅ OK' if superusers.exists() else '⚠️  FALTA CREAR'}")
+                print(f"  Templates:         {'✅ OK' if templates_ok else '❌ ERROR'}")
+                print("="*60)
+                
+                if urls_ok and templates_ok:
+                    print("\n🎉 Panel de administración listo en:")
+                    print("   https://taxis-deaquipalla.up.railway.app/admin/dashboard/")
+                
+            except Exception as verify_error:
+                print(f"\n[WARNING] Error verificando panel admin: {verify_error}")
+                import traceback
+                traceback.print_exc()
+            
             print("\n" + "="*60)
             print("✅ PRE-DEPLOY COMPLETADO EXITOSAMENTE")
             print("="*60 + "\n")

@@ -105,7 +105,11 @@ urlpatterns = [
     # ============================================
     # PANEL DE ADMINISTRACIÓN (FASE 3)
     # ============================================
-    path('admin/dashboard/', admin_views.SuperAdminDashboardView.as_view(), name='admin_dashboard'),
+    # Super Admin (gestiona todas las cooperativas)
+    path('superadmin/dashboard/', admin_views.SuperAdminDashboardView.as_view(), name='superadmin_dashboard'),
+    
+    # Admin de Cooperativa (gestiona su propia cooperativa)
+    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     
     # Cooperativas
     path('admin/organizations/', admin_views.OrganizationListView.as_view(), name='admin_organizations'),

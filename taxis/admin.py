@@ -12,12 +12,11 @@ class AppUserAdmin(UserAdmin):
     # Mostrar en la lista del panel
     list_display = (
         'username', 'first_name', 'last_name', 'email',
-        'role', 'is_active', 'is_staff', 'telegram_chat_id',
-        'last_latitude', 'last_longitude'
+        'role', 'organization', 'is_active', 'is_staff'
     )
 
     # Filtros laterales
-    list_filter = ('role', 'is_active', 'is_staff')
+    list_filter = ('role', 'organization', 'is_active', 'is_staff')
 
     # Campos buscables
     search_fields = (
@@ -39,14 +38,18 @@ class AppUserAdmin(UserAdmin):
                 'telegram_chat_id', 'last_latitude', 'last_longitude'
             )
         }),
+        ('Organización y Rol', {
+            'fields': ('organization', 'role')
+        }),
+        ('Conductor (solo si role=driver)', {
+            'fields': ('driver_number', 'driver_status', 'approved_at', 'approved_by'),
+            'classes': ('collapse',)
+        }),
         ('Permisos', {
             'fields': (
                 'is_active', 'is_staff', 'is_superuser',
                 'groups', 'user_permissions'
             )
-        }),
-        ('Rol', {
-            'fields': ('role',)
         }),
     )
 
@@ -56,8 +59,8 @@ class AppUserAdmin(UserAdmin):
             'classes': ('wide',),
             'fields': (
                 'username', 'password1', 'password2',
-                'first_name', 'last_name', 'role',
-                'email', 'phone_number', 'telegram_chat_id'
+                'first_name', 'last_name', 'email',
+                'phone_number', 'organization', 'role'
             ),
         }),
     )
@@ -306,11 +309,11 @@ class OrganizationAdmin(admin.ModelAdmin):
         'plan',
         'commission_rate',
         'max_drivers',
-        'is_active',
+        'status',
         'created_at'
     )
-    list_filter = ('plan', 'is_active', 'created_at')
-    search_fields = ('name', 'contact_email', 'contact_phone')
+    list_filter = ('plan', 'status', 'created_at')
+    search_fields = ('name', 'email', 'phone')
     readonly_fields = ('created_at', 'updated_at')
     
     fieldsets = (

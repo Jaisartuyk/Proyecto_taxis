@@ -1590,6 +1590,7 @@ def list_drivers(request):
         page_obj = paginator.get_page(1)
     
     # Agregar información adicional a cada conductor
+    from django.db.models import Avg, Count
     drivers_list = []
     for driver in page_obj:
         taxi = getattr(driver, 'taxi', None)
@@ -1599,6 +1600,15 @@ def list_drivers(request):
         completed_rides = rides_queryset.filter(status='completed').count()
         active_rides = rides_queryset.filter(status__in=['accepted', 'in_progress']).count()
         
+        # Calcular calificaciones
+        from .models import Rating
+        ratings_stats = Rating.objects.filter(rated=driver).aggregate(
+            avg_rating=Avg('rating'),
+            total_ratings=Count('id')
+        )
+        avg_rating = ratings_stats['avg_rating'] or 0
+        total_ratings = ratings_stats['total_ratings'] or 0
+        
         drivers_list.append({
             'driver': driver,
             'taxi': taxi,
@@ -1606,6 +1616,8 @@ def list_drivers(request):
             'completed_rides': completed_rides,
             'active_rides': active_rides,
             'has_location': taxi and taxi.latitude and taxi.longitude if taxi else False,
+            'avg_rating': round(avg_rating, 1) if avg_rating else 0,
+            'total_ratings': total_ratings,
         })
     
     context = {

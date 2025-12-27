@@ -472,6 +472,19 @@
                                 {% endif %}
                             </span>
                         </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">⭐ Calificación</span>
+                            <span class="detail-value">
+                                {% if driver_data.total_ratings > 0 %}
+                                    <span style="color: #FFB800; font-weight: bold;">{{ driver_data.avg_rating }}</span>
+                                    <span style="color: #FFB800;">★</span>
+                                    <span style="color: #9E9E9E; font-size: 0.85em;">({{ driver_data.total_ratings }})</span>
+                                {% else %}
+                                    <span style="color: #9E9E9E;">Sin calificaciones</span>
+                                {% endif %}
+                            </span>
+                        </div>
                     </div>
 
                     <div class="driver-actions">

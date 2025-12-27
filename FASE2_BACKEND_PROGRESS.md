@@ -6,9 +6,11 @@
 - [ ] Distinguir entre super admin y admin de cooperativa
 - [ ] Filtrar datos por organización
 
-### **5. WebSockets (CRÍTICO)** ⏳
-- [ ] Agrupar audio por organización
-- [ ] Agrupar chat por organización
+### **5. WebSockets (CRÍTICO)** ✅
+- ✅ Agrupar audio por organización (audio_org_1, audio_org_2...)
+- ✅ Validar organización en ChatConsumer
+- ✅ Push notifications filtradas por organización
+- ✅ Rechazar conexiones sin organización
 
 ### **6. Crear Carrera** ⏳
 - [ ] Asignar organización al crear carrera
@@ -40,7 +42,12 @@
 ## 📊 PROGRESO GENERAL
 
 - Fase 1: ✅ 100%
-- Fase 2: ⏳ 60% (3 de 6 tareas completadas)
+- Fase 2: ⏳ 80% (4 de 5 tareas completadas)
+  - ✅ Carreras disponibles filtradas
+  - ✅ Aceptar carrera validado
+  - ✅ Dashboard conductor filtrado
+  - ✅ WebSockets segregados
+  - ⏳ Crear carrera (asignar org)
 
 ---
 

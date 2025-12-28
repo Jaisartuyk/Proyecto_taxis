@@ -16,6 +16,7 @@ from django.contrib.auth import login, logout
 from .forms import CustomerRegistrationForm,CustomerProfileForm, DriverProfileForm, TaxiForm, TaxiRouteForm, RideFilterForm, DriverRegistrationForm, AdminProfileForm
 #from django.contrib.auth.forms import DriverRegistrationForm, CustomerRegistrationForm
 from django.contrib.auth.decorators import login_required
+from .decorators import organization_admin_required
 from django.utils import timezone
 from django.utils.timezone import now, timedelta
 from django.shortcuts import get_object_or_404
@@ -334,52 +335,80 @@ def customer_dashboard(request):
     
     return render(request, 'customer_dashboard.html', context)
 
+@organization_admin_required
 def admin_dashboard(request):
-    if request.user.role != 'admin':
-        return redirect('login')
+    """
+    Dashboard para administradores de cooperativa.
+    Filtra datos por organización si no es super admin.
+    """
+    from django.db.models import Sum, Avg
+    from django.utils import timezone
+    
+    # Determinar si es super admin
+    is_super_admin = request.user.is_superuser
+    organization = request.user.organization if not is_super_admin else None
+    
+    # Base queryset según organización
+    if is_super_admin:
+        # Super admin ve todo
+        users_qs = AppUser.objects.all()
+        rides_qs = Ride.objects.all()
+        taxis_qs = Taxi.objects.all()
+        ratings_qs = Rating.objects.all()
+    else:
+        # Admin de cooperativa ve solo su organización
+        users_qs = AppUser.objects.filter(organization=organization)
+        try:
+            rides_qs = Ride.objects.filter(organization=organization)
+        except:
+            # Si el campo organization no existe en Ride, mostrar todas
+            rides_qs = Ride.objects.all()
+        taxis_qs = Taxi.objects.filter(user__organization=organization)
+        ratings_qs = Rating.objects.filter(ride__organization=organization) if not is_super_admin else Rating.objects.all()
     
     # Estadísticas generales
-    total_users = AppUser.objects.count()
-    total_drivers = AppUser.objects.filter(role='driver').count()
-    total_customers = AppUser.objects.filter(role='customer').count()
-    total_rides = Ride.objects.count()
+    total_users = users_qs.count()
+    total_drivers = users_qs.filter(role='driver').count()
+    total_customers = users_qs.filter(role='customer').count()
+    total_rides = rides_qs.count()
     
     # Carreras por estado
-    requested_rides = Ride.objects.filter(status='requested').count()
-    accepted_rides = Ride.objects.filter(status='accepted').count()
-    in_progress_rides = Ride.objects.filter(status='in_progress').count()
-    completed_rides = Ride.objects.filter(status='completed').count()
-    canceled_rides = Ride.objects.filter(status='canceled').count()
+    requested_rides = rides_qs.filter(status='requested').count()
+    accepted_rides = rides_qs.filter(status='accepted').count()
+    in_progress_rides = rides_qs.filter(status='in_progress').count()
+    completed_rides = rides_qs.filter(status='completed').count()
+    canceled_rides = rides_qs.filter(status='canceled').count()
     
     # Ingresos
-    from django.db.models import Sum
-    total_revenue = Ride.objects.filter(status='completed', price__isnull=False).aggregate(
+    total_revenue = rides_qs.filter(status='completed', price__isnull=False).aggregate(
         total=Sum('price')
     )['total'] or 0
     
     # Carreras de hoy
-    from django.utils import timezone
     today = timezone.now().date()
-    today_rides = Ride.objects.filter(created_at__date=today).count()
-    today_revenue = Ride.objects.filter(
+    today_rides = rides_qs.filter(created_at__date=today).count()
+    today_revenue = rides_qs.filter(
         status='completed', 
         price__isnull=False,
         created_at__date=today
     ).aggregate(total=Sum('price'))['total'] or 0
     
     # Conductores activos (con ubicación)
-    active_drivers = Taxi.objects.exclude(
+    active_drivers = taxis_qs.exclude(
         latitude__isnull=True, 
         longitude__isnull=True
     ).count()
     
     # Carreras recientes
-    recent_rides = Ride.objects.select_related('customer', 'driver').order_by('-created_at')[:10]
+    recent_rides = rides_qs.select_related('customer', 'driver').order_by('-created_at')[:10]
     
     # Calificaciones promedio
-    from django.db.models import Avg
-    avg_rating = Rating.objects.aggregate(avg=Avg('rating'))['avg'] or 0
-    total_ratings = Rating.objects.count()
+    try:
+        avg_rating = ratings_qs.aggregate(avg=Avg('rating'))['avg'] or 0
+        total_ratings = ratings_qs.count()
+    except:
+        avg_rating = 0
+        total_ratings = 0
     
     context = {
         'total_users': total_users,

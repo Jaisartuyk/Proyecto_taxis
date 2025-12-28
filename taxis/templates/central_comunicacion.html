@@ -1157,7 +1157,7 @@
 
     <div class="content-layout">
         <div class="chat-container">
-            {% if request.user.is_superuser %}
+            {% if request.user.is_superuser or request.user.role == 'admin' %}
             <div class="user-list">
                 <div class="user-list-header">Conductores</div>
                 {% if drivers_with_history %}
@@ -1433,8 +1433,8 @@
         }
     });
 
-    // Lógica para el admin: seleccionar un chat
-    if (currentUser.is_superuser) {
+    // Lógica para el admin/superuser: seleccionar un chat
+    if (currentUser.is_superuser || currentUser.role === 'admin') {
         document.querySelectorAll('.user-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.user-item').forEach(i => i.classList.remove('active'));
@@ -1525,7 +1525,7 @@
     }
 
     // Lógica para el conductor: iniciar chat con el admin
-    if (!currentUser.is_superuser) {
+    if (!currentUser.is_superuser && currentUser.role !== 'admin') {
         activeChatRecipientId = adminUserId;
         chatHeader.textContent = 'Chat con la Central';
         inputContainer.style.display = 'flex';

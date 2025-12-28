@@ -117,6 +117,106 @@ def register_customer(request):
     else:
         form = CustomerRegistrationForm()
     return render(request, 'registration/register_customer.html', {'form': form})
+
+
+# ============================================
+# REGISTRO CON CÓDIGO QR (MULTI-TENANT)
+# ============================================
+
+def register_with_code(request):
+    """
+    Vista de registro que acepta un código de invitación QR.
+    URL: /register/?code=TAXI-ABC123
+    """
+    from .models import InvitationCode
+    from .forms import DriverRegistrationForm, CustomerRegistrationForm
+    
+    invitation_code = None
+    code_param = request.GET.get('code', '').strip()
+    error_message = None
+    
+    # Validar código de invitación si se proporciona
+    if code_param:
+        try:
+            invitation_code = InvitationCode.objects.get(code=code_param)
+            is_valid, message = invitation_code.is_valid()
+            
+            if not is_valid:
+                error_message = f"Código de invitación {message.lower()}"
+                invitation_code = None
+        except InvitationCode.DoesNotExist:
+            error_message = "Código de invitación no válido"
+            invitation_code = None
+    
+    # Determinar qué formulario usar
+    if invitation_code:
+        if invitation_code.role == 'driver':
+            FormClass = DriverRegistrationForm
+        else:
+            FormClass = CustomerRegistrationForm
+    else:
+        # Sin código, mostrar formulario genérico de cliente
+        FormClass = CustomerRegistrationForm
+    
+    if request.method == 'POST':
+        form = FormClass(request.POST, request.FILES)
+        
+        if form.is_valid():
+            user = form.save(commit=False)
+            
+            # Asignar organización y rol del código de invitación
+            if invitation_code:
+                user.organization = invitation_code.organization
+                user.role = invitation_code.role
+                
+                # Si es conductor, marcar como pendiente de aprobación
+                if invitation_code.role == 'driver':
+                    user.driver_status = 'pending'
+            
+            user.save()
+            
+            # Incrementar contador de usos del código
+            if invitation_code:
+                invitation_code.use()
+            
+            # Iniciar sesión automáticamente
+            login(request, user)
+            
+            # Mensaje de bienvenida personalizado
+            if invitation_code:
+                messages.success(
+                    request,
+                    f'¡Bienvenido a {invitation_code.organization.name}! '
+                    f'Tu cuenta de {invitation_code.get_role_display()} ha sido creada exitosamente.'
+                )
+                
+                if invitation_code.role == 'driver':
+                    messages.info(
+                        request,
+                        'Tu cuenta está pendiente de aprobación por un administrador. '
+                        'Te notificaremos cuando sea aprobada.'
+                    )
+                    return redirect('driver_dashboard')
+                else:
+                    return redirect('customer_dashboard')
+            else:
+                messages.success(request, '¡Cuenta creada exitosamente!')
+                return redirect('customer_dashboard')
+        else:
+            print(form.errors)  # Debug
+    else:
+        form = FormClass()
+    
+    context = {
+        'form': form,
+        'invitation_code': invitation_code,
+        'error_message': error_message,
+        'code_param': code_param,
+    }
+    
+    return render(request, 'registration/register_with_code.html', context)
+
+
 # Vista para el perfil de usuario
 @login_required
 def profile_view(request):

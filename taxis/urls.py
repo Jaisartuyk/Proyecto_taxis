@@ -19,6 +19,7 @@ urlpatterns = [
     path('revision/', views.revision, name='revision'),
     path('map-view', views.map_view, name='map'),
     path('update-location/', views.update_location, name='update_location'),
+    path('register/', views.register_with_code, name='register'),  # Registro con código QR
     path('register/driver/', views.register_driver, name='register_driver'),
     path('register/customer/', views.register_customer, name='register_customer'),
     path('driver-dashboard/', views.driver_dashboard, name='driver_dashboard'),

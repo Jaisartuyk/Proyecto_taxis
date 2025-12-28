@@ -147,11 +147,18 @@
                     <li class="nav-item"><a class="nav-link" href="{% url 'customer_dashboard' %}">Tablero del
                             Cliente</a></li>
                     {% elif user.role == 'admin' %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'admin_dashboard' %}">Tablero del
-                            Administrador</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                            {% if user.organization %}
+                            <i class="fas fa-building"></i> Admin - {{ user.organization.name }}
+                            {% else %}
+                            <i class="fas fa-user-shield"></i> Tablero del Administrador
+                            {% endif %}
+                        </a>
+                    </li>
                     {% endif %}
                     {% if user.is_superuser %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'superadmin_dashboard' %}">🔧 Super Admin</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'superadmin_dashboard' %}"><i class="fas fa-crown"></i> Super Admin</a></li>
                     {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Perfil</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Cerrar sesión</a></li>

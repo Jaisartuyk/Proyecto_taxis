@@ -149,11 +149,7 @@
                     {% elif user.role == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'admin_dashboard' %}">
-                            {% if user.organization %}
-                            <i class="fas fa-building"></i> Admin - {{ user.organization.name }}
-                            {% else %}
-                            <i class="fas fa-user-shield"></i> Tablero del Administrador
-                            {% endif %}
+                            <i class="fas fa-chart-line"></i> Panel de Administración
                         </a>
                     </li>
                     {% endif %}

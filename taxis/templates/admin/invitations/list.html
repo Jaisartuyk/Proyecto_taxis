@@ -1,0 +1,161 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Códigos de Invitación - Panel de Administración{% endblock %}
+{% block page_title %}Códigos de Invitación QR{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Códigos de Invitación</h1>
+    <p>Genera códigos QR para invitar clientes y conductores a tu cooperativa</p>
+    <a href="{% url 'admin_invitation_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Crear Nuevo Código
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Tipo</label>
+                <select name="role" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="customer" {% if request.GET.role == 'customer' %}selected{% endif %}>Clientes</option>
+                    <option value="driver" {% if request.GET.role == 'driver' %}selected{% endif %}>Conductores</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select name="status" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Activos</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de códigos -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th>Usos</th>
+                    <th>Expira</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for code in codes %}
+                <tr>
+                    <td>
+                        <strong class="text-primary">{{ code.code }}</strong>
+                    </td>
+                    <td>
+                        {% if code.role == 'customer' %}
+                            <span class="badge bg-info">
+                                <i class="fas fa-user"></i> Cliente
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-car"></i> Conductor
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ code.current_uses }}
+                        {% if code.max_uses > 0 %}
+                            / {{ code.max_uses }}
+                        {% else %}
+                            / ∞
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if code.expires_at %}
+                            {{ code.expires_at|date:"d/m/Y" }}
+                        {% else %}
+                            <span class="text-muted">Sin expiración</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if code.is_active %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ code.created_at|date:"d/m/Y" }}</td>
+                    <td>
+                        <a href="{% url 'admin_invitation_detail' code.pk %}" 
+                           class="btn btn-sm btn-info" 
+                           title="Ver QR">
+                            <i class="fas fa-qrcode"></i>
+                        </a>
+                        <form method="post" 
+                              action="{% url 'admin_invitation_toggle' code.pk %}" 
+                              style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="btn btn-sm {% if code.is_active %}btn-warning{% else %}btn-success{% endif %}"
+                                    title="{% if code.is_active %}Desactivar{% else %}Activar{% endif %}">
+                                <i class="fas fa-{% if code.is_active %}ban{% else %}check{% endif %}"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="fas fa-qrcode fa-3x mb-3 d-block"></i>
+                        No hay códigos de invitación creados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginación">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                        Anterior
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                        Siguiente
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -126,6 +126,12 @@ urlpatterns = [
     # Clientes
     path('manage/customers/', admin_views.CustomerListView.as_view(), name='admin_customers'),
     
+    # Códigos de Invitación
+    path('manage/invitations/', admin_views.InvitationCodeListView.as_view(), name='admin_invitation_codes'),
+    path('manage/invitations/create/', admin_views.InvitationCodeCreateView.as_view(), name='admin_invitation_create'),
+    path('manage/invitations/<int:pk>/', admin_views.InvitationCodeDetailView.as_view(), name='admin_invitation_detail'),
+    path('manage/invitations/<int:pk>/toggle/', admin_views.InvitationCodeToggleView.as_view(), name='admin_invitation_toggle'),
+    
     # Reportes
     path('manage/reports/financial/', admin_views.FinancialReportsView.as_view(), name='admin_reports_financial'),
     

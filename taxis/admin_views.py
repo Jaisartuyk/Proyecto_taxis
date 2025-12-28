@@ -13,10 +13,11 @@ from django.http import JsonResponse, HttpResponse
 from datetime import timedelta, datetime
 from decimal import Decimal
 
-from .models import Organization, AppUser, Ride  # Invoice no existe aún
+from .models import Organization, AppUser, Ride, InvitationCode  # Invoice no existe aún
 from .forms import OrganizationForm, DriverApprovalForm  # InvoiceForm no existe aún
 from .decorators import superadmin_required, organization_admin_required
 from django.utils.decorators import method_decorator
+from django.views import View
 
 
 # ============================================
@@ -361,6 +362,133 @@ class CustomerListView(ListView):
             )
         
         return queryset.order_by('-date_joined')
+
+
+# ============================================
+# CÓDIGOS DE INVITACIÓN CON QR
+# ============================================
+
+@method_decorator(organization_admin_required, name='dispatch')
+class InvitationCodeListView(ListView):
+    """Lista de códigos de invitación de la organización"""
+    model = InvitationCode
+    template_name = 'admin/invitations/list.html'
+    context_object_name = 'codes'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        # ✅ MULTI-TENANT: Filtrar códigos por organización
+        if self.request.user.is_superuser:
+            queryset = InvitationCode.objects.all()
+        elif self.request.user.organization:
+            queryset = InvitationCode.objects.filter(organization=self.request.user.organization)
+        else:
+            queryset = InvitationCode.objects.none()
+        
+        # Filtros
+        role = self.request.GET.get('role')
+        if role:
+            queryset = queryset.filter(role=role)
+        
+        status = self.request.GET.get('status')
+        if status == 'active':
+            queryset = queryset.filter(is_active=True)
+        elif status == 'inactive':
+            queryset = queryset.filter(is_active=False)
+        
+        return queryset.select_related('organization', 'created_by').order_by('-created_at')
+
+
+@method_decorator(organization_admin_required, name='dispatch')
+class InvitationCodeCreateView(CreateView):
+    """Crear nuevo código de invitación"""
+    model = InvitationCode
+    template_name = 'admin/invitations/create.html'
+    fields = ['role', 'max_uses', 'expires_at', 'notes']
+    success_url = reverse_lazy('admin_invitation_codes')
+    
+    def form_valid(self, form):
+        # Asignar organización y creador
+        form.instance.organization = self.request.user.organization
+        form.instance.created_by = self.request.user
+        
+        # Generar código único
+        import random
+        import string
+        while True:
+            code = 'TAXI-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            if not InvitationCode.objects.filter(code=code).exists():
+                form.instance.code = code
+                break
+        
+        messages.success(self.request, f'Código de invitación {form.instance.code} creado exitosamente.')
+        return super().form_valid(form)
+
+
+@method_decorator(organization_admin_required, name='dispatch')
+class InvitationCodeDetailView(DetailView):
+    """Ver detalles y QR del código de invitación"""
+    model = InvitationCode
+    template_name = 'admin/invitations/detail.html'
+    context_object_name = 'code'
+    
+    def get_queryset(self):
+        # ✅ MULTI-TENANT: Solo códigos de la organización
+        if self.request.user.is_superuser:
+            return InvitationCode.objects.all()
+        elif self.request.user.organization:
+            return InvitationCode.objects.filter(organization=self.request.user.organization)
+        return InvitationCode.objects.none()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Generar QR code
+        import qrcode
+        from io import BytesIO
+        import base64
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(self.object.get_qr_url())
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        # Convertir a base64 para mostrar en template
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        context['qr_image'] = f'data:image/png;base64,{img_str}'
+        
+        return context
+
+
+@method_decorator(organization_admin_required, name='dispatch')
+class InvitationCodeToggleView(View):
+    """Activar/desactivar código de invitación"""
+    
+    def post(self, request, pk):
+        # ✅ MULTI-TENANT: Solo códigos de la organización
+        if request.user.is_superuser:
+            code = get_object_or_404(InvitationCode, pk=pk)
+        elif request.user.organization:
+            code = get_object_or_404(InvitationCode, pk=pk, organization=request.user.organization)
+        else:
+            messages.error(request, "No tienes permiso para realizar esta acción.")
+            return redirect('admin_invitation_codes')
+        
+        code.is_active = not code.is_active
+        code.save()
+        
+        status = "activado" if code.is_active else "desactivado"
+        messages.success(request, f'Código {code.code} {status} exitosamente.')
+        return redirect('admin_invitation_codes')
 
 
 # ============================================

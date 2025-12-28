@@ -1,0 +1,120 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Crear Código de Invitación - Panel de Administración{% endblock %}
+{% block page_title %}Crear Código de Invitación{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Crear Nuevo Código de Invitación</h1>
+    <p>Genera un código QR para invitar nuevos usuarios a tu cooperativa</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_role" class="form-label">Tipo de Usuario *</label>
+                        <select name="role" id="id_role" class="form-select" required>
+                            <option value="">Seleccione...</option>
+                            <option value="customer">Cliente</option>
+                            <option value="driver">Conductor</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            El código solo será válido para el tipo de usuario seleccionado
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_max_uses" class="form-label">Límite de Usos</label>
+                        <input type="number" 
+                               name="max_uses" 
+                               id="id_max_uses" 
+                               class="form-control" 
+                               value="0" 
+                               min="0">
+                        <small class="form-text text-muted">
+                            Número máximo de veces que se puede usar este código (0 = ilimitado)
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_expires_at" class="form-label">Fecha de Expiración</label>
+                        <input type="datetime-local" 
+                               name="expires_at" 
+                               id="id_expires_at" 
+                               class="form-control">
+                        <small class="form-text text-muted">
+                            Dejar vacío para que no expire
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_notes" class="form-label">Notas</label>
+                        <textarea name="notes" 
+                                  id="id_notes" 
+                                  class="form-control" 
+                                  rows="3"></textarea>
+                        <small class="form-text text-muted">
+                            Notas internas sobre este código (opcional)
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Crear Código
+                        </button>
+                        <a href="{% url 'admin_invitation_codes' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle text-info"></i> Información
+                </h5>
+                <p class="card-text">
+                    <strong>¿Cómo funciona?</strong>
+                </p>
+                <ol class="small">
+                    <li>Crea un código de invitación</li>
+                    <li>Descarga el código QR</li>
+                    <li>Comparte el QR con nuevos usuarios</li>
+                    <li>Al escanear, se registran automáticamente en tu cooperativa</li>
+                </ol>
+                
+                <hr>
+                
+                <p class="card-text">
+                    <strong>Tipos de código:</strong>
+                </p>
+                <ul class="small">
+                    <li><strong>Cliente:</strong> Para usuarios que solicitan carreras</li>
+                    <li><strong>Conductor:</strong> Para taxistas que ofrecen el servicio</li>
+                </ul>
+                
+                <hr>
+                
+                <p class="card-text">
+                    <strong>Límites:</strong>
+                </p>
+                <ul class="small">
+                    <li>Puedes establecer un límite de usos</li>
+                    <li>Puedes establecer una fecha de expiración</li>
+                    <li>Puedes desactivar el código en cualquier momento</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

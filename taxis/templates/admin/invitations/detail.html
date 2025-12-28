@@ -1,0 +1,173 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Código QR - {{ code.code }}{% endblock %}
+{% block page_title %}Código de Invitación QR{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Código de Invitación: {{ code.code }}</h1>
+    <a href="{% url 'admin_invitation_codes' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="row">
+    <!-- QR Code -->
+    <div class="col-md-6">
+        <div class="card text-center">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-qrcode"></i> Código QR
+                </h5>
+            </div>
+            <div class="card-body">
+                <img src="{{ qr_image }}" alt="QR Code" class="img-fluid mb-3" style="max-width: 400px;">
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Escanea este código QR para registrarte automáticamente en {{ code.organization.name }}
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ qr_image }}" 
+                       download="qr-{{ code.code }}.png" 
+                       class="btn btn-success btn-lg">
+                        <i class="fas fa-download"></i> Descargar QR
+                    </a>
+                    
+                    <button class="btn btn-primary" onclick="copyToClipboard('{{ code.get_qr_url }}')">
+                        <i class="fas fa-copy"></i> Copiar Enlace
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información del Código -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Información del Código
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Código:</th>
+                        <td><strong class="text-primary">{{ code.code }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Tipo:</th>
+                        <td>
+                            {% if code.role == 'customer' %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-user"></i> Cliente
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-car"></i> Conductor
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Estado:</th>
+                        <td>
+                            {% if code.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Usos:</th>
+                        <td>
+                            {{ code.current_uses }}
+                            {% if code.max_uses > 0 %}
+                                / {{ code.max_uses }}
+                                <div class="progress mt-2">
+                                    <div class="progress-bar" 
+                                         role="progressbar" 
+                                         style="width: {{ code.current_uses|floatformat:0 }}%"
+                                         aria-valuenow="{{ code.current_uses }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="{{ code.max_uses }}">
+                                    </div>
+                                </div>
+                            {% else %}
+                                / ∞ (Ilimitado)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Expira:</th>
+                        <td>
+                            {% if code.expires_at %}
+                                {{ code.expires_at|date:"d/m/Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">Sin expiración</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Creado por:</th>
+                        <td>{{ code.created_by.get_full_name|default:"Sistema" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fecha de creación:</th>
+                        <td>{{ code.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% if code.notes %}
+                    <tr>
+                        <th>Notas:</th>
+                        <td>{{ code.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+                
+                <div class="d-grid gap-2">
+                    <form method="post" action="{% url 'admin_invitation_toggle' code.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="btn {% if code.is_active %}btn-warning{% else %}btn-success{% endif %} w-100">
+                            <i class="fas fa-{% if code.is_active %}ban{% else %}check{% endif %}"></i>
+                            {% if code.is_active %}Desactivar{% else %}Activar{% endif %} Código
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Instrucciones -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle"></i> ¿Cómo usar este código?
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="small mb-0">
+                    <li>Descarga la imagen del código QR</li>
+                    <li>Compártela por WhatsApp, email o redes sociales</li>
+                    <li>Los usuarios escanean el QR con su cámara</li>
+                    <li>Se abre el formulario de registro automáticamente</li>
+                    <li>Al registrarse, quedan vinculados a tu cooperativa</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('¡Enlace copiado al portapapeles!');
+    }, function(err) {
+        console.error('Error al copiar:', err);
+    });
+}
+</script>
+
+{% endblock %}

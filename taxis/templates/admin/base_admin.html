@@ -264,6 +264,11 @@
                 <span>Clientes</span>
             </a>
             
+            <a href="{% url 'admin_invitation_codes' %}" class="{% if 'invitation' in request.path %}active{% endif %}">
+                <i class="fas fa-qrcode"></i>
+                <span>Códigos QR</span>
+            </a>
+            
             <div class="sidebar-section">Reportes</div>
             
             <a href="{% url 'admin_reports_financial' %}" class="{% if 'reports' in request.path %}active{% endif %}">

@@ -259,6 +259,11 @@
                 {% endif %}
             </a>
             
+            <a href="{% url 'admin_customers' %}" class="{% if 'customer' in request.path %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                <span>Clientes</span>
+            </a>
+            
             <div class="sidebar-section">Reportes</div>
             
             <a href="{% url 'admin_reports_financial' %}" class="{% if 'reports' in request.path %}active{% endif %}">

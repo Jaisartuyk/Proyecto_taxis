@@ -327,6 +327,43 @@ class DriverRejectView(TemplateView):
 
 
 # ============================================
+# GESTIÓN DE CLIENTES
+# ============================================
+
+@method_decorator(organization_admin_required, name='dispatch')
+class CustomerListView(ListView):
+    """Lista de clientes de la organización"""
+    model = AppUser
+    template_name = 'admin/customers/list.html'
+    context_object_name = 'customers'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        # ✅ MULTI-TENANT: Filtrar clientes por organización
+        if self.request.user.is_superuser:
+            # Super admin ve TODOS los clientes
+            queryset = AppUser.objects.filter(role='customer')
+        elif self.request.user.organization:
+            # Admin ve solo clientes de SU organización
+            queryset = AppUser.objects.filter(role='customer', organization=self.request.user.organization)
+        else:
+            # Usuario sin organización no ve nada
+            queryset = AppUser.objects.none()
+        
+        # Búsqueda
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone__icontains=search)
+            )
+        
+        return queryset.order_by('-date_joined')
+
+
+# ============================================
 # REPORTES FINANCIEROS
 # ============================================
 

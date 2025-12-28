@@ -1,0 +1,139 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Clientes - Panel de Administración{% endblock %}
+{% block page_title %}Gestión de Clientes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Clientes de la Organización</h1>
+    <p>Gestiona los clientes registrados en tu cooperativa</p>
+</div>
+
+<!-- Búsqueda y filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Buscar por nombre, email o teléfono..." 
+                       value="{{ request.GET.search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Estadísticas rápidas -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card primary">
+            <div class="icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3>{{ page_obj.paginator.count }}</h3>
+            <p>Total de Clientes</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de clientes -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Fecha Registro</th>
+                    <th>Carreras</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% if customer.profile_picture %}
+                                <img src="{{ customer.profile_picture.url }}" 
+                                     alt="{{ customer.get_full_name }}" 
+                                     class="rounded-circle me-2" 
+                                     style="width: 40px; height: 40px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
+                                     style="width: 40px; height: 40px;">
+                                    {{ customer.first_name|first }}{{ customer.last_name|first }}
+                                </div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ customer.get_full_name }}</strong><br>
+                                <small class="text-muted">ID: {{ customer.id }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ customer.email|default:"-" }}</td>
+                    <td>{{ customer.phone|default:"-" }}</td>
+                    <td>{{ customer.date_joined|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <span class="badge bg-info">
+                            {{ customer.rides_as_customer.count }} carreras
+                        </span>
+                    </td>
+                    <td>
+                        {% if customer.is_active %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-users fa-3x mb-3 d-block"></i>
+                        No hay clientes registrados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginación">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        Anterior
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        Siguiente
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

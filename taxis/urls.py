@@ -123,6 +123,9 @@ urlpatterns = [
     path('manage/drivers/<int:pk>/approve/', admin_views.DriverApproveView.as_view(), name='admin_driver_approve'),
     path('manage/drivers/<int:pk>/reject/', admin_views.DriverRejectView.as_view(), name='admin_driver_reject'),
     
+    # Clientes
+    path('manage/customers/', admin_views.CustomerListView.as_view(), name='admin_customers'),
+    
     # Reportes
     path('manage/reports/financial/', admin_views.FinancialReportsView.as_view(), name='admin_reports_financial'),
     

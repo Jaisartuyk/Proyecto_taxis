@@ -40,8 +40,8 @@ def organization_admin_required(view_func):
         if request.user.is_superuser:
             return view_func(request, *args, **kwargs)
         
-        # Admin de cooperativa tiene acceso
-        if request.user.role == 'admin' and request.user.organization:
+        # Admin de cooperativa tiene acceso (sin verificar organization por ahora)
+        if request.user.role == 'admin':
             return view_func(request, *args, **kwargs)
         
         messages.error(request, 'No tienes permisos para acceder a esta página.')

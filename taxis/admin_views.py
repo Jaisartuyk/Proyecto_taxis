@@ -102,13 +102,13 @@ class SuperAdminDashboardView(TemplateView):
             except:
                 context['pending_drivers_list'] = []
             
-            # Facturas pendientes
-            try:
-                context['pending_invoices'] = Invoice.objects.filter(
-                    status='pending'
-                ).select_related('organization')[:5]
-            except:
-                context['pending_invoices'] = []
+            # Facturas pendientes (Invoice no existe aún)
+            # try:
+            #     context['pending_invoices'] = Invoice.objects.filter(
+            #         status='pending'
+            #     ).select_related('organization')[:5]
+            # except:
+            context['pending_invoices'] = []
             
             # Estadísticas por plan
             try:
@@ -382,64 +382,64 @@ class FinancialReportsView(TemplateView):
 
 
 # ============================================
-# GESTIÓN DE FACTURAS
+# GESTIÓN DE FACTURAS (DESHABILITADO - Invoice no existe)
 # ============================================
 
-@method_decorator(organization_admin_required, name='dispatch')
-class InvoiceListView(ListView):
-    """Lista de facturas"""
-    model = Invoice
-    template_name = 'admin/invoices/list.html'
-    context_object_name = 'invoices'
-    paginate_by = 20
-    
-    def get_queryset(self):
-        queryset = Invoice.objects.all().select_related('organization')
-        
-        status = self.request.GET.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
-        
-        return queryset.order_by('-issued_at')
+# @method_decorator(organization_admin_required, name='dispatch')
+# class InvoiceListView(ListView):
+#     """Lista de facturas"""
+#     model = Invoice
+#     template_name = 'admin/invoices/list.html'
+#     context_object_name = 'invoices'
+#     paginate_by = 20
+#     
+#     def get_queryset(self):
+#         queryset = Invoice.objects.all().select_related('organization')
+#         
+#         status = self.request.GET.get('status')
+#         if status:
+#             queryset = queryset.filter(status=status)
+#         
+#         return queryset.order_by('-issued_at')
 
 
-@method_decorator(organization_admin_required, name='dispatch')
-class InvoiceCreateView(CreateView):
-    """Crear nueva factura"""
-    model = Invoice
-    form_class = InvoiceForm
-    template_name = 'admin/invoices/create.html'
-    success_url = reverse_lazy('admin_invoices')
-    
-    def form_valid(self, form):
-        # Generar número de factura automático
-        year = timezone.now().year
-        last_invoice = Invoice.objects.filter(
-            invoice_number__startswith=f'INV-{year}'
-        ).order_by('-invoice_number').first()
-        
-        if last_invoice:
-            last_num = int(last_invoice.invoice_number.split('-')[-1])
-            new_num = last_num + 1
-        else:
-            new_num = 1
-        
-        form.instance.invoice_number = f'INV-{year}-{new_num:04d}'
-        
-        # Calcular total
-        form.instance.total_amount = form.instance.subscription_fee + form.instance.commission_amount
-        
-        messages.success(self.request, f'Factura {form.instance.invoice_number} creada exitosamente.')
-        return super().form_valid(form)
+# @method_decorator(organization_admin_required, name='dispatch')
+# class InvoiceCreateView(CreateView):
+#     """Crear nueva factura"""
+#     model = Invoice
+#     form_class = InvoiceForm
+#     template_name = 'admin/invoices/create.html'
+#     success_url = reverse_lazy('admin_invoices')
+#     
+#     def form_valid(self, form):
+#         # Generar número de factura automático
+#         year = timezone.now().year
+#         last_invoice = Invoice.objects.filter(
+#             invoice_number__startswith=f'INV-{year}'
+#         ).order_by('-invoice_number').first()
+#         
+#         if last_invoice:
+#             last_num = int(last_invoice.invoice_number.split('-')[-1])
+#             new_num = last_num + 1
+#         else:
+#             new_num = 1
+#         
+#         form.instance.invoice_number = f'INV-{year}-{new_num:04d}'
+#         
+#         # Calcular total
+#         form.instance.total_amount = form.instance.subscription_fee + form.instance.commission_amount
+#         
+#         messages.success(self.request, f'Factura {form.instance.invoice_number} creada exitosamente.')
+#         return super().form_valid(form)
 
 
-@method_decorator(organization_admin_required, name='dispatch')
-class InvoiceMarkPaidView(TemplateView):
-    """Marcar factura como pagada"""
-    
-    def post(self, request, pk):
-        invoice = get_object_or_404(Invoice, pk=pk)
-        invoice.mark_as_paid()
-        
-        messages.success(request, f'Factura {invoice.invoice_number} marcada como pagada.')
-        return redirect('admin_invoices')
+# @method_decorator(organization_admin_required, name='dispatch')
+# class InvoiceMarkPaidView(TemplateView):
+#     """Marcar factura como pagada"""
+#     
+#     def post(self, request, pk):
+#         invoice = get_object_or_404(Invoice, pk=pk)
+#         invoice.mark_as_paid()
+#         
+#         messages.success(request, f'Factura {invoice.invoice_number} marcada como pagada.')
+#         return redirect('admin_invoices')

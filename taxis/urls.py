@@ -126,9 +126,9 @@ urlpatterns = [
     # Reportes
     path('admin/reports/financial/', admin_views.FinancialReportsView.as_view(), name='admin_reports_financial'),
     
-    # Facturas
-    path('admin/invoices/', admin_views.InvoiceListView.as_view(), name='admin_invoices'),
-    path('admin/invoices/create/', admin_views.InvoiceCreateView.as_view(), name='admin_invoice_create'),
-    path('admin/invoices/<int:pk>/mark-paid/', admin_views.InvoiceMarkPaidView.as_view(), name='admin_invoice_mark_paid'),
+    # Facturas (DESHABILITADO - Invoice no existe)
+    # path('admin/invoices/', admin_views.InvoiceListView.as_view(), name='admin_invoices'),
+    # path('admin/invoices/create/', admin_views.InvoiceCreateView.as_view(), name='admin_invoice_create'),
+    # path('admin/invoices/<int:pk>/mark-paid/', admin_views.InvoiceMarkPaidView.as_view(), name='admin_invoice_mark_paid'),
 ]
 

@@ -841,6 +841,120 @@ class ChatMessage(models.Model):
         return self.thumbnail_url or self.media_url
 
 # ============================================
+# CÓDIGOS DE INVITACIÓN (MULTI-TENANT)
+# ============================================
+
+class InvitationCode(models.Model):
+    """
+    Códigos de invitación con QR para registrar clientes y conductores.
+    Cada organización tiene sus propios códigos.
+    """
+    ROLE_CHOICES = [
+        ('customer', 'Cliente'),
+        ('driver', 'Conductor'),
+    ]
+    
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='invitation_codes',
+        help_text="Organización que genera el código"
+    )
+    code = models.CharField(
+        max_length=12,
+        unique=True,
+        help_text="Código único de invitación (ej: TAXI-ABC123)"
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        help_text="Rol para el que es válido este código"
+    )
+    
+    # Límites de uso
+    max_uses = models.IntegerField(
+        default=0,
+        help_text="Número máximo de usos (0 = ilimitado)"
+    )
+    current_uses = models.IntegerField(
+        default=0,
+        help_text="Número de veces que se ha usado"
+    )
+    
+    # Validez temporal
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de expiración (null = sin expiración)"
+    )
+    
+    # Estado
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si el código está activo"
+    )
+    
+    # Metadatos
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_invitation_codes',
+        help_text="Admin que creó el código"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Notas
+    notes = models.TextField(
+        blank=True,
+        help_text="Notas internas sobre este código"
+    )
+    
+    class Meta:
+        verbose_name = 'Código de Invitación'
+        verbose_name_plural = 'Códigos de Invitación'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['organization', 'role']),
+        ]
+    
+    def __str__(self):
+        return f"{self.code} ({self.organization.name} - {self.get_role_display()})"
+    
+    def is_valid(self):
+        """Verifica si el código es válido para usar"""
+        from django.utils import timezone
+        
+        # Verificar si está activo
+        if not self.is_active:
+            return False, "Código inactivo"
+        
+        # Verificar si expiró
+        if self.expires_at and self.expires_at < timezone.now():
+            return False, "Código expirado"
+        
+        # Verificar límite de usos
+        if self.max_uses > 0 and self.current_uses >= self.max_uses:
+            return False, "Código agotado"
+        
+        return True, "Código válido"
+    
+    def use(self):
+        """Incrementa el contador de usos"""
+        self.current_uses += 1
+        self.save(update_fields=['current_uses', 'updated_at'])
+    
+    def get_qr_url(self):
+        """Retorna la URL para el QR code"""
+        from django.conf import settings
+        base_url = settings.SITE_URL if hasattr(settings, 'SITE_URL') else 'https://taxis-deaquipalla.up.railway.app'
+        return f"{base_url}/register/?code={self.code}"
+
+
+# ============================================
 # MODELO DE FACTURACIÓN (FASE 3)
 # ============================================
 

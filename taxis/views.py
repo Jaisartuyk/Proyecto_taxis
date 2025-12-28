@@ -1181,7 +1181,7 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
 
 @login_required
 def available_rides(request):
-    if not request.user.is_superuser and request.user.role != 'driver':
+    if not request.user.is_superuser and request.user.role not in ['driver', 'admin']:
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
 
     # ✅ MULTI-TENANT: Filtrar por organización
@@ -1863,7 +1863,7 @@ def offline_view(request):
 @login_required
 def chat_central(request):
     # Solo admin y conductores pueden entrar
-    if not (request.user.is_superuser or request.user.role == 'driver'):
+    if not (request.user.is_superuser or request.user.role in ['driver', 'admin']):
         messages.error(request, "No tienes permiso para acceder a esta página.")
         return redirect('home')
 
@@ -2139,7 +2139,7 @@ def upload_chat_media(request):
 @login_required
 def whatsapp_panel(request):
     """Panel principal de WhatsApp"""
-    if not request.user.is_superuser:
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         messages.error(request, "No tienes permiso para acceder a esta página.")
         return redirect('home')
     

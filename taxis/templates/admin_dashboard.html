@@ -545,23 +545,23 @@
         <h3><i class="fas fa-tools"></i> Herramientas de Administración</h3>
         <div class="row">
             <div class="col-md-3 mb-3">
-                <a href="{% url 'admin_users' %}" class="btn btn-primary w-100">
+                <a href="/admin/taxis/appuser/" class="btn btn-primary w-100">
                     <i class="fas fa-users"></i> Gestionar Usuarios
                 </a>
             </div>
             <div class="col-md-3 mb-3">
-                <a href="{% url 'available_rides' %}" class="btn btn-secondary w-100">
-                    <i class="fas fa-taxi"></i> Carreras Disponibles
+                <a href="/admin/taxis/ride/" class="btn btn-secondary w-100">
+                    <i class="fas fa-taxi"></i> Gestionar Carreras
                 </a>
             </div>
             <div class="col-md-3 mb-3">
-                <a href="{% url 'chat_central' %}" class="btn btn-secondary w-100">
-                    <i class="fas fa-map-marked-alt"></i> Central de Control
+                <a href="/admin/taxis/organization/" class="btn btn-info w-100">
+                    <i class="fas fa-building"></i> Gestionar Organizaciones
                 </a>
             </div>
             <div class="col-md-3 mb-3">
-                <a href="{% url 'whatsapp_panel' %}" class="btn btn-success w-100" style="background: #25D366; border-color: #25D366;">
-                    <i class="fab fa-whatsapp"></i> Panel WhatsApp
+                <a href="/admin/" class="btn btn-success w-100">
+                    <i class="fas fa-cog"></i> Django Admin
                 </a>
             </div>
         </div>

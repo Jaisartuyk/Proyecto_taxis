@@ -35,6 +35,33 @@ except Exception as e:
 
 if __name__ == "__main__":
     try:
+        # ============================================
+        # PASO 1: EJECUTAR MIGRACIONES
+        # ============================================
+        print("\n" + "="*60)
+        print("PRE-DEPLOY: EJECUTANDO MIGRACIONES")
+        print("="*60 + "\n")
+        
+        from django.core.management import call_command
+        
+        try:
+            print("[MIGRACIONES] Ejecutando makemigrations...")
+            call_command('makemigrations', interactive=False)
+            print("[MIGRACIONES] ✅ makemigrations completado")
+        except Exception as e:
+            print(f"[MIGRACIONES] ⚠️ makemigrations falló: {e}")
+        
+        try:
+            print("[MIGRACIONES] Ejecutando migrate...")
+            call_command('migrate', interactive=False)
+            print("[MIGRACIONES] ✅ migrate completado")
+        except Exception as e:
+            print(f"[MIGRACIONES] ❌ migrate falló: {e}")
+            # No salir, continuar con collectstatic
+        
+        # ============================================
+        # PASO 2: COLECTAR ARCHIVOS ESTÁTICOS
+        # ============================================
         print("\n" + "="*60)
         print("PRE-DEPLOY: COLECTANDO ARCHIVOS ESTATICOS")
         print("="*60 + "\n")

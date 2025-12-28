@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from . import api_views
 from . import admin_views  # Panel de administración Fase 3
+from .views_admin_dashboard import admin_dashboard  # Vista temporal para admin dashboard
 from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
 from .views import get_google_maps_key
 
@@ -109,7 +110,7 @@ urlpatterns = [
     path('superadmin/dashboard/', admin_views.SuperAdminDashboardView.as_view(), name='superadmin_dashboard'),
     
     # Admin de Cooperativa (gestiona su propia cooperativa)
-    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin/dashboard/', admin_dashboard, name='admin_dashboard'),
     
     # Cooperativas
     path('admin/organizations/', admin_views.OrganizationListView.as_view(), name='admin_organizations'),

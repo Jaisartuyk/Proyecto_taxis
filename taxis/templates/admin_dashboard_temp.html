@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Panel de Administración{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-tools"></i> Panel de Administración de Cooperativa
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h4><i class="fas fa-info-circle"></i> Panel en Construcción</h4>
+                        <p>{{ message }}</p>
+                    </div>
+
+                    <h5 class="mt-4">Mientras tanto, puedes:</h5>
+                    <div class="list-group mt-3">
+                        <a href="/admin/" class="list-group-item list-group-item-action">
+                            <i class="fas fa-database"></i> <strong>Django Admin</strong>
+                            <p class="mb-0 text-muted">Gestiona usuarios, organizaciones, carreras y más</p>
+                        </a>
+                        
+                        {% if user.is_superuser %}
+                        <a href="{% url 'superadmin_dashboard' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-crown"></i> <strong>Panel de Super Admin</strong>
+                            <p class="mb-0 text-muted">Gestiona todas las cooperativas del sistema</p>
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'home' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-home"></i> <strong>Volver al Inicio</strong>
+                            <p class="mb-0 text-muted">Regresar a la página principal</p>
+                        </a>
+                    </div>
+
+                    <div class="alert alert-warning mt-4">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Nota Técnica</h5>
+                        <p>Para activar el panel completo de administración de cooperativa, es necesario aplicar las migraciones de la Fase 3 en la base de datos de producción.</p>
+                        <p class="mb-0"><strong>Comando:</strong> <code>python manage.py migrate</code></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

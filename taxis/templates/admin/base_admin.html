@@ -266,10 +266,12 @@
                 <span>Financiero</span>
             </a>
             
+            {% comment %}
             <a href="{% url 'admin_invoices' %}" class="{% if 'invoice' in request.path %}active{% endif %}">
                 <i class="fas fa-file-invoice-dollar"></i>
                 <span>Facturas</span>
             </a>
+            {% endcomment %}
             
             <div class="sidebar-section">Sistema</div>
             

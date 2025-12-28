@@ -1737,7 +1737,21 @@ def comunicacion_conductores(request):
 
 
 def ubicaciones_taxis(request):
-    taxis = Taxi.objects.select_related('user').all()
+    # ✅ MULTI-TENANT: Filtrar taxis por organización
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            # Super admin ve TODOS los taxis
+            taxis = Taxi.objects.select_related('user').all()
+        elif request.user.role == 'admin' and request.user.organization:
+            # Admin ve solo taxis de SU organización
+            taxis = Taxi.objects.select_related('user').filter(user__organization=request.user.organization)
+        else:
+            # Otros usuarios no ven nada
+            taxis = Taxi.objects.none()
+    else:
+        # Usuario no autenticado no ve nada
+        taxis = Taxi.objects.none()
+    
     data = []
     
     for taxi in taxis:
@@ -1867,7 +1881,17 @@ def chat_central(request):
         messages.error(request, "No tienes permiso para acceder a esta página.")
         return redirect('home')
 
-    drivers = AppUser.objects.filter(role='driver')
+    # ✅ MULTI-TENANT: Filtrar conductores por organización
+    if request.user.is_superuser:
+        # Super admin ve TODOS los conductores
+        drivers = AppUser.objects.filter(role='driver')
+    elif request.user.role == 'admin' and request.user.organization:
+        # Admin ve solo conductores de SU organización
+        drivers = AppUser.objects.filter(role='driver', organization=request.user.organization)
+    else:
+        # Usuario sin organización no ve nada
+        drivers = AppUser.objects.none()
+    
     admin_user = AppUser.objects.filter(is_superuser=True).first()
 
     # Pre-cargar historial de chat para cada conductor

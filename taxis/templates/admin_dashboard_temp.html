@@ -8,28 +8,45 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header {% if is_super_admin %}bg-danger{% else %}bg-primary{% endif %} text-white">
                     <h3 class="mb-0">
-                        <i class="fas fa-tools"></i> Panel de Administración de Cooperativa
+                        {% if is_super_admin %}
+                        <i class="fas fa-crown"></i> Panel de Super Administrador
+                        {% else %}
+                        <i class="fas fa-building"></i> Panel de Administración - {{ organization.name }}
+                        {% endif %}
                     </h3>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <h4><i class="fas fa-info-circle"></i> Panel en Construcción</h4>
-                        <p>{{ message }}</p>
+                    {% if is_super_admin %}
+                    <div class="alert alert-warning">
+                        <h4><i class="fas fa-crown"></i> Acceso de Super Admin</h4>
+                        <p>Tienes acceso completo a todas las cooperativas del sistema.</p>
                     </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h4><i class="fas fa-building"></i> Administrador de {{ organization.name }}</h4>
+                        <p>Gestionas tu cooperativa. No necesitas ser superusuario.</p>
+                    </div>
+                    {% endif %}
 
-                    <h5 class="mt-4">Mientras tanto, puedes:</h5>
+                    <h5 class="mt-4">Accesos disponibles:</h5>
                     <div class="list-group mt-3">
                         <a href="/admin/" class="list-group-item list-group-item-action">
                             <i class="fas fa-database"></i> <strong>Django Admin</strong>
-                            <p class="mb-0 text-muted">Gestiona usuarios, organizaciones, carreras y más</p>
+                            <p class="mb-0 text-muted">
+                                {% if is_super_admin %}
+                                Gestiona usuarios, organizaciones, carreras y más de TODAS las cooperativas
+                                {% else %}
+                                Gestiona usuarios, conductores y carreras de tu cooperativa
+                                {% endif %}
+                            </p>
                         </a>
                         
                         {% if user.is_superuser %}
                         <a href="{% url 'superadmin_dashboard' %}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-crown"></i> <strong>Panel de Super Admin</strong>
-                            <p class="mb-0 text-muted">Gestiona todas las cooperativas del sistema</p>
+                            <i class="fas fa-crown"></i> <strong>Panel de Super Admin (Completo)</strong>
+                            <p class="mb-0 text-muted">Panel multi-tenant para gestionar todas las cooperativas</p>
                         </a>
                         {% endif %}
                         

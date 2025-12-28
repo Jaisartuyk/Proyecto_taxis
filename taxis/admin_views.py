@@ -15,7 +15,7 @@ from decimal import Decimal
 
 from .models import Organization, AppUser, Ride, Invoice
 from .forms import OrganizationForm, DriverApprovalForm, InvoiceForm
-from .decorators import superadmin_required
+from .decorators import superadmin_required, organization_admin_required
 from django.utils.decorators import method_decorator
 
 
@@ -135,7 +135,7 @@ class SuperAdminDashboardView(TemplateView):
 # GESTIÓN DE COOPERATIVAS
 # ============================================
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class OrganizationListView(ListView):
     """Lista de todas las cooperativas"""
     model = Organization
@@ -177,7 +177,7 @@ class OrganizationListView(ListView):
         return context
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class OrganizationCreateView(CreateView):
     """Crear nueva cooperativa"""
     model = Organization
@@ -190,7 +190,7 @@ class OrganizationCreateView(CreateView):
         return super().form_valid(form)
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class OrganizationUpdateView(UpdateView):
     """Editar cooperativa existente"""
     model = Organization
@@ -203,7 +203,7 @@ class OrganizationUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class OrganizationDetailView(DetailView):
     """Ver detalles de una cooperativa"""
     model = Organization
@@ -242,7 +242,7 @@ class OrganizationDetailView(DetailView):
         return context
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class OrganizationSuspendView(TemplateView):
     """Suspender/reactivar cooperativa"""
     
@@ -271,7 +271,7 @@ class OrganizationSuspendView(TemplateView):
 # GESTIÓN DE CONDUCTORES
 # ============================================
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class DriverApprovalListView(ListView):
     """Lista de conductores pendientes de aprobación"""
     model = AppUser
@@ -289,7 +289,7 @@ class DriverApprovalListView(ListView):
         return queryset.order_by('-date_joined')
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class DriverApproveView(TemplateView):
     """Aprobar conductor"""
     
@@ -309,7 +309,7 @@ class DriverApproveView(TemplateView):
         return redirect('admin_drivers_pending')
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class DriverRejectView(TemplateView):
     """Rechazar conductor"""
     
@@ -330,7 +330,7 @@ class DriverRejectView(TemplateView):
 # REPORTES FINANCIEROS
 # ============================================
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class FinancialReportsView(TemplateView):
     """Reportes financieros globales"""
     template_name = 'admin/reports/financial.html'
@@ -385,7 +385,7 @@ class FinancialReportsView(TemplateView):
 # GESTIÓN DE FACTURAS
 # ============================================
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class InvoiceListView(ListView):
     """Lista de facturas"""
     model = Invoice
@@ -403,7 +403,7 @@ class InvoiceListView(ListView):
         return queryset.order_by('-issued_at')
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class InvoiceCreateView(CreateView):
     """Crear nueva factura"""
     model = Invoice
@@ -433,7 +433,7 @@ class InvoiceCreateView(CreateView):
         return super().form_valid(form)
 
 
-@method_decorator(superadmin_required, name='dispatch')
+@method_decorator(organization_admin_required, name='dispatch')
 class InvoiceMarkPaidView(TemplateView):
     """Marcar factura como pagada"""
     

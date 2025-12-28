@@ -2873,8 +2873,22 @@ let markers = {};
 window.initMap = function () {
     console.log('🗺️ Inicializando mapa de Google Maps...');
     
-    // Centro en Guayaquil, Ecuador
-    window.map = new google.maps.Map(document.getElementById('map'), {
+    // ✅ VALIDACIÓN: Verificar que Google Maps esté cargado
+    if (typeof google === 'undefined' || !google.maps) {
+        console.error('❌ Google Maps no está cargado');
+        return;
+    }
+    
+    // ✅ VALIDACIÓN: Verificar que el elemento del mapa exista
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error('❌ Elemento #map no encontrado');
+        return;
+    }
+    
+    try {
+        // Centro en Guayaquil, Ecuador
+        window.map = new google.maps.Map(mapElement, {
         center: { lat: -2.1894, lng: -79.8890 },
         zoom: 13,
         styles: [
@@ -2921,18 +2935,21 @@ window.initMap = function () {
         ]
     });
 
-    // Agregar capa de tráfico (variable global para poder controlarla)
-    window.trafficLayer = new google.maps.TrafficLayer();
-    window.trafficLayer.setMap(window.map);
-    window.trafficEnabled = true;
+        // Agregar capa de tráfico (variable global para poder controlarla)
+        window.trafficLayer = new google.maps.TrafficLayer();
+        window.trafficLayer.setMap(window.map);
+        window.trafficEnabled = true;
 
-    console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
+        console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
 
-    // Obtener ubicaciones iniciales
-    fetchDriverLocations();
+        // Obtener ubicaciones iniciales
+        fetchDriverLocations();
 
-    // Actualizar cada 5 segundos
-    setInterval(fetchDriverLocations, 5000);
+        // Actualizar cada 5 segundos
+        setInterval(fetchDriverLocations, 5000);
+    } catch (error) {
+        console.error('❌ Error al inicializar mapa:', error);
+    }
 };
 
 // Funciones auxiliares globales
@@ -2952,11 +2969,29 @@ function fetchDriverLocations() {
 }
 
 function updateMarkers(taxis) {
-    console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
+    console.log('🗺️ Actualizando marcadores:', taxis ? taxis.length : 0, 'taxis');
+
+    // ✅ VALIDACIÓN: Verificar que Google Maps esté cargado
+    if (typeof google === 'undefined' || !google.maps) {
+        console.warn('⚠️ Google Maps no está cargado aún');
+        return;
+    }
+
+    // ✅ VALIDACIÓN: Verificar que el mapa esté inicializado
+    if (!window.map) {
+        console.warn('⚠️ Mapa no inicializado');
+        return;
+    }
+
+    // ✅ VALIDACIÓN: Verificar que taxis sea un array
+    if (!Array.isArray(taxis)) {
+        console.warn('⚠️ taxis no es un array:', taxis);
+        return;
+    }
 
     taxis.forEach(taxi => {
         // Verificar que tenga coordenadas válidas
-        if (!taxi.lat || !taxi.lng) {
+        if (!taxi || !taxi.lat || !taxi.lng) {
             console.warn('⚠️ Taxi sin coordenadas:', taxi);
             return;
         }
@@ -2974,7 +3009,7 @@ function updateMarkers(taxis) {
             const marker = new google.maps.Marker({
                 position: position,
                 map: window.map,
-                title: taxi.nombre,
+                title: taxi.nombre || 'Conductor',
                 icon: {
                     url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
                 }

@@ -176,36 +176,25 @@ function updateConnectionStatus() {
 // Configurar Google Maps con carga de conductores
 async function loadGoogleMapsAPI() {
     try {
-        // Verificar si ya se cargó para evitar duplicados
+        // ✅ VALIDACIÓN MEJORADA: Verificar si ya se cargó para evitar duplicados
         if (window.google && window.google.maps) {
-            console.log('⚠️ Google Maps ya cargado');
-            initMap();
+            console.log('✅ Google Maps ya está cargado (desde HTML template)');
+            // Si ya está cargado, solo inicializar el mapa
+            if (typeof initMap === 'function') {
+                initMap();
+            }
             return;
         }
 
-        // Obtener API key
-        const response = await fetch('/api/maps-key/');
-        const data = await response.json();
-        Maps_API_KEY = data.maps_api_key;
+        // Si no está cargado, obtener API key (por si acaso se usa en otro template)
+        console.log('ℹ️ Google Maps no detectado, esperando carga desde HTML...');
         
-        if (!Maps_API_KEY) {
-            console.error('❌ No se pudo obtener la API key de Google Maps');
-            return;
-        }
-
-        console.log('✅ API key obtenida, cargando Google Maps...');
-        
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${Maps_API_KEY}&callback=initMap`;
-        script.async = true;
-        script.defer = true;
-        script.onerror = function () {
-            console.error('❌ Error cargando Google Maps API');
-        };
-        document.head.appendChild(script);
+        // ⚠️ NO CARGAR DINÁMICAMENTE AQUÍ
+        // El script de Google Maps se carga en central_comunicacion.html (línea 3045-3047)
+        // con callback=initMap, por lo que se inicializará automáticamente
         
     } catch (error) {
-        console.error('❌ Error configurando Google Maps:', error);
+        console.error('❌ Error verificando Google Maps:', error);
     }
 }
 

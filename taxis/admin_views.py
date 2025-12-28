@@ -31,69 +31,102 @@ class SuperAdminDashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Estadísticas globales
+        # Valores por defecto
+        context['total_organizations'] = 0
+        context['total_drivers'] = 0
+        context['pending_drivers'] = 0
+        context['rides_this_month'] = 0
+        context['revenue_this_month'] = Decimal('0.00')
+        context['commission_this_month'] = Decimal('0.00')
+        context['recent_organizations'] = []
+        context['pending_drivers_list'] = []
+        context['pending_invoices'] = []
+        context['stats_by_plan'] = []
+        
         try:
-            context['total_organizations'] = Organization.objects.filter(is_active=True).count()
+            # Estadísticas globales
+            try:
+                context['total_organizations'] = Organization.objects.filter(is_active=True).count()
+            except:
+                context['total_organizations'] = Organization.objects.count()
+            
+            try:
+                context['total_drivers'] = AppUser.objects.filter(
+                    role='driver',
+                    driver_status='approved'
+                ).count()
+            except:
+                context['total_drivers'] = AppUser.objects.filter(role='driver').count()
+            
+            try:
+                context['pending_drivers'] = AppUser.objects.filter(
+                    role='driver',
+                    driver_status='pending'
+                ).count()
+            except:
+                context['pending_drivers'] = 0
+            
+            # Carreras del mes actual
+            now = timezone.now()
+            current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            rides_this_month = Ride.objects.filter(
+                created_at__gte=current_month_start,
+                status='completed'
+            )
+            
+            context['rides_this_month'] = rides_this_month.count()
+            
+            # Ingresos del mes
+            try:
+                revenue_data = rides_this_month.aggregate(
+                    total=Sum('price'),
+                    commission=Sum('commission_amount')
+                )
+                context['revenue_this_month'] = revenue_data['total'] or Decimal('0.00')
+                context['commission_this_month'] = revenue_data['commission'] or Decimal('0.00')
+            except:
+                revenue_data = rides_this_month.aggregate(total=Sum('price'))
+                context['revenue_this_month'] = revenue_data['total'] or Decimal('0.00')
+                context['commission_this_month'] = Decimal('0.00')
+            
+            # Cooperativas recientes
+            context['recent_organizations'] = Organization.objects.all().order_by('-created_at')[:5]
+            
+            # Conductores pendientes de aprobación
+            try:
+                context['pending_drivers_list'] = AppUser.objects.filter(
+                    role='driver',
+                    driver_status='pending'
+                )[:10]
+            except:
+                context['pending_drivers_list'] = []
+            
+            # Facturas pendientes
+            try:
+                context['pending_invoices'] = Invoice.objects.filter(
+                    status='pending'
+                ).select_related('organization')[:5]
+            except:
+                context['pending_invoices'] = []
+            
+            # Estadísticas por plan
+            try:
+                context['stats_by_plan'] = Organization.objects.filter(
+                    is_active=True
+                ).values('plan').annotate(
+                    count=Count('id')
+                )
+            except:
+                context['stats_by_plan'] = Organization.objects.values('plan').annotate(
+                    count=Count('id')
+                )
+        
         except Exception as e:
-            # Si el campo is_active no existe, contar todas
-            context['total_organizations'] = Organization.objects.count()
-        
-        try:
-            context['total_drivers'] = AppUser.objects.filter(
-                role='driver',
-                driver_status='approved'
-            ).count()
-        except Exception:
-            context['total_drivers'] = AppUser.objects.filter(role='driver').count()
-        
-        try:
-            context['pending_drivers'] = AppUser.objects.filter(
-                role='driver',
-                driver_status='pending'
-            ).count()
-        except Exception:
-            context['pending_drivers'] = 0
-        
-        # Carreras del mes actual
-        now = timezone.now()
-        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
-        rides_this_month = Ride.objects.filter(
-            created_at__gte=current_month_start,
-            status='completed'
-        )
-        
-        context['rides_this_month'] = rides_this_month.count()
-        
-        # Ingresos del mes
-        revenue_data = rides_this_month.aggregate(
-            total=Sum('price'),
-            commission=Sum('commission_amount')
-        )
-        context['revenue_this_month'] = revenue_data['total'] or Decimal('0.00')
-        context['commission_this_month'] = revenue_data['commission'] or Decimal('0.00')
-        
-        # Cooperativas recientes
-        context['recent_organizations'] = Organization.objects.all().order_by('-created_at')[:5]
-        
-        # Conductores pendientes de aprobación
-        context['pending_drivers_list'] = AppUser.objects.filter(
-            role='driver',
-            driver_status='pending'
-        ).select_related('organization')[:10]
-        
-        # Facturas pendientes
-        context['pending_invoices'] = Invoice.objects.filter(
-            status='pending'
-        ).select_related('organization')[:5]
-        
-        # Estadísticas por plan
-        context['stats_by_plan'] = Organization.objects.filter(
-            is_active=True
-        ).values('plan').annotate(
-            count=Count('id'),
-            total_drivers=Count('users', filter=Q(users__role='driver'))
-        )
+            # Si hay cualquier error, registrarlo pero no romper la página
+            print(f"❌ Error en SuperAdminDashboardView: {e}")
+            import traceback
+            traceback.print_exc()
         
         return context
 

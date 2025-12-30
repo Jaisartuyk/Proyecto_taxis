@@ -1033,6 +1033,16 @@ def request_ride(request):
                 origin_lng = float(origin_lng)
                 price = Decimal(str(price))  # Convertir a Decimal para evitar errores de tipo
 
+                # ✅ Si el origen está vacío o es inválido, obtener dirección desde coordenadas
+                if not origin or origin.strip() == '' or 'undefined' in origin.lower():
+                    try:
+                        origin = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)
+                        if not origin:
+                            origin = f"Lat: {origin_lat}, Lng: {origin_lng}"
+                    except Exception as e:
+                        logger.warning(f"No se pudo obtener dirección de origen: {e}")
+                        origin = f"Lat: {origin_lat}, Lng: {origin_lng}"
+
                 # ✅ MULTI-TENANT: Asignar organización del cliente
                 ride = Ride.objects.create(
                     customer=request.user,

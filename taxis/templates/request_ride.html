@@ -162,12 +162,46 @@
                     document.getElementById('origin').value = address;
                     document.getElementById('origin_latitude').value = lat;
                     document.getElementById('origin_longitude').value = lng;
+                    console.log('✅ Dirección de origen obtenida:', address);
                 }
             } else {
-                console.error('Geocoder failed due to:', status);
+                console.error('❌ Geocoder failed due to:', status);
+                // Fallback: usar coordenadas como dirección
+                if (field === 'origin') {
+                    const fallbackAddress = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                    document.getElementById('origin').value = fallbackAddress;
+                    document.getElementById('origin_latitude').value = lat;
+                    document.getElementById('origin_longitude').value = lng;
+                    console.warn('⚠️ Usando coordenadas como dirección de origen');
+                }
             }
         });
     }
+
+    // Validar formulario antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const origin = document.getElementById('origin').value;
+        const originLat = document.getElementById('origin_latitude').value;
+        const originLng = document.getElementById('origin_longitude').value;
+
+        // Si el origen está vacío, intentar obtenerlo de nuevo
+        if (!origin || origin.trim() === '') {
+            e.preventDefault();
+            alert('Por favor espera mientras obtenemos tu ubicación...');
+            
+            if (originLat && originLng) {
+                geocodeLatLng(parseFloat(originLat), parseFloat(originLng), 'origin');
+                setTimeout(() => {
+                    this.submit();
+                }, 2000);
+            } else {
+                alert('No se pudo obtener tu ubicación. Por favor recarga la página.');
+            }
+            return false;
+        }
+
+        console.log('📤 Enviando carrera con origen:', origin);
+    });
 
     function calculateTotalDistanceAndPrice() {
         if (!originLat || !originLon) return;

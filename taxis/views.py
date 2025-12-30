@@ -1027,9 +1027,11 @@ def request_ride(request):
 
         if all([origin, origin_lat, origin_lng, destinations, destination_coords]):
             try:
+                from decimal import Decimal
+                
                 origin_lat = float(origin_lat)
                 origin_lng = float(origin_lng)
-                price = float(price)
+                price = Decimal(str(price))  # Convertir a Decimal para evitar errores de tipo
 
                 # ✅ MULTI-TENANT: Asignar organización del cliente
                 ride = Ride.objects.create(
@@ -1044,7 +1046,7 @@ def request_ride(request):
                 
                 # ✅ Calcular comisión automáticamente
                 if ride.organization and ride.price:
-                    commission_rate = ride.organization.commission_rate / 100
+                    commission_rate = ride.organization.commission_rate / Decimal('100')
                     ride.commission_amount = ride.price * commission_rate
                     ride.save(update_fields=['commission_amount'])
 

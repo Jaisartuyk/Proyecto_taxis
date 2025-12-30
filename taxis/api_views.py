@@ -1396,3 +1396,136 @@ def reject_price_negotiation(request, negotiation_id):
         return Response({
             'error': f'Error al rechazar negociación: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ✅ Cliente acepta contraoferta
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def client_accept_counter_offer(request, negotiation_id):
+    """
+    Cliente acepta la contraoferta de la central y crea la carrera
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Contraoferta aceptada y carrera creada",
+        "ride_id": 123
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que el usuario sea cliente
+        if user.role != 'customer':
+            return Response({
+                'error': 'Solo clientes pueden aceptar contraofertas'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener negociación
+        try:
+            negotiation = PriceNegotiation.objects.get(id=negotiation_id, customer=user)
+        except PriceNegotiation.DoesNotExist:
+            return Response({
+                'error': 'Negociación no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validar que tenga contraoferta
+        if negotiation.status != 'counter_offered':
+            return Response({
+                'error': f'Esta negociación no tiene contraoferta (estado: {negotiation.status})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Crear la carrera con el precio de la contraoferta
+        ride = Ride.objects.create(
+            customer=user,
+            organization=negotiation.organization,
+            origin=negotiation.origin,
+            origin_latitude=negotiation.origin_latitude,
+            origin_longitude=negotiation.origin_longitude,
+            price=negotiation.counter_offer_price,  # Usar precio de contraoferta
+            status='requested'
+        )
+        
+        # Crear destino
+        RideDestination.objects.create(
+            ride=ride,
+            address=negotiation.destination,
+            latitude=negotiation.destination_latitude,
+            longitude=negotiation.destination_longitude,
+            order=1
+        )
+        
+        # Actualizar negociación
+        negotiation.status = 'client_accepted'
+        negotiation.final_price = negotiation.counter_offer_price
+        negotiation.ride = ride
+        negotiation.save()
+        
+        print(f"✅ Cliente aceptó contraoferta #{negotiation_id} - Carrera #{ride.id} creada con precio ${negotiation.counter_offer_price}")
+        
+        return Response({
+            'success': True,
+            'message': 'Contraoferta aceptada y carrera creada',
+            'ride_id': ride.id,
+            'final_price': str(negotiation.counter_offer_price)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al aceptar contraoferta: {str(e)}")
+        return Response({
+            'error': f'Error al aceptar contraoferta: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ❌ Cliente rechaza contraoferta
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def client_reject_counter_offer(request, negotiation_id):
+    """
+    Cliente rechaza la contraoferta de la central
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Contraoferta rechazada"
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que el usuario sea cliente
+        if user.role != 'customer':
+            return Response({
+                'error': 'Solo clientes pueden rechazar contraofertas'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener negociación
+        try:
+            negotiation = PriceNegotiation.objects.get(id=negotiation_id, customer=user)
+        except PriceNegotiation.DoesNotExist:
+            return Response({
+                'error': 'Negociación no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validar que tenga contraoferta
+        if negotiation.status != 'counter_offered':
+            return Response({
+                'error': f'Esta negociación no tiene contraoferta (estado: {negotiation.status})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Actualizar negociación
+        negotiation.status = 'client_rejected'
+        negotiation.save()
+        
+        print(f"❌ Cliente rechazó contraoferta #{negotiation_id}")
+        
+        return Response({
+            'success': True,
+            'message': 'Contraoferta rechazada'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al rechazar contraoferta: {str(e)}")
+        return Response({
+            'error': f'Error al rechazar contraoferta: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

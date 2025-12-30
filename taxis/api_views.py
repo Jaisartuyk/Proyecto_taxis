@@ -1174,7 +1174,22 @@ def accept_price_negotiation(request, negotiation_id):
         
         print(f"✅ Negociación #{negotiation_id} aceptada - Carrera #{ride.id} creada con precio ${negotiation.proposed_price}")
         
-        # TODO: Enviar notificación al cliente
+        # Enviar notificación push al cliente
+        try:
+            from .push_notifications import send_push_notification
+            send_push_notification(
+                user=negotiation.customer,
+                title='✅ ¡Precio aceptado!',
+                body=f'Tu propuesta de ${negotiation.proposed_price} fue aceptada. Carrera #{ride.id} creada.',
+                data={
+                    'type': 'negotiation_accepted',
+                    'negotiation_id': negotiation.id,
+                    'ride_id': ride.id,
+                    'url': f'/ride/{ride.id}/'
+                }
+            )
+        except Exception as e:
+            print(f"⚠️ Error al enviar notificación: {str(e)}")
         
         return Response({
             'success': True,
@@ -1267,7 +1282,22 @@ def counter_offer_negotiation(request, negotiation_id):
         
         print(f"💬 Contraoferta enviada para negociación #{negotiation_id}: ${counter_price}")
         
-        # TODO: Enviar notificación al cliente
+        # Enviar notificación push al cliente
+        try:
+            from .push_notifications import send_push_notification
+            send_push_notification(
+                user=negotiation.customer,
+                title='💬 Contraoferta recibida',
+                body=f'La central propone ${counter_price}. {message[:50] if message else ""}',
+                data={
+                    'type': 'negotiation_counter_offer',
+                    'negotiation_id': negotiation.id,
+                    'counter_price': str(counter_price),
+                    'url': '/customer-dashboard/'
+                }
+            )
+        except Exception as e:
+            print(f"⚠️ Error al enviar notificación: {str(e)}")
         
         return Response({
             'success': True,
@@ -1340,7 +1370,21 @@ def reject_price_negotiation(request, negotiation_id):
         
         print(f"❌ Negociación #{negotiation_id} rechazada - Motivo: {reason}")
         
-        # TODO: Enviar notificación al cliente
+        # Enviar notificación push al cliente
+        try:
+            from .push_notifications import send_push_notification
+            send_push_notification(
+                user=negotiation.customer,
+                title='❌ Propuesta rechazada',
+                body=f'Tu propuesta de ${negotiation.proposed_price} fue rechazada. {reason[:50]}',
+                data={
+                    'type': 'negotiation_rejected',
+                    'negotiation_id': negotiation.id,
+                    'url': '/request-ride/'
+                }
+            )
+        except Exception as e:
+            print(f"⚠️ Error al enviar notificación: {str(e)}")
         
         return Response({
             'success': True,

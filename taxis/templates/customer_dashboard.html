@@ -443,6 +443,68 @@
         </div>
     </div>
 
+    <!-- 💰 Mis Negociaciones de Precio -->
+    {% if my_negotiations %}
+    <div class="recent-rides" style="margin-top: 2rem;">
+        <h2>💰 Mis Negociaciones de Precio</h2>
+        
+        <div class="table-responsive">
+            <table class="table" style="background: rgba(31, 31, 31, 0.8); border-radius: 10px; overflow: hidden;">
+                <thead style="background: rgba(255, 215, 0, 0.1);">
+                    <tr>
+                        <th>Origen → Destino</th>
+                        <th>Precio Sugerido</th>
+                        <th>Mi Propuesta</th>
+                        <th>Estado</th>
+                        <th>Respuesta</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for neg in my_negotiations %}
+                    <tr style="border-bottom: 1px solid #2d2d2d;">
+                        <td>
+                            <div style="font-size: 0.9em;">
+                                <div><i class="fas fa-map-marker-alt" style="color: #10B981;"></i> {{ neg.origin|truncatewords:4 }}</div>
+                                <div style="margin-top: 4px;"><i class="fas fa-flag-checkered" style="color: #EF4444;"></i> {{ neg.destination|truncatewords:4 }}</div>
+                            </div>
+                        </td>
+                        <td style="text-decoration: line-through; color: #888;">${{ neg.suggested_price }}</td>
+                        <td><strong style="color: #FFC107;">${{ neg.proposed_price }}</strong></td>
+                        <td>
+                            {% if neg.status == 'pending' %}
+                                <span class="badge" style="background: #FFC107; color: #000;">⏳ Pendiente</span>
+                            {% elif neg.status == 'accepted' %}
+                                <span class="badge" style="background: #10B981; color: #fff;">✅ Aceptada</span>
+                            {% elif neg.status == 'rejected' %}
+                                <span class="badge" style="background: #EF4444; color: #fff;">❌ Rechazada</span>
+                            {% elif neg.status == 'counter_offered' %}
+                                <span class="badge" style="background: #3B82F6; color: #fff;">💬 Contraoferta</span>
+                            {% else %}
+                                <span class="badge" style="background: #6B7280; color: #fff;">{{ neg.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if neg.status == 'accepted' and neg.ride %}
+                                <a href="{% url 'ride_detail' neg.ride.id %}" class="btn btn-sm btn-success">Ver carrera #{{ neg.ride.id }}</a>
+                            {% elif neg.status == 'counter_offered' %}
+                                <div><strong style="color: #3B82F6;">${{ neg.counter_offer_price }}</strong></div>
+                                <small style="color: #888;">{{ neg.response_message|truncatewords:10 }}</small>
+                            {% elif neg.status == 'rejected' %}
+                                <small style="color: #EF4444;">{{ neg.response_message|truncatewords:10 }}</small>
+                            {% else %}
+                                <small style="color: #888;">Esperando respuesta...</small>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ neg.created_at|timesince }} ago</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Recent Rides -->
     <div class="recent-rides" style="margin-top: 2rem;">
         <h2>

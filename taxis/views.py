@@ -426,11 +426,18 @@ def customer_dashboard(request):
     # Obtener viajes recientes (últimos 5)
     recent_rides = Ride.objects.filter(customer=request.user).order_by('-created_at')[:5]
     
+    # Obtener negociaciones del cliente
+    from .models import PriceNegotiation
+    my_negotiations = PriceNegotiation.objects.filter(
+        customer=request.user
+    ).order_by('-created_at')[:10]
+    
     context = {
         'total_rides': total_rides,
         'completed_rides': completed_rides,
         'active_rides': active_rides,
         'recent_rides': recent_rides,
+        'my_negotiations': my_negotiations,  # 💰 NUEVO
     }
     
     return render(request, 'customer_dashboard.html', context)

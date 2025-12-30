@@ -499,6 +499,74 @@
             </div>
         </div>
 
+        <!-- 💰 Negociaciones de Precio Pendientes -->
+        {% if pending_negotiations %}
+        <div class="card" style="border-left: 4px solid #FFC107;">
+            <h3><i class="fas fa-hand-holding-usd"></i> 💰 Negociaciones de Precio Pendientes ({{ pending_negotiations|length }})</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Origen → Destino</th>
+                            <th>Precio Sugerido</th>
+                            <th>Precio Propuesto</th>
+                            <th>Diferencia</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for negotiation in pending_negotiations %}
+                        <tr>
+                            <td>
+                                <strong>{{ negotiation.customer.get_full_name }}</strong><br>
+                                <small style="color: #888;">{{ negotiation.customer.phone_number }}</small>
+                            </td>
+                            <td>
+                                <div style="font-size: 0.9em;">
+                                    <div><i class="fas fa-map-marker-alt" style="color: #10B981;"></i> {{ negotiation.origin|truncatewords:5 }}</div>
+                                    <div style="margin-top: 4px;"><i class="fas fa-flag-checkered" style="color: #EF4444;"></i> {{ negotiation.destination|truncatewords:5 }}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="color: #888; text-decoration: line-through;">${{ negotiation.suggested_price }}</span>
+                            </td>
+                            <td>
+                                <strong style="color: #FFC107; font-size: 1.1em;">${{ negotiation.proposed_price }}</strong>
+                            </td>
+                            <td>
+                                {% widthratio negotiation.proposed_price negotiation.suggested_price 100 as percentage %}
+                                {% if percentage < 100 %}
+                                    <span style="color: #EF4444;">-{{ 100|add:"-"|add:percentage }}%</span>
+                                {% else %}
+                                    <span style="color: #10B981;">+{{ percentage|add:"-100" }}%</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ negotiation.created_at|timesince }} ago</small>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-success btn-sm" onclick="acceptNegotiation({{ negotiation.id }}, {{ negotiation.proposed_price }})">
+                                        ✅ Aceptar
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="counterOffer({{ negotiation.id }})">
+                                        💬 Contraoferta
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="rejectNegotiation({{ negotiation.id }})">
+                                        ❌ Rechazar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Actividad Reciente -->
         <div class="card">
             <h3><i class="fas fa-activity"></i> Actividad Reciente</h3>
@@ -567,4 +635,123 @@
         </div>
     </div>
 </div>
+
+<script>
+// ============================================
+// MANEJO DE NEGOCIACIONES DE PRECIO
+// ============================================
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function acceptNegotiation(negotiationId, proposedPrice) {
+    if (!confirm(`¿Aceptar precio de $${proposedPrice}?\n\nSe creará la carrera automáticamente.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/price-negotiation/${negotiationId}/accept/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(`✅ ${result.message}\n\nCarrera #${result.ride_id} creada con precio $${result.final_price}`);
+            location.reload();
+        } else {
+            alert(`❌ Error: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
+async function counterOffer(negotiationId) {
+    const newPrice = prompt('Ingresa tu contraoferta de precio:');
+    
+    if (!newPrice || parseFloat(newPrice) <= 0) {
+        return;
+    }
+    
+    const message = prompt('Mensaje opcional para el cliente (opcional):');
+    
+    try {
+        const response = await fetch(`/api/price-negotiation/${negotiationId}/counter-offer/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                counter_price: newPrice,
+                message: message || ''
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(`💬 ${result.message}\n\nContraoferta: $${result.counter_price}`);
+            location.reload();
+        } else {
+            alert(`❌ Error: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
+async function rejectNegotiation(negotiationId) {
+    const reason = prompt('Motivo del rechazo (opcional):');
+    
+    if (!confirm('¿Rechazar esta propuesta?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/price-negotiation/${negotiationId}/reject/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                reason: reason || 'Sin motivo especificado'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(`❌ ${result.message}`);
+            location.reload();
+        } else {
+            alert(`❌ Error: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+</script>
+
 {% endblock %}

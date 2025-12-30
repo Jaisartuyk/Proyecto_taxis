@@ -1100,3 +1100,255 @@ def create_price_negotiation(request):
         return Response({
             'error': f'Error al crear negociación: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ✅ Aceptar negociación y crear carrera
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_price_negotiation(request, negotiation_id):
+    """
+    Aceptar una negociación de precio y crear la carrera automáticamente
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Negociación aceptada y carrera creada",
+        "ride_id": 123
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que el usuario sea admin
+        if user.role not in ['admin', 'superadmin']:
+            return Response({
+                'error': 'Solo administradores pueden aceptar negociaciones'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener negociación
+        try:
+            negotiation = PriceNegotiation.objects.get(id=negotiation_id)
+        except PriceNegotiation.DoesNotExist:
+            return Response({
+                'error': 'Negociación no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validar organización (si no es super admin)
+        if not user.is_superuser and negotiation.organization != user.organization:
+            return Response({
+                'error': 'No tienes permiso para aceptar esta negociación'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Validar que esté pendiente
+        if negotiation.status != 'pending':
+            return Response({
+                'error': f'Esta negociación ya fue procesada (estado: {negotiation.status})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Crear la carrera con el precio propuesto
+        ride = Ride.objects.create(
+            customer=negotiation.customer,
+            organization=negotiation.organization,
+            origin=negotiation.origin,
+            origin_latitude=negotiation.origin_latitude,
+            origin_longitude=negotiation.origin_longitude,
+            price=negotiation.proposed_price,  # Usar precio propuesto
+            status='requested'
+        )
+        
+        # Crear destino
+        RideDestination.objects.create(
+            ride=ride,
+            address=negotiation.destination,
+            latitude=negotiation.destination_latitude,
+            longitude=negotiation.destination_longitude,
+            order=1
+        )
+        
+        # Actualizar negociación
+        negotiation.status = 'accepted'
+        negotiation.final_price = negotiation.proposed_price
+        negotiation.responded_by = user
+        negotiation.ride = ride
+        negotiation.save()
+        
+        print(f"✅ Negociación #{negotiation_id} aceptada - Carrera #{ride.id} creada con precio ${negotiation.proposed_price}")
+        
+        # TODO: Enviar notificación al cliente
+        
+        return Response({
+            'success': True,
+            'message': 'Negociación aceptada y carrera creada',
+            'ride_id': ride.id,
+            'final_price': str(negotiation.proposed_price)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al aceptar negociación: {str(e)}")
+        return Response({
+            'error': f'Error al aceptar negociación: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 💬 Enviar contraoferta
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def counter_offer_negotiation(request, negotiation_id):
+    """
+    Enviar una contraoferta al cliente
+    
+    Body:
+    {
+        "counter_price": "2.75",
+        "message": "Te ofrecemos este precio"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Contraoferta enviada"
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que el usuario sea admin
+        if user.role not in ['admin', 'superadmin']:
+            return Response({
+                'error': 'Solo administradores pueden enviar contraofertas'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener negociación
+        try:
+            negotiation = PriceNegotiation.objects.get(id=negotiation_id)
+        except PriceNegotiation.DoesNotExist:
+            return Response({
+                'error': 'Negociación no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validar organización
+        if not user.is_superuser and negotiation.organization != user.organization:
+            return Response({
+                'error': 'No tienes permiso para responder esta negociación'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Validar que esté pendiente
+        if negotiation.status != 'pending':
+            return Response({
+                'error': f'Esta negociación ya fue procesada (estado: {negotiation.status})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener datos
+        counter_price = request.data.get('counter_price')
+        message = request.data.get('message', '')
+        
+        if not counter_price:
+            return Response({
+                'error': 'Falta el precio de contraoferta'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            counter_price = float(counter_price)
+            if counter_price < 0.50:
+                return Response({
+                    'error': 'El precio mínimo es $0.50'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({
+                'error': 'Precio inválido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Actualizar negociación
+        negotiation.status = 'counter_offered'
+        negotiation.counter_offer_price = counter_price
+        negotiation.response_message = message
+        negotiation.responded_by = user
+        negotiation.save()
+        
+        print(f"💬 Contraoferta enviada para negociación #{negotiation_id}: ${counter_price}")
+        
+        # TODO: Enviar notificación al cliente
+        
+        return Response({
+            'success': True,
+            'message': 'Contraoferta enviada al cliente',
+            'counter_price': str(counter_price)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al enviar contraoferta: {str(e)}")
+        return Response({
+            'error': f'Error al enviar contraoferta: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ❌ Rechazar negociación
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reject_price_negotiation(request, negotiation_id):
+    """
+    Rechazar una negociación de precio
+    
+    Body:
+    {
+        "reason": "Precio muy bajo"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Negociación rechazada"
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que el usuario sea admin
+        if user.role not in ['admin', 'superadmin']:
+            return Response({
+                'error': 'Solo administradores pueden rechazar negociaciones'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener negociación
+        try:
+            negotiation = PriceNegotiation.objects.get(id=negotiation_id)
+        except PriceNegotiation.DoesNotExist:
+            return Response({
+                'error': 'Negociación no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validar organización
+        if not user.is_superuser and negotiation.organization != user.organization:
+            return Response({
+                'error': 'No tienes permiso para rechazar esta negociación'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Validar que esté pendiente
+        if negotiation.status != 'pending':
+            return Response({
+                'error': f'Esta negociación ya fue procesada (estado: {negotiation.status})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener motivo
+        reason = request.data.get('reason', 'Sin motivo especificado')
+        
+        # Actualizar negociación
+        negotiation.status = 'rejected'
+        negotiation.response_message = reason
+        negotiation.responded_by = user
+        negotiation.save()
+        
+        print(f"❌ Negociación #{negotiation_id} rechazada - Motivo: {reason}")
+        
+        # TODO: Enviar notificación al cliente
+        
+        return Response({
+            'success': True,
+            'message': 'Negociación rechazada'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al rechazar negociación: {str(e)}")
+        return Response({
+            'error': f'Error al rechazar negociación: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

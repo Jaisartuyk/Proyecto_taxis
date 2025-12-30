@@ -510,6 +510,16 @@ def admin_dashboard(request):
         avg_rating = 0
         total_ratings = 0
     
+    # Negociaciones de precio pendientes
+    from .models import PriceNegotiation
+    if is_super_admin:
+        pending_negotiations = PriceNegotiation.objects.filter(status='pending').select_related('customer', 'organization').order_by('-created_at')[:10]
+    else:
+        pending_negotiations = PriceNegotiation.objects.filter(
+            organization=organization,
+            status='pending'
+        ).select_related('customer').order_by('-created_at')[:10]
+    
     context = {
         'total_users': total_users,
         'total_drivers': total_drivers,
@@ -527,6 +537,7 @@ def admin_dashboard(request):
         'recent_rides': recent_rides,
         'avg_rating': round(avg_rating, 1) if avg_rating else 0,
         'total_ratings': total_ratings,
+        'pending_negotiations': pending_negotiations,  # 💰 NUEVO
     }
     
     return render(request, 'admin_dashboard.html', context)

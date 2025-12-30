@@ -93,6 +93,9 @@ urlpatterns = [
     
     # Negociación de Precios
     path('api/price-negotiation/', api_views.create_price_negotiation, name='create_price_negotiation'),
+    path('api/price-negotiation/<int:negotiation_id>/accept/', api_views.accept_price_negotiation, name='accept_price_negotiation'),
+    path('api/price-negotiation/<int:negotiation_id>/counter-offer/', api_views.counter_offer_negotiation, name='counter_offer_negotiation'),
+    path('api/price-negotiation/<int:negotiation_id>/reject/', api_views.reject_price_negotiation, name='reject_price_negotiation'),
     
     # Panel de WhatsApp
     path('whatsapp/panel/', views.whatsapp_panel, name='whatsapp_panel'),

@@ -281,6 +281,17 @@ GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', 'AIzaSyAtEPZgbPBwnJGrvIuwplRJD
 # Google Maps - Usar la misma variable que ya está configurada en Railway
 GOOGLE_MAPS_API_KEY = GOOGLE_API_KEY
 
+# REST Framework - Configuración de autenticación
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 TELEGRAM_BOT_TOKEN = '7754998885:AAGOEJhcCE8t3NMYS2mQ-v8xM56j6aFPRoY'
 TELEGRAM_CHAT_ID_GRUPO_TAXISTAS = '-4767733103'
 

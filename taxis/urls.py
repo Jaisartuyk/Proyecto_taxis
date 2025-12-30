@@ -99,6 +99,12 @@ urlpatterns = [
     path('api/price-negotiation/<int:negotiation_id>/client-accept/', api_views.client_accept_counter_offer, name='client_accept_counter_offer'),
     path('api/price-negotiation/<int:negotiation_id>/client-reject/', api_views.client_reject_counter_offer, name='client_reject_counter_offer'),
     
+    # Gestión de Perfil - API Móvil
+    path('api/profile/', api_views.get_user_profile, name='get_user_profile'),
+    path('api/profile/update/', api_views.update_user_profile, name='update_user_profile'),
+    path('api/profile/vehicle/', api_views.update_driver_vehicle, name='update_driver_vehicle'),
+    path('api/profile/notifications/', api_views.get_notifications_settings, name='get_notifications_settings'),
+    
     # Panel de WhatsApp
     path('whatsapp/panel/', views.whatsapp_panel, name='whatsapp_panel'),
     path('whatsapp/conversation/<int:conversation_id>/', views.whatsapp_conversation_detail, name='whatsapp_conversation_detail'),

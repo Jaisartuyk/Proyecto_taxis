@@ -1529,3 +1529,282 @@ def client_reject_counter_offer(request, negotiation_id):
         return Response({
             'error': f'Error al rechazar contraoferta: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================
+# GESTIÓN DE PERFIL - API MÓVIL
+# ============================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_profile(request):
+    """
+    Obtener información del perfil del usuario autenticado
+    
+    Returns:
+    {
+        "id": 1,
+        "username": "carlos",
+        "email": "carlos@example.com",
+        "first_name": "Carlos",
+        "last_name": "Rodríguez",
+        "phone_number": "555-1234",
+        "national_id": "123456789",
+        "role": "driver",
+        "profile_picture": "/media/profiles/carlos.jpg",
+        "organization": {
+            "id": 1,
+            "name": "De Aquí Pa'llá",
+            "logo": "/media/logos/logo.png"
+        },
+        "driver_info": {
+            "driver_number": "001",
+            "driver_status": "approved",
+            "plate_number": "ABC123",
+            "car_model": "Toyota Corolla",
+            "car_color": "Blanco"
+        }
+    }
+    """
+    try:
+        user = request.user
+        
+        # Datos básicos del usuario
+        profile_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone_number': user.phone_number,
+            'national_id': user.national_id,
+            'role': user.role,
+            'profile_picture': user.profile_picture.url if user.profile_picture else None,
+        }
+        
+        # Información de la organización
+        if user.organization:
+            profile_data['organization'] = {
+                'id': user.organization.id,
+                'name': user.organization.name,
+                'logo': user.organization.logo.url if user.organization.logo else None,
+            }
+        else:
+            profile_data['organization'] = None
+        
+        # Información específica del conductor
+        if user.role == 'driver':
+            try:
+                taxi = user.taxi
+                profile_data['driver_info'] = {
+                    'driver_number': user.driver_number,
+                    'driver_status': user.driver_status,
+                    'plate_number': taxi.plate_number,
+                    'car_model': taxi.car_model,
+                    'car_color': taxi.car_color,
+                    'car_year': taxi.car_year,
+                }
+            except:
+                profile_data['driver_info'] = {
+                    'driver_number': user.driver_number,
+                    'driver_status': user.driver_status,
+                    'plate_number': None,
+                    'car_model': None,
+                    'car_color': None,
+                    'car_year': None,
+                }
+        
+        return Response({
+            'success': True,
+            'profile': profile_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al obtener perfil: {str(e)}")
+        return Response({
+            'error': f'Error al obtener perfil: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_user_profile(request):
+    """
+    Actualizar información del perfil del usuario
+    
+    Body:
+    {
+        "first_name": "Carlos",
+        "last_name": "Rodríguez",
+        "phone_number": "555-1234",
+        "email": "carlos@example.com",
+        "profile_picture": <file>  // opcional
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Perfil actualizado exitosamente",
+        "profile": {...}
+    }
+    """
+    try:
+        user = request.user
+        
+        # Actualizar campos básicos
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        
+        if 'phone_number' in request.data:
+            user.phone_number = request.data['phone_number']
+        
+        if 'email' in request.data:
+            # Validar que el email no esté en uso por otro usuario
+            email = request.data['email']
+            if AppUser.objects.filter(email=email).exclude(id=user.id).exists():
+                return Response({
+                    'error': 'Este email ya está en uso por otro usuario'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            user.email = email
+        
+        # Actualizar foto de perfil si se envió
+        if 'profile_picture' in request.FILES:
+            user.profile_picture = request.FILES['profile_picture']
+        
+        user.save()
+        
+        print(f"✅ Perfil actualizado: {user.get_full_name()}")
+        
+        # Devolver perfil actualizado
+        profile_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone_number': user.phone_number,
+            'national_id': user.national_id,
+            'role': user.role,
+            'profile_picture': user.profile_picture.url if user.profile_picture else None,
+        }
+        
+        return Response({
+            'success': True,
+            'message': 'Perfil actualizado exitosamente',
+            'profile': profile_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al actualizar perfil: {str(e)}")
+        return Response({
+            'error': f'Error al actualizar perfil: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_driver_vehicle(request):
+    """
+    Actualizar información del vehículo del conductor
+    
+    Body:
+    {
+        "plate_number": "ABC123",
+        "car_model": "Toyota Corolla",
+        "car_color": "Blanco",
+        "car_year": 2020
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que sea conductor
+        if user.role != 'driver':
+            return Response({
+                'error': 'Solo conductores pueden actualizar información del vehículo'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener o crear taxi
+        try:
+            taxi = user.taxi
+        except:
+            from .models import Taxi
+            taxi = Taxi.objects.create(driver=user)
+        
+        # Actualizar campos
+        if 'plate_number' in request.data:
+            taxi.plate_number = request.data['plate_number']
+        
+        if 'car_model' in request.data:
+            taxi.car_model = request.data['car_model']
+        
+        if 'car_color' in request.data:
+            taxi.car_color = request.data['car_color']
+        
+        if 'car_year' in request.data:
+            taxi.car_year = request.data['car_year']
+        
+        taxi.save()
+        
+        print(f"✅ Vehículo actualizado: {taxi.plate_number}")
+        
+        return Response({
+            'success': True,
+            'message': 'Información del vehículo actualizada',
+            'vehicle': {
+                'plate_number': taxi.plate_number,
+                'car_model': taxi.car_model,
+                'car_color': taxi.car_color,
+                'car_year': taxi.car_year,
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"❌ Error al actualizar vehículo: {str(e)}")
+        return Response({
+            'error': f'Error al actualizar vehículo: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_notifications_settings(request):
+    """
+    Obtener configuración de notificaciones del usuario
+    
+    Returns:
+    {
+        "push_enabled": true,
+        "email_enabled": false,
+        "sms_enabled": false,
+        "ride_notifications": true,
+        "chat_notifications": true,
+        "audio_notifications": true
+    }
+    """
+    try:
+        user = request.user
+        
+        # Por ahora devolvemos valores por defecto
+        # En el futuro se puede crear un modelo NotificationSettings
+        settings = {
+            'push_enabled': True,
+            'email_enabled': False,
+            'sms_enabled': False,
+            'ride_notifications': True,
+            'chat_notifications': True,
+            'audio_notifications': True,
+        }
+        
+        return Response({
+            'success': True,
+            'settings': settings
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener configuración: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

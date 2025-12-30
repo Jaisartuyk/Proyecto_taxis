@@ -821,13 +821,19 @@ def cancel_ride_view(request, ride_id):
                 'error': 'Token inválido'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        # Obtener la carrera
+        # Obtener la carrera (puede ser conductor o cliente)
         try:
-            ride = Ride.objects.get(id=ride_id, driver=user)
+            ride = Ride.objects.get(id=ride_id)
         except Ride.DoesNotExist:
             return Response({
                 'error': 'Carrera no encontrada'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar que el usuario sea el conductor o el cliente
+        if user != ride.driver and user != ride.customer:
+            return Response({
+                'error': 'No tienes permiso para cancelar esta carrera'
+            }, status=status.HTTP_403_FORBIDDEN)
         
         # Verificar que la carrera no esté completada
         if ride.status == 'completed':
@@ -835,9 +841,19 @@ def cancel_ride_view(request, ride_id):
                 'error': 'No se puede cancelar una carrera completada'
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Verificar que no esté ya cancelada
+        if ride.status == 'canceled':
+            return Response({
+                'error': 'Esta carrera ya está cancelada'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Cancelar carrera
         ride.status = 'canceled'
-        ride.driver = None  # Liberar conductor
+        
+        # Si había un conductor asignado, liberarlo
+        if ride.driver:
+            ride.driver = None
+        
         ride.save()
         
         return Response({

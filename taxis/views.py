@@ -1550,13 +1550,32 @@ def cancel_ride(request, ride_id):
     if request.user != ride.driver and request.user != ride.customer:
         messages.error(request, "No tiene permiso para cancelar esta carrera.")
         return redirect('ride_detail', ride_id=ride_id)
+    
+    # Verificar que la carrera no esté completada
+    if ride.status == 'completed':
+        messages.error(request, "No se puede cancelar una carrera completada.")
+        return redirect('ride_detail', ride_id=ride_id)
+    
+    # Verificar que la carrera no esté ya cancelada
+    if ride.status == 'canceled':
+        messages.warning(request, "Esta carrera ya está cancelada.")
+        return redirect('ride_detail', ride_id=ride_id)
 
     # Cambiar el estado de la carrera a 'canceled'
     ride.status = 'canceled'
+    
+    # Si había un conductor asignado, liberarlo
+    if ride.driver:
+        ride.driver = None
+    
     ride.save()
 
-    # Mensaje de éxito
-    messages.success(request, "La carrera ha sido cancelada.")
+    # Mensaje de éxito según quién canceló
+    if request.user == ride.customer:
+        messages.success(request, "Has cancelado la carrera exitosamente.")
+    else:
+        messages.success(request, "La carrera ha sido cancelada.")
+    
     return redirect('ride_detail', ride_id=ride_id)
 
 

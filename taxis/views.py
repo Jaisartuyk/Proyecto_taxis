@@ -2082,11 +2082,23 @@ def chat_central(request):
     }
     return render(request, 'central_comunicacion.html', context)
 
-@login_required
 def get_chat_history(request, user_id):
     """API para obtener historial de chat con un usuario específico"""
     from .models import ChatMessage, AppUser
     from django.db.models import Q
+    from rest_framework.authtoken.models import Token
+    
+    # Autenticación por token (para app móvil)
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Token '):
+        token_key = auth_header.split(' ')[1]
+        try:
+            token = Token.objects.get(key=token_key)
+            request.user = token.user
+        except Token.DoesNotExist:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+    elif not request.user.is_authenticated:
+        return JsonResponse({'error': 'No autenticado'}, status=401)
     
     print(f"[CHAT_HISTORY] Petición recibida: user_id={user_id}, request.user={request.user.id}, is_superuser={request.user.is_superuser}")
     

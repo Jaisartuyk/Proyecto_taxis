@@ -2090,13 +2090,9 @@ def get_chat_history(request, user_id):
     
     print(f"[CHAT_HISTORY] Petición recibida: user_id={user_id}, request.user={request.user.id}, is_superuser={request.user.is_superuser}")
     
-    # Permitir acceso si es superusuario O si el usuario está consultando su propio chat
-    if not request.user.is_superuser:
-        # Si no es superusuario, solo puede ver sus propios mensajes
-        # user_id debe ser el ID del usuario actual o del admin (1)
-        if request.user.id != int(user_id) and int(user_id) != 1:
-            print(f"[CHAT_HISTORY] ❌ No autorizado: request.user.id={request.user.id}, user_id={user_id}")
-            return JsonResponse({'error': 'No autorizado'}, status=403)
+    # ✅ MODIFICADO: Permitir que cualquier usuario autenticado vea el historial con otro usuario
+    # Ya no se valida que user_id sea el mismo que request.user.id
+    # El historial siempre será entre request.user y other_user
     
     other_user = get_object_or_404(AppUser, id=user_id)
     print(f"[CHAT_HISTORY] Usuario encontrado: {other_user.get_full_name() or other_user.username} (ID: {other_user.id})")

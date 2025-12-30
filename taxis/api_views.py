@@ -1159,9 +1159,9 @@ def accept_price_negotiation(request, negotiation_id):
         # Crear destino
         RideDestination.objects.create(
             ride=ride,
-            address=negotiation.destination,
-            latitude=negotiation.destination_latitude,
-            longitude=negotiation.destination_longitude,
+            destination=negotiation.destination,
+            destination_latitude=negotiation.destination_latitude,
+            destination_longitude=negotiation.destination_longitude,
             order=1
         )
         
@@ -1449,9 +1449,9 @@ def client_accept_counter_offer(request, negotiation_id):
         # Crear destino
         RideDestination.objects.create(
             ride=ride,
-            address=negotiation.destination,
-            latitude=negotiation.destination_latitude,
-            longitude=negotiation.destination_longitude,
+            destination=negotiation.destination,
+            destination_latitude=negotiation.destination_latitude,
+            destination_longitude=negotiation.destination_longitude,
             order=1
         )
         

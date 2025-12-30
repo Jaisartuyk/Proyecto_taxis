@@ -597,6 +597,32 @@
         {% endif %}
         {% endif %}
         
+        <!-- Botón de cancelar para clientes -->
+        {% if request.user.role == 'customer' and request.user == ride.customer %}
+        {% if ride.status in 'requested,accepted,in_progress' %}
+        <form method="POST" action="{% url 'cancel_ride' ride.id %}" style="display: inline;" 
+              onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta carrera?');">
+            {% csrf_token %}
+            <button type="submit" class="btn-action" style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);">
+                ❌ Cancelar Carrera
+            </button>
+        </form>
+        {% endif %}
+        {% endif %}
+        
+        <!-- Botón de cancelar para conductores -->
+        {% if request.user.role == 'driver' and request.user == ride.driver %}
+        {% if ride.status in 'accepted,in_progress' %}
+        <form method="POST" action="{% url 'cancel_ride' ride.id %}" style="display: inline;" 
+              onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta carrera?');">
+            {% csrf_token %}
+            <button type="submit" class="btn-action" style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);">
+                ❌ Cancelar Carrera
+            </button>
+        </form>
+        {% endif %}
+        {% endif %}
+        
         <!-- Botón de calificación para carreras completadas -->
         {% if ride.status == 'completed' %}
             {% if request.user == ride.customer or request.user == ride.driver %}

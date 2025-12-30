@@ -505,17 +505,35 @@
                     {% elif ride.origin_latitude and ride.origin_longitude %}
                         <span id="origin-address-display">Obteniendo dirección...</span>
                         <script>
-                            // Obtener dirección desde coordenadas
-                            const geocoder = new google.maps.Geocoder();
-                            const latlng = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
-                            geocoder.geocode({ location: latlng }, (results, status) => {
-                                const displayElement = document.getElementById('origin-address-display');
-                                if (status === 'OK' && results[0]) {
-                                    displayElement.textContent = results[0].formatted_address;
-                                } else {
-                                    displayElement.textContent = `Lat: {{ ride.origin_latitude }}, Lng: {{ ride.origin_longitude }}`;
+                            // Esperar a que Google Maps esté cargado
+                            function geocodeOriginAddress() {
+                                if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+                                    console.log('⏳ Esperando a que Google Maps se cargue...');
+                                    setTimeout(geocodeOriginAddress, 500);
+                                    return;
                                 }
-                            });
+                                
+                                console.log('🗺️ Google Maps cargado, obteniendo dirección de origen...');
+                                const geocoder = new google.maps.Geocoder();
+                                const latlng = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
+                                geocoder.geocode({ location: latlng }, (results, status) => {
+                                    const displayElement = document.getElementById('origin-address-display');
+                                    if (status === 'OK' && results[0]) {
+                                        displayElement.textContent = results[0].formatted_address;
+                                        console.log('✅ Dirección obtenida:', results[0].formatted_address);
+                                    } else {
+                                        displayElement.textContent = `Lat: {{ ride.origin_latitude }}, Lng: {{ ride.origin_longitude }}`;
+                                        console.warn('⚠️ No se pudo obtener dirección, mostrando coordenadas');
+                                    }
+                                });
+                            }
+                            
+                            // Iniciar cuando el DOM esté listo
+                            if (document.readyState === 'loading') {
+                                document.addEventListener('DOMContentLoaded', geocodeOriginAddress);
+                            } else {
+                                geocodeOriginAddress();
+                            }
                         </script>
                     {% else %}
                         Ubicación no disponible

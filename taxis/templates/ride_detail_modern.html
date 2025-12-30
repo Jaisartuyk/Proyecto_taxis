@@ -417,6 +417,25 @@
         border-color: #FFD700;
     }
 
+    .chat-attach-btn {
+        background: #3d3d3d;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #FFD700;
+        transition: all 0.3s ease;
+    }
+
+    .chat-attach-btn:hover {
+        background: #4d4d4d;
+        transform: scale(1.05);
+    }
+
     .chat-send-btn {
         background: #FFD700;
         border: none;
@@ -428,6 +447,12 @@
         justify-content: center;
         cursor: pointer;
         color: #1a1a1a;
+        transition: all 0.3s ease;
+    }
+
+    .chat-send-btn:hover {
+        background: #FFC107;
+        transform: scale(1.05);
     }
 
     @media (max-width: 480px) {
@@ -706,6 +731,10 @@
             {% endfor %}
         </div>
         <div class="chat-input-area">
+            <input type="file" id="chat-image-input" accept="image/*" style="display: none;" onchange="sendImage()">
+            <button class="chat-attach-btn" onclick="document.getElementById('chat-image-input').click()" title="Enviar imagen">
+                <i class="fas fa-image"></i>
+            </button>
             <input type="text" class="chat-input" id="chat-input" placeholder="Escribe un mensaje...">
             <button class="chat-send-btn" onclick="sendMessage()">
                 <i class="fas fa-paper-plane"></i>
@@ -844,6 +873,52 @@
         }));
 
         chatInput.value = '';
+    }
+
+    function sendImage() {
+        const fileInput = document.getElementById('chat-image-input');
+        const file = fileInput.files[0];
+        
+        if (!file || !chatSocket) return;
+        
+        // Validar que sea una imagen
+        if (!file.type.startsWith('image/')) {
+            alert('Por favor selecciona un archivo de imagen válido');
+            return;
+        }
+        
+        // Validar tamaño (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('La imagen es demasiado grande. Máximo 5MB');
+            return;
+        }
+        
+        console.log('📤 Enviando imagen:', file.name);
+        
+        // Leer archivo como base64
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64Image = e.target.result;
+            
+            // Enviar por WebSocket
+            chatSocket.send(JSON.stringify({
+                message_type: 'image',
+                image_data: base64Image,
+                recipient_id: OTHER_USER_ID,
+                filename: file.name
+            }));
+            
+            console.log('✅ Imagen enviada');
+        };
+        
+        reader.onerror = function() {
+            alert('Error al leer la imagen');
+        };
+        
+        reader.readAsDataURL(file);
+        
+        // Limpiar input
+        fileInput.value = '';
     }
 
     chatInput.addEventListener('keypress', function (e) {

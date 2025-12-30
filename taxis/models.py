@@ -320,6 +320,13 @@ class Taxi(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     plate_number = models.CharField(max_length=10, default='')  # Número de placa
     vehicle_description = models.TextField(default='')  # Descripción del vehículo
+    
+    # Campos adicionales para perfil móvil
+    car_model = models.CharField(max_length=100, blank=True, null=True)  # Modelo del vehículo
+    car_color = models.CharField(max_length=50, blank=True, null=True)  # Color del vehículo
+    car_year = models.IntegerField(blank=True, null=True)  # Año del vehículo
+    is_active = models.BooleanField(default=True)  # Si el taxi está activo
+    
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     AppUser, Taxi, TaxiRoute, Ride, RideDestination,
     WhatsAppConversation, WhatsAppMessage, WhatsAppStats, WebPushSubscription,
-    FCMToken, Organization, Invoice
+    FCMToken, Organization, PriceNegotiation
 )
 
 
@@ -339,39 +339,102 @@ class OrganizationAdmin(admin.ModelAdmin):
 # ============================================
 # ADMIN DE INVOICE (FASE 3)
 # ============================================
+# COMENTADO: El modelo Invoice aún no está implementado
 
-@admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
+# @admin.register(Invoice)
+# class InvoiceAdmin(admin.ModelAdmin):
+#     list_display = (
+#         'invoice_number',
+#         'organization',
+#         'amount',
+#         'status',
+#         'issue_date',
+#         'due_date',
+#         'paid_date'
+#     )
+#     list_filter = ('status', 'issue_date', 'due_date')
+#     search_fields = ('invoice_number', 'organization__name')
+#     readonly_fields = ('invoice_number', 'created_at', 'updated_at')
+#     
+#     fieldsets = (
+#         ('Información de la Factura', {
+#             'fields': ('invoice_number', 'organization', 'period_start', 'period_end')
+#         }),
+#         ('Montos', {
+#             'fields': ('amount', 'tax_amount', 'total_amount')
+#         }),
+#         ('Fechas', {
+#             'fields': ('issue_date', 'due_date', 'paid_date')
+#         }),
+#         ('Estado', {
+#             'fields': ('status', 'notes', 'created_at', 'updated_at')
+#         }),
+#     )
+#     
+#     def has_add_permission(self, request):
+#         # Las facturas se crean desde el panel personalizado
+#         return False
+
+
+# ============================================
+# ADMIN DE NEGOCIACIÓN DE PRECIOS
+# ============================================
+
+@admin.register(PriceNegotiation)
+class PriceNegotiationAdmin(admin.ModelAdmin):
     list_display = (
-        'invoice_number',
+        'id',
+        'customer',
         'organization',
-        'amount',
+        'origin_short',
+        'destination_short',
+        'proposed_price',
+        'counter_offer_price',
+        'final_price',
         'status',
-        'issue_date',
-        'due_date',
-        'paid_date'
+        'created_at'
     )
-    list_filter = ('status', 'issue_date', 'due_date')
-    search_fields = ('invoice_number', 'organization__name')
-    readonly_fields = ('invoice_number', 'created_at', 'updated_at')
+    
+    list_filter = ('status', 'organization', 'created_at')
+    search_fields = ('customer__username', 'customer__first_name', 'customer__last_name', 'origin', 'destination')
+    readonly_fields = ('created_at', 'updated_at', 'ride')
     
     fieldsets = (
-        ('Información de la Factura', {
-            'fields': ('invoice_number', 'organization', 'period_start', 'period_end')
+        ('Cliente', {
+            'fields': ('customer', 'organization')
         }),
-        ('Montos', {
-            'fields': ('amount', 'tax_amount', 'total_amount')
+        ('Detalles del Viaje', {
+            'fields': (
+                'origin', 'origin_latitude', 'origin_longitude',
+                'destination', 'destination_latitude', 'destination_longitude'
+            )
         }),
-        ('Fechas', {
-            'fields': ('issue_date', 'due_date', 'paid_date')
+        ('Precios', {
+            'fields': ('suggested_price', 'proposed_price', 'counter_offer_price', 'final_price')
         }),
         ('Estado', {
-            'fields': ('status', 'notes', 'created_at', 'updated_at')
+            'fields': ('status', 'responded_by', 'response_message')
+        }),
+        ('Carrera Creada', {
+            'fields': ('ride',),
+            'classes': ('collapse',)
+        }),
+        ('Fechas', {
+            'fields': ('created_at', 'updated_at', 'expires_at'),
+            'classes': ('collapse',)
         }),
     )
     
+    def origin_short(self, obj):
+        return obj.origin[:50] + '...' if len(obj.origin) > 50 else obj.origin
+    origin_short.short_description = 'Origen'
+    
+    def destination_short(self, obj):
+        return obj.destination[:50] + '...' if len(obj.destination) > 50 else obj.destination
+    destination_short.short_description = 'Destino'
+    
     def has_add_permission(self, request):
-        # Las facturas se crean desde el panel personalizado
+        # Las negociaciones se crean desde el frontend
         return False
 
 

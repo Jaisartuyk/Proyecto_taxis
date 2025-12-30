@@ -91,6 +91,9 @@ urlpatterns = [
     path('api/rides/<int:ride_id>/complete/', api_views.complete_ride_view, name='complete_ride'),
     path('api/rides/<int:ride_id>/cancel/', api_views.cancel_ride_view, name='cancel_ride'),
     
+    # Negociación de Precios
+    path('api/price-negotiation/', api_views.create_price_negotiation, name='create_price_negotiation'),
+    
     # Panel de WhatsApp
     path('whatsapp/panel/', views.whatsapp_panel, name='whatsapp_panel'),
     path('whatsapp/conversation/<int:conversation_id>/', views.whatsapp_conversation_detail, name='whatsapp_conversation_detail'),

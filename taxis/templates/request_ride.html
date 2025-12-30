@@ -54,8 +54,63 @@
     <input type="hidden" id="origin_latitude" name="origin_latitude">
     <input type="hidden" id="origin_longitude" name="origin_longitude">
 
-    <button type="submit" class="btn btn-primary">Solicitar</button>
+    <!-- Botones de acción -->
+    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+        <button type="submit" class="btn btn-primary btn-lg">
+            ✅ Aceptar precio y solicitar
+        </button>
+        <button type="button" class="btn btn-warning btn-lg" id="btn-negotiate">
+            💰 Proponer mi precio
+        </button>
+    </div>
 </form>
+
+<!-- Modal de Negociación -->
+<div class="modal fade" id="negotiationModal" tabindex="-1" aria-labelledby="negotiationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="negotiationModalLabel">💰 Proponer Precio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>Precio sugerido:</strong> $<span id="modal-suggested-price">0.00</span>
+                </div>
+                
+                <form id="negotiation-form">
+                    <div class="mb-3">
+                        <label for="proposed-price" class="form-label">Tu propuesta de precio ($)</label>
+                        <input type="number" 
+                               class="form-control form-control-lg" 
+                               id="proposed-price" 
+                               step="0.01" 
+                               min="0.50" 
+                               placeholder="Ej: 2.50"
+                               required>
+                        <div class="form-text">
+                            La central revisará tu propuesta y te responderá pronto.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="negotiation-message" class="form-label">Mensaje opcional</label>
+                        <textarea class="form-control" 
+                                  id="negotiation-message" 
+                                  rows="2" 
+                                  placeholder="Ej: Es una distancia corta, ¿pueden aceptar este precio?"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="btn-submit-negotiation">
+                    📤 Enviar propuesta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -247,6 +302,89 @@
             `;
         document.getElementById('destinations').appendChild(destinationGroup);
         setupAutocompleteForDestinations();
+    });
+
+    // ============================================
+    // NEGOCIACIÓN DE PRECIOS
+    // ============================================
+    
+    const negotiationModal = new bootstrap.Modal(document.getElementById('negotiationModal'));
+    
+    // Abrir modal de negociación
+    document.getElementById('btn-negotiate').addEventListener('click', () => {
+        const suggestedPrice = document.getElementById('price').value.replace('$', '').trim();
+        
+        if (!suggestedPrice || suggestedPrice === '0.00') {
+            alert('⚠️ Primero ingresa un destino para calcular el precio');
+            return;
+        }
+        
+        // Mostrar precio sugerido en el modal
+        document.getElementById('modal-suggested-price').textContent = suggestedPrice;
+        
+        // Limpiar campos
+        document.getElementById('proposed-price').value = '';
+        document.getElementById('negotiation-message').value = '';
+        
+        // Abrir modal
+        negotiationModal.show();
+    });
+    
+    // Enviar propuesta de negociación
+    document.getElementById('btn-submit-negotiation').addEventListener('click', async () => {
+        const proposedPrice = document.getElementById('proposed-price').value;
+        const message = document.getElementById('negotiation-message').value;
+        const suggestedPrice = document.getElementById('modal-suggested-price').textContent;
+        
+        if (!proposedPrice || parseFloat(proposedPrice) <= 0) {
+            alert('⚠️ Por favor ingresa un precio válido');
+            return;
+        }
+        
+        // Validar que el precio no sea demasiado bajo (mínimo $0.50)
+        if (parseFloat(proposedPrice) < 0.50) {
+            alert('⚠️ El precio mínimo es $0.50');
+            return;
+        }
+        
+        // Preparar datos para enviar
+        const negotiationData = {
+            origin: document.getElementById('origin').value,
+            origin_latitude: document.getElementById('origin_latitude').value,
+            origin_longitude: document.getElementById('origin_longitude').value,
+            destination: document.querySelector('.destination').value,
+            destination_coords: document.querySelector('.destination-coords').value,
+            suggested_price: suggestedPrice,
+            proposed_price: proposedPrice,
+            message: message
+        };
+        
+        console.log('📤 Enviando propuesta de negociación:', negotiationData);
+        
+        try {
+            const response = await fetch('/api/price-negotiation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(negotiationData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                negotiationModal.hide();
+                alert('✅ Propuesta enviada exitosamente!\n\nLa central revisará tu propuesta y te responderá pronto.\n\nRecibirás una notificación cuando haya una respuesta.');
+                // Opcional: redirigir al dashboard
+                window.location.href = '/customer-dashboard/';
+            } else {
+                alert('❌ Error: ' + (result.error || 'No se pudo enviar la propuesta'));
+            }
+        } catch (error) {
+            console.error('Error al enviar propuesta:', error);
+            alert('❌ Error de conexión. Por favor intenta de nuevo.');
+        }
     });
 </script>
 

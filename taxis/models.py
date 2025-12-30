@@ -955,6 +955,172 @@ class InvitationCode(models.Model):
 
 
 # ============================================
+# NEGOCIACIÓN DE PRECIOS
+# ============================================
+
+class PriceNegotiation(models.Model):
+    """
+    Negociación de precio entre cliente y central ANTES de crear la carrera.
+    Similar a InDriver: cliente propone precio, central acepta/rechaza/contraoferta.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pendiente'),           # Esperando respuesta de central
+        ('accepted', 'Aceptada'),           # Central aceptó precio del cliente
+        ('rejected', 'Rechazada'),          # Central rechazó
+        ('counter_offered', 'Contraoferta'), # Central hizo contraoferta
+        ('client_accepted', 'Cliente Aceptó'), # Cliente aceptó contraoferta
+        ('client_rejected', 'Cliente Rechazó'), # Cliente rechazó contraoferta
+        ('expired', 'Expirada'),            # Expiró sin respuesta
+        ('ride_created', 'Carrera Creada'), # Se creó la carrera
+    ]
+    
+    # Información del cliente
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='price_negotiations',
+        limit_choices_to={'role': 'customer'}
+    )
+    
+    # Organización (multi-tenant)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='price_negotiations',
+        help_text="Cooperativa que gestiona esta negociación"
+    )
+    
+    # Detalles del viaje
+    origin = models.CharField(max_length=255, help_text="Dirección de origen")
+    origin_latitude = models.FloatField(null=True, blank=True)
+    origin_longitude = models.FloatField(null=True, blank=True)
+    
+    destination = models.CharField(max_length=255, help_text="Dirección de destino")
+    destination_latitude = models.FloatField(null=True, blank=True)
+    destination_longitude = models.FloatField(null=True, blank=True)
+    
+    # Precios
+    suggested_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Precio sugerido por el sistema"
+    )
+    
+    proposed_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Precio propuesto por el cliente"
+    )
+    
+    counter_offer_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Contraoferta de la central"
+    )
+    
+    final_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Precio final acordado"
+    )
+    
+    # Estado y seguimiento
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    
+    # Respuesta de la central
+    responded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='price_negotiations_responded',
+        help_text="Admin/Central que respondió"
+    )
+    
+    response_message = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Mensaje de la central al cliente"
+    )
+    
+    # Carrera creada (si se acepta)
+    ride = models.OneToOneField(
+        'Ride',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='negotiation',
+        help_text="Carrera creada después de aceptar"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(
+        help_text="Fecha de expiración (15 minutos después de crear)"
+    )
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Negociación de Precio'
+        verbose_name_plural = 'Negociaciones de Precio'
+    
+    def __str__(self):
+        return f"Negociación #{self.id} - {self.customer.get_full_name()} - ${self.proposed_price}"
+    
+    def is_expired(self):
+        """Verifica si la negociación expiró"""
+        from django.utils import timezone
+        return timezone.now() > self.expires_at and self.status == 'pending'
+    
+    def can_respond(self):
+        """Verifica si la central puede responder"""
+        return self.status in ['pending', 'counter_offered']
+    
+    def accept(self, admin_user, message=''):
+        """Central acepta el precio propuesto por el cliente"""
+        self.status = 'accepted'
+        self.final_price = self.proposed_price
+        self.responded_by = admin_user
+        self.response_message = message or 'Precio aceptado. Creando carrera...'
+        self.save()
+    
+    def reject(self, admin_user, message=''):
+        """Central rechaza la propuesta"""
+        self.status = 'rejected'
+        self.responded_by = admin_user
+        self.response_message = message or 'Lo sentimos, no podemos aceptar ese precio.'
+        self.save()
+    
+    def counter_offer(self, admin_user, new_price, message=''):
+        """Central hace una contraoferta"""
+        self.status = 'counter_offered'
+        self.counter_offer_price = new_price
+        self.responded_by = admin_user
+        self.response_message = message or f'Te ofrecemos ${new_price}'
+        self.save()
+    
+    def client_accept_counter(self):
+        """Cliente acepta la contraoferta"""
+        self.status = 'client_accepted'
+        self.final_price = self.counter_offer_price
+        self.save()
+    
+    def client_reject_counter(self):
+        """Cliente rechaza la contraoferta"""
+        self.status = 'client_rejected'
+        self.save()
+
+
+# ============================================
 # MODELO DE FACTURACIÓN (FASE 3)
 # ============================================
 

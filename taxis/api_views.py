@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
 from django.db.models import Q, Avg, Count, Sum
-from .models import Taxi, Ride, RideDestination
+from .models import Taxi, Ride, RideDestination, PriceNegotiation
 from datetime import datetime, timedelta
 
 User = get_user_model()
@@ -979,4 +979,124 @@ def ride_detail_api_view(request, ride_id):
     except Exception as e:
         return Response({
             'error': f'Error al obtener detalles: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 💰 Crear negociación de precio
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_price_negotiation(request):
+    """
+    Crear una propuesta de negociación de precio
+    
+    Body:
+    {
+        "origin": "Av. Principal 123",
+        "origin_latitude": -12.0464,
+        "origin_longitude": -77.0428,
+        "destination": "Centro Comercial",
+        "destination_coords": "-12.0500,-77.0450",
+        "suggested_price": "15.00",
+        "proposed_price": "12.00",
+        "message": "Es una distancia corta"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Propuesta enviada exitosamente",
+        "negotiation_id": 1
+    }
+    """
+    try:
+        user = request.user
+        
+        # Validar que el usuario sea cliente
+        if user.role != 'customer':
+            return Response({
+                'error': 'Solo los clientes pueden proponer precios'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Validar que el usuario tenga organización
+        if not user.organization:
+            return Response({
+                'error': 'Usuario sin organización asignada'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener datos
+        origin = request.data.get('origin')
+        origin_lat = request.data.get('origin_latitude')
+        origin_lon = request.data.get('origin_longitude')
+        destination = request.data.get('destination')
+        destination_coords = request.data.get('destination_coords', '')
+        suggested_price = request.data.get('suggested_price')
+        proposed_price = request.data.get('proposed_price')
+        message = request.data.get('message', '')
+        
+        # Validaciones
+        if not all([origin, origin_lat, origin_lon, destination, suggested_price, proposed_price]):
+            return Response({
+                'error': 'Faltan campos requeridos'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Parsear coordenadas del destino
+        dest_lat, dest_lon = None, None
+        if destination_coords:
+            try:
+                coords = destination_coords.split(',')
+                dest_lat = float(coords[0])
+                dest_lon = float(coords[1])
+            except:
+                pass
+        
+        # Validar precios
+        try:
+            suggested_price = float(suggested_price)
+            proposed_price = float(proposed_price)
+            
+            if proposed_price < 0.50:
+                return Response({
+                    'error': 'El precio mínimo es $0.50'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except ValueError:
+            return Response({
+                'error': 'Precios inválidos'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Calcular fecha de expiración (15 minutos)
+        expires_at = timezone.now() + timedelta(minutes=15)
+        
+        # Crear negociación
+        negotiation = PriceNegotiation.objects.create(
+            customer=user,
+            organization=user.organization,
+            origin=origin,
+            origin_latitude=origin_lat,
+            origin_longitude=origin_lon,
+            destination=destination,
+            destination_latitude=dest_lat,
+            destination_longitude=dest_lon,
+            suggested_price=suggested_price,
+            proposed_price=proposed_price,
+            response_message=message,
+            status='pending',
+            expires_at=expires_at
+        )
+        
+        print(f"💰 Nueva negociación creada: #{negotiation.id} - Cliente: {user.get_full_name()} - Precio propuesto: ${proposed_price}")
+        
+        # TODO: Enviar notificación a la central
+        # send_negotiation_notification(negotiation)
+        
+        return Response({
+            'success': True,
+            'message': 'Propuesta enviada exitosamente',
+            'negotiation_id': negotiation.id
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        print(f"❌ Error al crear negociación: {str(e)}")
+        return Response({
+            'error': f'Error al crear negociación: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

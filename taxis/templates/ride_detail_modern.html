@@ -884,12 +884,14 @@
         // Validar que sea una imagen
         if (!file.type.startsWith('image/')) {
             alert('Por favor selecciona un archivo de imagen válido');
+            fileInput.value = '';
             return;
         }
         
         // Validar tamaño (máximo 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('La imagen es demasiado grande. Máximo 5MB');
+            fileInput.value = '';
             return;
         }
         
@@ -900,12 +902,19 @@
         reader.onload = function(e) {
             const base64Image = e.target.result;
             
+            // Mostrar preview y pedir texto opcional
+            const caption = prompt('¿Quieres agregar un mensaje a la imagen? (opcional)');
+            
+            // Mostrar imagen inmediatamente en el chat (optimistic UI)
+            appendImageMessage(base64Image, caption || '', true);
+            
             // Enviar por WebSocket
             chatSocket.send(JSON.stringify({
                 message_type: 'image',
                 image_data: base64Image,
                 recipient_id: OTHER_USER_ID,
-                filename: file.name
+                filename: file.name,
+                message: caption || ''
             }));
             
             console.log('✅ Imagen enviada');

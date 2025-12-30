@@ -74,6 +74,9 @@ urlpatterns = [
     # Chat Media Upload
     path('api/chat/upload/', views.upload_chat_media, name='upload_chat_media'),
     
+    # Chat History
+    path('api/chat_history/<int:user_id>/', views.get_chat_history, name='get_chat_history'),
+    
     # FCM - Firebase Cloud Messaging
     path('api/fcm/register/', api_views.register_fcm_token_view, name='register_fcm_token'),
     

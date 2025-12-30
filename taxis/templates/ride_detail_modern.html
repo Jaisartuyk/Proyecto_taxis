@@ -497,7 +497,30 @@
             <h3>🗺️ Ruta</h3>
             <div class="info-item">
                 <strong>📍 Origen:</strong>
-                <span>{{ origin_address|default:ride.origin }}</span>
+                <span>
+                    {% if origin_address %}
+                        {{ origin_address }}
+                    {% elif ride.origin and ride.origin != 'Dirección desconocida' and ride.origin|length > 5 %}
+                        {{ ride.origin }}
+                    {% elif ride.origin_latitude and ride.origin_longitude %}
+                        <span id="origin-address-display">Obteniendo dirección...</span>
+                        <script>
+                            // Obtener dirección desde coordenadas
+                            const geocoder = new google.maps.Geocoder();
+                            const latlng = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
+                            geocoder.geocode({ location: latlng }, (results, status) => {
+                                const displayElement = document.getElementById('origin-address-display');
+                                if (status === 'OK' && results[0]) {
+                                    displayElement.textContent = results[0].formatted_address;
+                                } else {
+                                    displayElement.textContent = `Lat: {{ ride.origin_latitude }}, Lng: {{ ride.origin_longitude }}`;
+                                }
+                            });
+                        </script>
+                    {% else %}
+                        Ubicación no disponible
+                    {% endif %}
+                </span>
             </div>
             <div class="info-item" style="align-items: flex-start;">
                 <strong>🎯 Destinos:</strong>

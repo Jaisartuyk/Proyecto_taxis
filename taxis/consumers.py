@@ -403,11 +403,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         media_url = data.get('media_url', None)
         thumbnail_url = data.get('thumbnail_url', None)
         metadata = data.get('metadata', {})
+        
+        # ✅ Procesar image_data si viene en base64
+        image_data = data.get('image_data', None)
+        if image_data and msg_type == 'image':
+            print("📸 Procesando imagen en base64...")
+            media_url = await self.save_base64_image(image_data, data.get('filename', 'image.jpg'))
+            print(f"✅ Imagen guardada en: {media_url}")
 
-        # Validación: debe haber mensaje O media_url
-        if not message and not media_url:
+        # Validación: debe haber mensaje O media_url O image_data
+        if not message and not media_url and not image_data:
             if not message_type or message_type == 'chat_message':
-                print("Error: Faltan datos en el mensaje de chat (necesita 'message' o 'media_url')")
+                print("Error: Faltan datos en el mensaje de chat (necesita 'message', 'media_url' o 'image_data')")
             return
         
         if not recipient_id:
@@ -634,5 +641,49 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return None
         except Exception as e:
             print(f"Error obteniendo organización de usuario {user_id}: {e}")
+            return None
+    
+    @database_sync_to_async
+    def save_base64_image(self, base64_data, filename):
+        """Guardar imagen en base64 como archivo y retornar la URL"""
+        import base64
+        import os
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+        from django.conf import settings
+        import uuid
+        
+        try:
+            # Extraer el formato y los datos
+            if ',' in base64_data:
+                format_part, imgstr = base64_data.split(',', 1)
+                # Obtener extensión del formato (ej: data:image/png;base64 -> png)
+                ext = format_part.split('/')[1].split(';')[0]
+            else:
+                imgstr = base64_data
+                ext = filename.split('.')[-1] if '.' in filename else 'jpg'
+            
+            # Decodificar base64
+            img_data = base64.b64decode(imgstr)
+            
+            # Generar nombre único
+            unique_filename = f"chat_images/{uuid.uuid4()}.{ext}"
+            
+            # Guardar archivo
+            path = default_storage.save(unique_filename, ContentFile(img_data))
+            
+            # Retornar URL completa
+            if settings.DEBUG:
+                url = f"/media/{path}"
+            else:
+                url = default_storage.url(path)
+            
+            print(f"✅ Imagen guardada: {path} -> {url}")
+            return url
+            
+        except Exception as e:
+            print(f"❌ Error guardando imagen base64: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 

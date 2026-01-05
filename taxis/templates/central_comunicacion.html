@@ -1323,7 +1323,8 @@
     // Definir currentUser como variable global ANTES del DOMContentLoaded
     window.currentUser = {
         id: {{ request.user.id }},
-        is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
+        is_superuser: {{ request.user.is_superuser|yesno:"true,false" }},
+        role: "{{ request.user.role }}"
     };
     
     document.addEventListener('DOMContentLoaded', function () {

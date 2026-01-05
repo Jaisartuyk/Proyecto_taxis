@@ -422,12 +422,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         # ✅ MULTI-TENANT: Validar que sender y recipient sean de la misma organización
-        sender_org_id = await self.get_user_organization_by_id(
-            int(self.target_user_id) if not self.user.is_authenticated else self.user.id
-        )
+        # EXCEPTO: Super admins y admins de cooperativa pueden chatear con cualquier conductor
+        sender_id_int = int(self.target_user_id) if not self.user.is_authenticated else self.user.id
+        sender_org_id = await self.get_user_organization_by_id(sender_id_int)
         recipient_org_id = await self.get_user_organization_by_id(int(recipient_id))
         
-        if sender_org_id != recipient_org_id:
+        # Verificar si el sender es super admin o admin de cooperativa
+        is_sender_admin = await self.is_user_admin(sender_id_int)
+        
+        # Solo validar organización si el sender NO es admin/superadmin
+        if not is_sender_admin and sender_org_id != recipient_org_id:
             print(f"❌ Chat bloqueado: sender org={sender_org_id}, recipient org={recipient_org_id}")
             await self.send(text_data=json.dumps({
                 'type': 'error',
@@ -642,6 +646,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Error obteniendo organización de usuario {user_id}: {e}")
             return None
+    
+    @database_sync_to_async
+    def is_user_admin(self, user_id):
+        """Verificar si un usuario es super admin o admin de cooperativa"""
+        from .models import AppUser
+        try:
+            user = AppUser.objects.get(id=user_id)
+            return user.is_superuser or user.role == 'admin'
+        except AppUser.DoesNotExist:
+            return False
+        except Exception as e:
+            print(f"Error verificando si usuario {user_id} es admin: {e}")
+            return False
     
     @database_sync_to_async
     def save_base64_image(self, base64_data, filename):

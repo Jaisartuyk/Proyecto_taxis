@@ -14,6 +14,8 @@ User = get_user_model()
 
 # 🚕 Login para conductores
 class LoginAPIView(APIView):
+    permission_classes = []  # Permitir acceso sin autenticación
+    
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')

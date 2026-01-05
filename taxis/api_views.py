@@ -43,15 +43,19 @@ class LoginAPIView(APIView):
                     admin_name = None
                     
                     if user.organization:
-                        # Buscar el admin de la organización
+                        # Buscar el admin de la organización (excluyendo superusers)
                         admin_user = AppUser.objects.filter(
                             organization=user.organization,
-                            role='admin'
+                            role='admin',
+                            is_superuser=False  # Excluir superadmin
                         ).first()
                         
                         if admin_user:
                             admin_id = admin_user.id
                             admin_name = admin_user.get_full_name() or admin_user.username
+                            print(f"✅ Admin encontrado: {admin_name} (ID: {admin_id})")
+                        else:
+                            print(f"⚠️ No se encontró admin para organización: {user.organization.name}")
                     
                     return Response({
                         "message": "Inicio de sesión exitoso.",

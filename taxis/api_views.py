@@ -32,11 +32,30 @@ class LoginAPIView(APIView):
                 role = getattr(user, 'role', None)
 
                 if role == 'driver':
+                    # Obtener el admin de la cooperativa del conductor
+                    admin_id = None
+                    admin_name = None
+                    
+                    if user.organization:
+                        # Buscar el admin de la organización
+                        admin_user = AppUser.objects.filter(
+                            organization=user.organization,
+                            role='admin'
+                        ).first()
+                        
+                        if admin_user:
+                            admin_id = admin_user.id
+                            admin_name = admin_user.get_full_name() or admin_user.username
+                    
                     return Response({
                         "message": "Inicio de sesión exitoso.",
                         "user_id": user.id,
                         "role": role,
-                        "token": token.key
+                        "token": token.key,
+                        "admin_id": admin_id,
+                        "admin_name": admin_name,
+                        "organization_id": user.organization.id if user.organization else None,
+                        "organization_name": user.organization.name if user.organization else None
                     }, status=status.HTTP_200_OK)
                 else:
                     return Response({

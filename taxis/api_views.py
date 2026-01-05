@@ -17,14 +17,18 @@ class LoginAPIView(APIView):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
+        
+        print(f"🔐 Login attempt: username={username}, password={'*' * len(password) if password else 'None'}")
 
         if not username or not password:
+            print(f"❌ Login failed: Missing credentials")
             return Response(
                 {"error": "Se requieren usuario y contraseña."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         user = authenticate(request, username=username, password=password)
+        print(f"🔍 Authenticate result: user={user}, is_authenticated={user is not None if user else False}")
 
         if user is not None:
             try:

@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
 from django.db.models import Q, Avg, Count, Sum
-from .models import Taxi, Ride, RideDestination, PriceNegotiation
+from .models import Taxi, Ride, RideDestination, PriceNegotiation, AppUser
 from datetime import datetime, timedelta
 
 User = get_user_model()

@@ -43,6 +43,7 @@ urlpatterns = [
     path('customer/rides/', views.customer_rides, name='customer_rides'),
     path('driver/in-progress/', views.driver_in_progress_rides, name='driver_in_progress_rides'),
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('superadmin/dashboard/', views.superadmin_dashboard, name='superadmin_dashboard'),
     path('api/check_new_rides/', views.check_new_rides, name='check_new_rides'),
     path('admin_users/', views.admin_users, name='admin_users'),
     path("api/taxis_ubicacion/", views.taxis_ubicacion, name="taxis_ubicacion"),

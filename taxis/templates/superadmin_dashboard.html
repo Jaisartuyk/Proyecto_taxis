@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/theme.css' %}">
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 600px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #ffffff;
+    }
+
+    .dashboard-container {
+        padding: 2rem 1rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .superadmin-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border-radius: 20px;
+        padding: 2.5rem;
+        color: #ffffff;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(220, 53, 69, 0.3);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .superadmin-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #FFD700, #FFC107);
+    }
+
+    .superadmin-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .superadmin-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+        border-color: #FFD700;
+    }
+
+    .stat-card .icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-card .label {
+        font-size: 0.9rem;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .organizations-table {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        margin-bottom: 2rem;
+    }
+
+    .organizations-table h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #FFD700;
+    }
+
+    .table {
+        color: #ffffff;
+    }
+
+    .table thead th {
+        background: rgba(255, 215, 0, 0.1);
+        border-color: #2d2d2d;
+        color: #FFD700;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+
+    .table tbody tr {
+        border-color: #2d2d2d;
+        transition: all 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background: rgba(255, 215, 0, 0.05);
+    }
+
+    .badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+
+    .badge-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .badge-warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .badge-danger {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="superadmin-header">
+        <h1>
+            <i class="fas fa-crown"></i>
+            Panel de Super Administrador
+        </h1>
+        <p>Vista global de todas las cooperativas del sistema</p>
+    </div>
+
+    <!-- Estadísticas Globales -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(220, 53, 69, 0.2); color: #dc3545;">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="value">{{ total_organizations }}</div>
+            <div class="label">Cooperativas</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(40, 167, 69, 0.2); color: #28a745;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="value">{{ active_organizations }}</div>
+            <div class="label">Activas</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(255, 193, 7, 0.2); color: #ffc107;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="value">{{ trial_organizations }}</div>
+            <div class="label">En Prueba</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(0, 123, 255, 0.2); color: #007bff;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="value">{{ total_users }}</div>
+            <div class="label">Usuarios Totales</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(23, 162, 184, 0.2); color: #17a2b8;">
+                <i class="fas fa-car"></i>
+            </div>
+            <div class="value">{{ total_drivers }}</div>
+            <div class="label">Conductores</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(108, 117, 125, 0.2); color: #6c757d;">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="value">{{ total_customers }}</div>
+            <div class="label">Clientes</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(255, 215, 0, 0.2); color: #FFD700;">
+                <i class="fas fa-route"></i>
+            </div>
+            <div class="value">{{ total_rides }}</div>
+            <div class="label">Carreras Totales</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(40, 167, 69, 0.2); color: #28a745;">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="value">${{ total_revenue|floatformat:2 }}</div>
+            <div class="label">Ingresos Totales</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(220, 53, 69, 0.2); color: #dc3545;">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="value">${{ total_commissions|floatformat:2 }}</div>
+            <div class="label">Comisiones</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(0, 123, 255, 0.2); color: #007bff;">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="value">{{ today_rides }}</div>
+            <div class="label">Carreras Hoy</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(40, 167, 69, 0.2); color: #28a745;">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="value">${{ today_revenue|floatformat:2 }}</div>
+            <div class="label">Ingresos Hoy</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon" style="background: rgba(255, 193, 7, 0.2); color: #ffc107;">
+                <i class="fas fa-spinner"></i>
+            </div>
+            <div class="value">{{ in_progress_rides }}</div>
+            <div class="label">En Progreso</div>
+        </div>
+    </div>
+
+    <!-- Tabla de Cooperativas -->
+    <div class="organizations-table">
+        <h2><i class="fas fa-building"></i> Cooperativas Registradas</h2>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Cooperativa</th>
+                        <th>Plan</th>
+                        <th>Estado</th>
+                        <th>Conductores</th>
+                        <th>Clientes</th>
+                        <th>Carreras</th>
+                        <th>Ingresos</th>
+                        <th>Comisiones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in org_stats %}
+                    <tr>
+                        <td>
+                            <strong>{{ stat.organization.name }}</strong><br>
+                            <small class="text-muted">{{ stat.organization.city }}</small>
+                        </td>
+                        <td>
+                            <span class="badge badge-info">{{ stat.organization.get_plan_display }}</span>
+                        </td>
+                        <td>
+                            {% if stat.organization.status == 'active' %}
+                                <span class="badge badge-success">Activa</span>
+                            {% elif stat.organization.status == 'trial' %}
+                                <span class="badge badge-warning">Prueba</span>
+                            {% else %}
+                                <span class="badge badge-danger">{{ stat.organization.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ stat.drivers }}</td>
+                        <td>{{ stat.customers }}</td>
+                        <td>{{ stat.rides }}</td>
+                        <td>${{ stat.revenue|floatformat:2 }}</td>
+                        <td>${{ stat.commissions|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            <i class="fas fa-inbox"></i> No hay cooperativas registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Accesos Rápidos -->
+    <div class="organizations-table">
+        <h2><i class="fas fa-link"></i> Accesos Rápidos</h2>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <a href="/admin/taxis/organization/" class="btn btn-outline-warning btn-block btn-lg">
+                    <i class="fas fa-building"></i> Gestionar Cooperativas
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="/admin/taxis/appuser/" class="btn btn-outline-info btn-block btn-lg">
+                    <i class="fas fa-users"></i> Gestionar Usuarios
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="/admin/taxis/ride/" class="btn btn-outline-success btn-block btn-lg">
+                    <i class="fas fa-route"></i> Ver Todas las Carreras
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

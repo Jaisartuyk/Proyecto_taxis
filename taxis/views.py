@@ -446,32 +446,28 @@ def customer_dashboard(request):
 def admin_dashboard(request):
     """
     Dashboard para administradores de cooperativa.
-    Filtra datos por organización si no es super admin.
+    SIEMPRE filtra datos por organización del admin.
+    Super admins son redirigidos a /superadmin/dashboard/
     """
     from django.db.models import Sum, Avg
     from django.utils import timezone
+    from django.shortcuts import redirect
     
-    # Determinar si es super admin
-    is_super_admin = request.user.is_superuser
-    organization = request.user.organization if not is_super_admin else None
+    # Si es super admin, redirigir a su dashboard
+    if request.user.is_superuser:
+        return redirect('superadmin_dashboard')
     
-    # Base queryset según organización
-    if is_super_admin:
-        # Super admin ve todo
-        users_qs = AppUser.objects.all()
-        rides_qs = Ride.objects.all()
-        taxis_qs = Taxi.objects.all()
-        ratings_qs = Rating.objects.all()
-    else:
-        # Admin de cooperativa ve solo su organización
-        users_qs = AppUser.objects.filter(organization=organization)
-        try:
-            rides_qs = Ride.objects.filter(organization=organization)
-        except:
-            # Si el campo organization no existe en Ride, mostrar todas
-            rides_qs = Ride.objects.all()
-        taxis_qs = Taxi.objects.filter(user__organization=organization)
-        ratings_qs = Rating.objects.filter(ride__organization=organization) if not is_super_admin else Rating.objects.all()
+    # Validar que el admin tenga organización asignada
+    organization = request.user.organization
+    if not organization:
+        messages.error(request, 'No tienes una organización asignada. Contacta al super administrador.')
+        return redirect('login')
+    
+    # SIEMPRE filtrar por organización del admin
+    users_qs = AppUser.objects.filter(organization=organization)
+    rides_qs = Ride.objects.filter(organization=organization)
+    taxis_qs = Taxi.objects.filter(user__organization=organization)
+    ratings_qs = Rating.objects.filter(ride__organization=organization)
     
     # Estadísticas generales
     total_users = users_qs.count()
@@ -517,17 +513,15 @@ def admin_dashboard(request):
         avg_rating = 0
         total_ratings = 0
     
-    # Negociaciones de precio pendientes
+    # Negociaciones de precio pendientes (solo de esta organización)
     from .models import PriceNegotiation
-    if is_super_admin:
-        pending_negotiations = PriceNegotiation.objects.filter(status='pending').select_related('customer', 'organization').order_by('-created_at')[:10]
-    else:
-        pending_negotiations = PriceNegotiation.objects.filter(
-            organization=organization,
-            status='pending'
-        ).select_related('customer').order_by('-created_at')[:10]
+    pending_negotiations = PriceNegotiation.objects.filter(
+        organization=organization,
+        status='pending'
+    ).select_related('customer').order_by('-created_at')[:10]
     
     context = {
+        'organization': organization,  # Para mostrar nombre de la cooperativa
         'total_users': total_users,
         'total_drivers': total_drivers,
         'total_customers': total_customers,
@@ -544,10 +538,111 @@ def admin_dashboard(request):
         'recent_rides': recent_rides,
         'avg_rating': round(avg_rating, 1) if avg_rating else 0,
         'total_ratings': total_ratings,
-        'pending_negotiations': pending_negotiations,  # 💰 NUEVO
+        'pending_negotiations': pending_negotiations,
     }
     
     return render(request, 'admin_dashboard.html', context)
+
+
+@login_required
+def superadmin_dashboard(request):
+    """
+    Dashboard exclusivo para Super Admin (dueño del sistema).
+    Muestra estadísticas globales y comparativas entre cooperativas.
+    """
+    from django.db.models import Sum, Avg, Count
+    from django.utils import timezone
+    from django.shortcuts import redirect
+    
+    # Solo super admins pueden acceder
+    if not request.user.is_superuser:
+        messages.error(request, 'No tienes permisos para acceder a esta página.')
+        return redirect('admin_dashboard')
+    
+    # Estadísticas globales (todas las organizaciones)
+    total_organizations = Organization.objects.count()
+    active_organizations = Organization.objects.filter(status='active').count()
+    trial_organizations = Organization.objects.filter(status='trial').count()
+    
+    total_users = AppUser.objects.count()
+    total_drivers = AppUser.objects.filter(role='driver').count()
+    total_customers = AppUser.objects.filter(role='customer').count()
+    total_admins = AppUser.objects.filter(role='admin').count()
+    
+    total_rides = Ride.objects.count()
+    completed_rides = Ride.objects.filter(status='completed').count()
+    in_progress_rides = Ride.objects.filter(status='in_progress').count()
+    
+    # Ingresos totales
+    total_revenue = Ride.objects.filter(
+        status='completed',
+        price__isnull=False
+    ).aggregate(total=Sum('price'))['total'] or 0
+    
+    # Comisiones totales
+    total_commissions = Ride.objects.filter(
+        status='completed',
+        commission_amount__isnull=False
+    ).aggregate(total=Sum('commission_amount'))['total'] or 0
+    
+    # Estadísticas de hoy
+    today = timezone.now().date()
+    today_rides = Ride.objects.filter(created_at__date=today).count()
+    today_revenue = Ride.objects.filter(
+        status='completed',
+        price__isnull=False,
+        created_at__date=today
+    ).aggregate(total=Sum('price'))['total'] or 0
+    
+    # Estadísticas por organización (top 10)
+    org_stats = []
+    for org in Organization.objects.all().order_by('-created_at')[:10]:
+        org_drivers = AppUser.objects.filter(role='driver', organization=org).count()
+        org_customers = AppUser.objects.filter(role='customer', organization=org).count()
+        org_rides = Ride.objects.filter(organization=org).count()
+        org_revenue = Ride.objects.filter(
+            organization=org,
+            status='completed',
+            price__isnull=False
+        ).aggregate(total=Sum('price'))['total'] or 0
+        org_commissions = Ride.objects.filter(
+            organization=org,
+            status='completed',
+            commission_amount__isnull=False
+        ).aggregate(total=Sum('commission_amount'))['total'] or 0
+        
+        org_stats.append({
+            'organization': org,
+            'drivers': org_drivers,
+            'customers': org_customers,
+            'rides': org_rides,
+            'revenue': org_revenue,
+            'commissions': org_commissions,
+        })
+    
+    # Organizaciones recientes
+    recent_organizations = Organization.objects.order_by('-created_at')[:5]
+    
+    context = {
+        'total_organizations': total_organizations,
+        'active_organizations': active_organizations,
+        'trial_organizations': trial_organizations,
+        'total_users': total_users,
+        'total_drivers': total_drivers,
+        'total_customers': total_customers,
+        'total_admins': total_admins,
+        'total_rides': total_rides,
+        'completed_rides': completed_rides,
+        'in_progress_rides': in_progress_rides,
+        'total_revenue': total_revenue,
+        'total_commissions': total_commissions,
+        'today_rides': today_rides,
+        'today_revenue': today_revenue,
+        'org_stats': org_stats,
+        'recent_organizations': recent_organizations,
+    }
+    
+    return render(request, 'superadmin_dashboard.html', context)
 
 
 @login_required

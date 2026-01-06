@@ -2024,11 +2024,16 @@
 
         console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
 
+        // ⚠️ POLLING DESACTIVADO - Ahora usamos WebSocket en tiempo real (comunicacion-completa.js)
+        // Si necesitas reactivar el polling, descomenta las siguientes líneas:
+        
         // Obtener ubicaciones iniciales
-        fetchDriverLocations();
+        // fetchDriverLocations();
 
         // Actualizar cada 5 segundos
-        setInterval(fetchDriverLocations, 5000);
+        // setInterval(fetchDriverLocations, 5000);
+        
+        console.log('ℹ️ Polling de ubicaciones desactivado - Usando WebSocket en tiempo real');
     };
 
     // Funciones auxiliares globales
@@ -3002,11 +3007,16 @@ window.initMap = function () {
 
         console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
 
+        // ⚠️ POLLING DESACTIVADO - Ahora usamos WebSocket en tiempo real (comunicacion-completa.js)
+        // Si necesitas reactivar el polling, descomenta las siguientes líneas:
+        
         // Obtener ubicaciones iniciales
-        fetchDriverLocations();
+        // fetchDriverLocations();
 
         // Actualizar cada 5 segundos
-        setInterval(fetchDriverLocations, 5000);
+        // setInterval(fetchDriverLocations, 5000);
+        
+        console.log('ℹ️ Polling de ubicaciones desactivado - Usando WebSocket en tiempo real');
     } catch (error) {
         console.error('❌ Error al inicializar mapa:', error);
     }

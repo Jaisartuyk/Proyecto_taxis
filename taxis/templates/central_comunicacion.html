@@ -1572,7 +1572,13 @@
             console.log('📥 Audio recibido:', data);
             
             if (data.type === 'audio_message' || data.type === 'audio_broadcast') {
-                // Reproducir audio recibido
+                // 🚫 NO reproducir el audio del propio usuario
+                if (data.senderId && data.senderId == currentUser.id) {
+                    console.log('🔇 Audio propio ignorado (no reproducir)');
+                    return;
+                }
+                
+                // Reproducir audio recibido de otros
                 const audioData = 'data:audio/webm;base64,' + data.audio;
                 audioPlayer.src = audioData;
                 audioPlayer.play();

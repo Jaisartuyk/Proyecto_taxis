@@ -1838,9 +1838,12 @@
                                  activeDriverItem.querySelector('span')?.textContent ||
                                  `Conductor #${driverId}`;
                 
-                if (driverId && typeof loadChatHistory === 'function') {
+                if (driverId) {
                     console.log(`🔄 Recargando historial al mostrar chat para conductor ${driverId}`);
-                    loadChatHistory(driverId);
+                    // Llamar a la función correcta para recargar el historial
+                    if (typeof loadChatHistoryFromAPI === 'function') {
+                        loadChatHistoryFromAPI();
+                    }
                 }
             }
         }

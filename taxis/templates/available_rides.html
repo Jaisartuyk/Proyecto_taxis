@@ -30,9 +30,8 @@
                   {% endfor %}
                 </td>
                 <td>
-
-                  {{ ride.price }}
-                  {% if request.user.is_superuser and ride.status == 'requested' %}
+                  ${{ ride.price }}
+                  {% if ride.status == 'requested' and request.user.role == 'admin' or request.user.is_superuser %}
                     <form method="POST" action="{% url 'available_rides' %}" class="price-form d-inline">
                       {% csrf_token %}
                       <input type="hidden" name="ride_id" value="{{ ride.id }}">

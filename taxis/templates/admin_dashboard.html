@@ -608,31 +608,128 @@
         </div>
     </div>
 
-    <!-- Acciones de Administración -->
-    <div class="card">
-        <h3><i class="fas fa-tools"></i> Herramientas de Administración</h3>
-        <div class="row">
-            <div class="col-md-3 mb-3">
-                <a href="/admin/taxis/appuser/" class="btn btn-primary w-100">
-                    <i class="fas fa-users"></i> Gestionar Usuarios
-                </a>
-            </div>
-            <div class="col-md-3 mb-3">
-                <a href="/admin/taxis/ride/" class="btn btn-secondary w-100">
-                    <i class="fas fa-taxi"></i> Gestionar Carreras
-                </a>
-            </div>
-            <div class="col-md-3 mb-3">
-                <a href="/admin/taxis/organization/" class="btn btn-info w-100">
-                    <i class="fas fa-building"></i> Gestionar Organizaciones
-                </a>
-            </div>
-            <div class="col-md-3 mb-3">
-                <a href="/admin/" class="btn btn-success w-100">
-                    <i class="fas fa-cog"></i> Django Admin
-                </a>
+    <!-- Clientes de la Cooperativa -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3><i class="fas fa-users"></i> Clientes de la Cooperativa</h3>
+            <div style="display: flex; gap: 1rem;">
+                <span class="badge" style="background: #10B981; padding: 0.5rem 1rem;">
+                    👥 Total: {{ total_customers }}
+                </span>
+                <span class="badge" style="background: #3B82F6; padding: 0.5rem 1rem;">
+                    🚗 Con carreras: {{ customers_with_rides }}
+                </span>
+                <span class="badge" style="background: #F59E0B; padding: 0.5rem 1rem;">
+                    ⚡ Activos hoy: {{ customers_active_today }}
+                </span>
             </div>
         </div>
+        
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Cliente</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Cédula</th>
+                        <th>Registro</th>
+                        <th>Carreras</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                {% if customer.profile_picture %}
+                                    <img src="{{ customer.profile_picture.url }}" 
+                                         alt="{{ customer.get_full_name }}" 
+                                         style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                                {% else %}
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #FFD700; display: flex; align-items: center; justify-content: center; color: #1a1a1a; font-weight: bold;">
+                                        {{ customer.first_name|first|upper }}
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ customer.get_full_name|default:customer.username }}</strong>
+                                    <br><small style="color: #9ca3af;">@{{ customer.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <i class="fas fa-envelope" style="color: #9ca3af;"></i>
+                            {{ customer.email|default:"Sin email" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-phone" style="color: #9ca3af;"></i>
+                            {{ customer.phone_number|default:"Sin teléfono" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-id-card" style="color: #9ca3af;"></i>
+                            {{ customer.national_id|default:"Sin cédula" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-calendar" style="color: #9ca3af;"></i>
+                            {{ customer.date_joined|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            <span class="badge" style="background: #3B82F6; padding: 0.25rem 0.75rem;">
+                                {{ customer.customer_rides.count }} carreras
+                            </span>
+                        </td>
+                        <td>
+                            {% if customer.is_active %}
+                                <span class="status-badge" style="background-color: rgba(16, 185, 129, 0.1); color: #10B981; border: 1px solid #10B981;">
+                                    ✅ Activo
+                                </span>
+                            {% else %}
+                                <span class="status-badge" style="background-color: rgba(239, 68, 68, 0.1); color: #EF4444; border: 1px solid #EF4444;">
+                                    ❌ Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="/admin/taxis/appuser/{{ customer.id }}/change/" 
+                                   class="btn btn-primary btn-sm" 
+                                   title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'admin_users' %}?search={{ customer.username }}" 
+                                   class="btn btn-secondary btn-sm" 
+                                   title="Gestionar">
+                                    <i class="fas fa-cog"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <p>No hay clientes registrados en esta cooperativa</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if customers.count > 0 %}
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center;">
+            <p style="color: #9ca3af; margin: 0;">
+                Mostrando {{ customers.count }} cliente{{ customers.count|pluralize }}
+            </p>
+            <a href="{% url 'admin_users' %}" class="btn btn-primary">
+                <i class="fas fa-users"></i> Ver todos los usuarios
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 

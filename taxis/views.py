@@ -520,6 +520,13 @@ def admin_dashboard(request):
         status='pending'
     ).select_related('customer').order_by('-created_at')[:10]
     
+    # Clientes de la cooperativa
+    customers = users_qs.filter(role='customer').select_related('organization').order_by('-date_joined')
+    
+    # Estadísticas de clientes
+    customers_with_rides = customers.filter(customer_rides__isnull=False).distinct().count()
+    customers_active_today = customers.filter(customer_rides__created_at__date=today).distinct().count()
+    
     context = {
         'organization': organization,  # Para mostrar nombre de la cooperativa
         'total_users': total_users,
@@ -539,6 +546,9 @@ def admin_dashboard(request):
         'avg_rating': round(avg_rating, 1) if avg_rating else 0,
         'total_ratings': total_ratings,
         'pending_negotiations': pending_negotiations,
+        'customers': customers,  # Lista completa de clientes
+        'customers_with_rides': customers_with_rides,
+        'customers_active_today': customers_active_today,
     }
     
     return render(request, 'admin_dashboard.html', context)

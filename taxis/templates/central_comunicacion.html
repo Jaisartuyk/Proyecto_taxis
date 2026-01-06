@@ -1570,9 +1570,25 @@
         
         audioSocket.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            console.log('📥 Audio recibido:', data);
+            console.log('📥 Mensaje WebSocket recibido:', data);
             
+            // 📍 MANEJO DE UBICACIONES
+            if (data.type === 'driver_location_update' || data.type === 'location_update' || data.type === 'location') {
+                console.log('📍 Mensaje de ubicación detectado:', data);
+                
+                // Llamar a handleLocationUpdate de comunicacion-completa.js si existe
+                if (typeof handleLocationUpdate === 'function') {
+                    handleLocationUpdate(data);
+                } else {
+                    console.warn('⚠️ handleLocationUpdate no está disponible');
+                }
+                return;
+            }
+            
+            // 🎵 MANEJO DE AUDIO
             if (data.type === 'audio_message' || data.type === 'audio_broadcast') {
+                console.log('📥 Audio recibido:', data);
+                
                 // 🚫 NO reproducir el audio del propio usuario
                 const senderId = String(data.senderId);
                 const myId = String(currentUser.id);

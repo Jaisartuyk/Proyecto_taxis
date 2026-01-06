@@ -1417,10 +1417,13 @@ function handleLocationUpdate(data) {
         console.log(`⏰ Timestamp: ${timestamp}`);
     }
 
-    if (!map) {
+    if (!window.map) {
         console.warn('⚠️ Mapa no inicializado aún');
         return;
     }
+    
+    // Usar referencia al mapa global
+    const map = window.map;
 
     // Buscar marcador existente (por ID numérico o por username)
     let marker = null;

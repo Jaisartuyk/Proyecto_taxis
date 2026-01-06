@@ -1218,7 +1218,50 @@ def accept_price_negotiation(request, negotiation_id):
                 }
             )
         except Exception as e:
-            print(f"⚠️ Error al enviar notificación: {str(e)}")
+            print(f"⚠️ Error al enviar notificación al cliente: {str(e)}")
+        
+        # 🚕 ENVIAR NOTIFICACIÓN FCM A CONDUCTORES DISPONIBLES
+        try:
+            from .fcm_notifications import send_new_ride_notification_fcm
+            
+            # Obtener conductores disponibles de la misma organización
+            available_drivers = AppUser.objects.filter(
+                role='driver',
+                organization=ride.organization,
+                driver_status='approved',
+                is_active=True
+            )
+            
+            print(f"📱 Enviando notificación de carrera #{ride.id} a {available_drivers.count()} conductores")
+            
+            # Preparar datos completos de la carrera
+            ride_data = {
+                'ride_id': ride.id,
+                'customer_name': ride.customer.get_full_name() if ride.customer else 'Cliente',
+                'origin': ride.origin,
+                'destination': negotiation.destination,  # ✅ INCLUIR DESTINO
+                'price': str(ride.price),
+                'origin_latitude': str(ride.origin_latitude) if ride.origin_latitude else None,
+                'origin_longitude': str(ride.origin_longitude) if ride.origin_longitude else None,
+                'destination_latitude': str(negotiation.destination_latitude) if negotiation.destination_latitude else None,
+                'destination_longitude': str(negotiation.destination_longitude) if negotiation.destination_longitude else None,
+                'status': ride.status,
+                'created_at': ride.created_at.isoformat() if ride.created_at else None,
+                'type': 'new_ride'
+            }
+            
+            # Enviar a cada conductor
+            for driver in available_drivers:
+                send_new_ride_notification_fcm(
+                    driver=driver,
+                    ride=ride,
+                    extra_data=ride_data
+                )
+            
+            print(f"✅ Notificaciones FCM enviadas a conductores para carrera #{ride.id}")
+            
+        except Exception as e:
+            print(f"⚠️ Error al enviar notificaciones FCM a conductores: {str(e)}")
         
         return Response({
             'success': True,
@@ -1491,6 +1534,49 @@ def client_accept_counter_offer(request, negotiation_id):
         negotiation.save()
         
         print(f"✅ Cliente aceptó contraoferta #{negotiation_id} - Carrera #{ride.id} creada con precio ${negotiation.counter_offer_price}")
+        
+        # 🚕 ENVIAR NOTIFICACIÓN FCM A CONDUCTORES DISPONIBLES
+        try:
+            from .fcm_notifications import send_new_ride_notification_fcm
+            
+            # Obtener conductores disponibles de la misma organización
+            available_drivers = AppUser.objects.filter(
+                role='driver',
+                organization=ride.organization,
+                driver_status='approved',
+                is_active=True
+            )
+            
+            print(f"📱 Enviando notificación de carrera #{ride.id} a {available_drivers.count()} conductores")
+            
+            # Preparar datos completos de la carrera
+            ride_data = {
+                'ride_id': ride.id,
+                'customer_name': ride.customer.get_full_name() if ride.customer else 'Cliente',
+                'origin': ride.origin,
+                'destination': negotiation.destination,  # ✅ INCLUIR DESTINO
+                'price': str(ride.price),
+                'origin_latitude': str(ride.origin_latitude) if ride.origin_latitude else None,
+                'origin_longitude': str(ride.origin_longitude) if ride.origin_longitude else None,
+                'destination_latitude': str(negotiation.destination_latitude) if negotiation.destination_latitude else None,
+                'destination_longitude': str(negotiation.destination_longitude) if negotiation.destination_longitude else None,
+                'status': ride.status,
+                'created_at': ride.created_at.isoformat() if ride.created_at else None,
+                'type': 'new_ride'
+            }
+            
+            # Enviar a cada conductor
+            for driver in available_drivers:
+                send_new_ride_notification_fcm(
+                    driver=driver,
+                    ride=ride,
+                    extra_data=ride_data
+                )
+            
+            print(f"✅ Notificaciones FCM enviadas a conductores para carrera #{ride.id}")
+            
+        except Exception as e:
+            print(f"⚠️ Error al enviar notificaciones FCM a conductores: {str(e)}")
         
         return Response({
             'success': True,

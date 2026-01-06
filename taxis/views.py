@@ -524,8 +524,8 @@ def admin_dashboard(request):
     customers = users_qs.filter(role='customer').select_related('organization').order_by('-date_joined')
     
     # Estadísticas de clientes
-    customers_with_rides = customers.filter(customer_rides__isnull=False).distinct().count()
-    customers_active_today = customers.filter(customer_rides__created_at__date=today).distinct().count()
+    customers_with_rides = customers.filter(rides_as_customer__isnull=False).distinct().count()
+    customers_active_today = customers.filter(rides_as_customer__created_at__date=today).distinct().count()
     
     context = {
         'organization': organization,  # Para mostrar nombre de la cooperativa

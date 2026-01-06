@@ -1868,6 +1868,112 @@ def admin_users(request):
     
     return render(request, 'admin_customers.html', context)
 
+
+@login_required
+@organization_admin_required
+@require_http_methods(["POST"])
+def create_invitation_code(request):
+    """
+    API para crear códigos de invitación QR.
+    Solo admins de cooperativa pueden crear códigos para su organización.
+    """
+    import json
+    import random
+    import string
+    from django.utils import timezone
+    from .models import InvitationCode
+    
+    try:
+        data = json.loads(request.body)
+        organization = request.user.organization
+        
+        if not organization:
+            return JsonResponse({'error': 'No tienes una organización asignada'}, status=403)
+        
+        # Validar datos
+        role = data.get('role')
+        if role not in ['customer', 'driver']:
+            return JsonResponse({'error': 'Rol inválido'}, status=400)
+        
+        max_uses = int(data.get('max_uses', 0))
+        expires_days = int(data.get('expires_days', 0))
+        notes = data.get('notes', '')
+        
+        # Generar código único
+        prefix = 'TAXI' if role == 'driver' else 'CUST'
+        while True:
+            random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            code = f"{prefix}-{random_part}"
+            if not InvitationCode.objects.filter(code=code).exists():
+                break
+        
+        # Calcular fecha de expiración
+        expires_at = None
+        if expires_days > 0:
+            expires_at = timezone.now() + timezone.timedelta(days=expires_days)
+        
+        # Crear código
+        invitation_code = InvitationCode.objects.create(
+            organization=organization,
+            code=code,
+            role=role,
+            max_uses=max_uses,
+            expires_at=expires_at,
+            created_by=request.user,
+            notes=notes
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Código QR creado exitosamente',
+            'code': {
+                'id': invitation_code.id,
+                'code': invitation_code.code,
+                'role': invitation_code.role,
+                'max_uses': invitation_code.max_uses,
+                'expires_at': invitation_code.expires_at.isoformat() if invitation_code.expires_at else None,
+                'qr_url': invitation_code.get_qr_url(),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@organization_admin_required
+@require_http_methods(["POST"])
+def toggle_invitation_code(request, code_id):
+    """
+    API para activar/desactivar códigos de invitación.
+    """
+    from .models import InvitationCode
+    
+    try:
+        organization = request.user.organization
+        
+        # Verificar que el código pertenece a la organización del admin
+        invitation_code = InvitationCode.objects.get(
+            id=code_id,
+            organization=organization
+        )
+        
+        # Cambiar estado
+        invitation_code.is_active = not invitation_code.is_active
+        invitation_code.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Código {"activado" if invitation_code.is_active else "desactivado"} correctamente',
+            'is_active': invitation_code.is_active
+        })
+        
+    except InvitationCode.DoesNotExist:
+        return JsonResponse({'error': 'Código no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def taxis_ubicacion(request):
     try:
         taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)

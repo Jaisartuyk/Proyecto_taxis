@@ -1185,8 +1185,129 @@ async function rejectNegotiation(negotiationId) {
 // ============================================
 
 function showCreateQRModal() {
-    // Por ahora redirigir al Django Admin para crear códigos
-    window.location.href = '/admin/taxis/invitationcode/add/';
+    // Crear modal con formulario
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        overflow-y: auto;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: #1f1f1f; padding: 2rem; border-radius: 16px; max-width: 500px; width: 90%; border: 2px solid #FFD700; margin: 2rem;">
+            <h2 style="color: #FFD700; margin-bottom: 1.5rem; text-align: center;">
+                <i class="fas fa-qrcode"></i> Crear Código QR
+            </h2>
+            
+            <form id="qrForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div>
+                    <label style="color: #9ca3af; display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                        Tipo de Usuario *
+                    </label>
+                    <select name="role" required style="width: 100%; padding: 0.75rem; background: #2d2d2d; border: 1px solid #3d3d3d; border-radius: 8px; color: #ffffff;">
+                        <option value="">Seleccionar...</option>
+                        <option value="customer">👥 Cliente</option>
+                        <option value="driver">🚗 Conductor</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="color: #9ca3af; display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                        Máximo de Usos (0 = ilimitado)
+                    </label>
+                    <input type="number" name="max_uses" value="0" min="0" 
+                           style="width: 100%; padding: 0.75rem; background: #2d2d2d; border: 1px solid #3d3d3d; border-radius: 8px; color: #ffffff;">
+                </div>
+                
+                <div>
+                    <label style="color: #9ca3af; display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                        Días hasta Expiración (0 = sin expiración)
+                    </label>
+                    <input type="number" name="expires_days" value="0" min="0" 
+                           style="width: 100%; padding: 0.75rem; background: #2d2d2d; border: 1px solid #3d3d3d; border-radius: 8px; color: #ffffff;">
+                </div>
+                
+                <div>
+                    <label style="color: #9ca3af; display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                        Notas (opcional)
+                    </label>
+                    <textarea name="notes" rows="3" 
+                              style="width: 100%; padding: 0.75rem; background: #2d2d2d; border: 1px solid #3d3d3d; border-radius: 8px; color: #ffffff; resize: vertical;"
+                              placeholder="Ej: Código para campaña de verano 2025"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <i class="fas fa-plus-circle"></i> Crear Código
+                    </button>
+                    <button type="button" onclick="this.closest('div').parentElement.parentElement.parentElement.remove()" 
+                            class="btn btn-secondary" style="flex: 1;">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Manejar envío del formulario
+    const form = modal.querySelector('#qrForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = {
+            role: formData.get('role'),
+            max_uses: parseInt(formData.get('max_uses')) || 0,
+            expires_days: parseInt(formData.get('expires_days')) || 0,
+            notes: formData.get('notes') || ''
+        };
+        
+        if (!data.role) {
+            alert('❌ Por favor selecciona un tipo de usuario');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/invitation-code/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert(`✅ ${result.message}\n\nCódigo generado: ${result.code.code}`);
+                modal.remove();
+                location.reload();
+            } else {
+                alert(`❌ Error: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Error de conexión');
+        }
+    });
+    
+    // Cerrar al hacer click fuera
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 function showQRCode(code, url) {

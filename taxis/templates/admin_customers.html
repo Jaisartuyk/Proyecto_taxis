@@ -1,0 +1,497 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/theme.css' %}">
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 600px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #ffffff;
+    }
+
+    .customers-container {
+        padding: 2rem 1rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #FFD700, #FFC107);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .page-header p {
+        margin: 0.5rem 0 0 0;
+        color: #9ca3af;
+        font-size: 1.1rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: #1f1f1f;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border: 1px solid #2d2d2d;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: #FFD700;
+    }
+
+    .stat-card h3 {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .stat-card .value {
+        color: #FFD700;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .label {
+        color: #6B7280;
+        font-size: 0.875rem;
+    }
+
+    .filters-card {
+        background: #1f1f1f;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border: 1px solid #2d2d2d;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-group label {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .form-control {
+        background: #2d2d2d;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        color: #ffffff;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #FFD700;
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+        color: #1a1a1a;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-secondary {
+        background: #2d2d2d;
+        color: #ffffff;
+        border: 1px solid #3d3d3d;
+    }
+
+    .btn-secondary:hover {
+        background: #3d3d3d;
+        border-color: #FFD700;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .table-card {
+        background: #1f1f1f;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border: 1px solid #2d2d2d;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .table thead {
+        background: #2d2d2d;
+    }
+
+    .table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #FFD700;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+        border-bottom: 2px solid #3d3d3d;
+    }
+
+    .table td {
+        padding: 1rem;
+        border-bottom: 1px solid #2d2d2d;
+        color: #ffffff;
+    }
+
+    .table tbody tr {
+        transition: background 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background: #2d2d2d;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+
+    .status-active {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+        border: 1px solid #10B981;
+    }
+
+    .status-inactive {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #EF4444;
+        border: 1px solid #EF4444;
+    }
+
+    .badge {
+        background: #3B82F6;
+        color: #ffffff;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6B7280;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #4B5563;
+        margin-bottom: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .customers-container {
+            padding: 1rem 0.5rem;
+        }
+
+        .page-header {
+            padding: 1.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .table {
+            font-size: 0.85rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="customers-container">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>👥 Gestión de Clientes</h1>
+        <p>{{ organization.name }} - Administración de clientes de la cooperativa</p>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>👥 Total Clientes</h3>
+            <div class="value">{{ total_customers }}</div>
+            <div class="label">Registrados</div>
+        </div>
+        <div class="stat-card">
+            <h3>✅ Activos</h3>
+            <div class="value">{{ active_customers }}</div>
+            <div class="label">Cuentas activas</div>
+        </div>
+        <div class="stat-card">
+            <h3>🚗 Con Carreras</h3>
+            <div class="value">{{ customers_with_rides }}</div>
+            <div class="label">Han usado el servicio</div>
+        </div>
+        <div class="stat-card">
+            <h3>📅 Hoy</h3>
+            <div class="value">{{ customers_today }}</div>
+            <div class="label">Registros nuevos</div>
+        </div>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="filters-card">
+        <form method="get" action="{% url 'admin_users' %}">
+            <div class="filters-grid">
+                <div class="form-group">
+                    <label for="search">🔍 Buscar Cliente</label>
+                    <input type="text" 
+                           id="search" 
+                           name="search" 
+                           class="form-control" 
+                           placeholder="Nombre, email, teléfono, cédula..."
+                           value="{{ search_query }}">
+                </div>
+                <div class="form-group">
+                    <label for="status">Estado</label>
+                    <select id="status" name="status" class="form-control">
+                        <option value="">Todos</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>✅ Activos</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>❌ Inactivos</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+                <div class="form-group">
+                    <a href="{% url 'admin_users' %}" class="btn btn-secondary" style="width: 100%;">
+                        <i class="fas fa-redo"></i> Limpiar Filtros
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de Clientes -->
+    <div class="table-card">
+        <h3 style="margin-bottom: 1.5rem; color: #ffffff;">
+            <i class="fas fa-users"></i> Lista de Clientes ({{ customers.count }})
+        </h3>
+        
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Cliente</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Cédula</th>
+                        <th>Registro</th>
+                        <th>Carreras</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                {% if customer.profile_picture %}
+                                    <img src="{{ customer.profile_picture.url }}" 
+                                         alt="{{ customer.get_full_name }}" 
+                                         style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                                {% else %}
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #FFD700; display: flex; align-items: center; justify-content: center; color: #1a1a1a; font-weight: bold;">
+                                        {{ customer.first_name|first|upper|default:"?" }}
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ customer.get_full_name|default:customer.username }}</strong>
+                                    <br><small style="color: #9ca3af;">@{{ customer.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <i class="fas fa-envelope" style="color: #9ca3af;"></i>
+                            {{ customer.email|default:"Sin email" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-phone" style="color: #9ca3af;"></i>
+                            {{ customer.phone_number|default:"Sin teléfono" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-id-card" style="color: #9ca3af;"></i>
+                            {{ customer.national_id|default:"Sin cédula" }}
+                        </td>
+                        <td>
+                            <i class="fas fa-calendar" style="color: #9ca3af;"></i>
+                            {{ customer.date_joined|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            <span class="badge">
+                                {{ customer.rides_as_customer.count }} carreras
+                            </span>
+                        </td>
+                        <td>
+                            {% if customer.is_active %}
+                                <span class="status-badge status-active">
+                                    ✅ Activo
+                                </span>
+                            {% else %}
+                                <span class="status-badge status-inactive">
+                                    ❌ Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="/admin/taxis/appuser/{{ customer.id }}/change/" 
+                                   class="btn btn-primary btn-sm" 
+                                   title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'admin_users' %}?search={{ customer.username }}" 
+                                   class="btn btn-secondary btn-sm" 
+                                   title="Buscar">
+                                    <i class="fas fa-search"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <p>No se encontraron clientes</p>
+                            {% if search_query or status_filter %}
+                                <a href="{% url 'admin_users' %}" class="btn btn-secondary">
+                                    <i class="fas fa-redo"></i> Limpiar filtros
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if customers.count > 0 %}
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center;">
+            <p style="color: #9ca3af; margin: 0;">
+                Mostrando {{ customers.count }} cliente{{ customers.count|pluralize }}
+            </p>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

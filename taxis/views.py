@@ -1786,9 +1786,70 @@ def check_new_rides(request):
 
     return JsonResponse({"new_ride": False})
 
+@login_required
+@role_required('admin')
 def admin_users(request):
-    taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)  # Solo taxistas con ubicación registrada
-    return render(request, 'admin_users.html', {'taxis': taxis})
+    """
+    Vista de gestión de CLIENTES para admins de cooperativa.
+    Muestra solo los clientes de su organización con filtros y búsqueda.
+    """
+    from django.utils import timezone
+    
+    # Validar que el admin tenga organización asignada
+    organization = request.user.organization
+    if not organization:
+        messages.error(request, 'No tienes una organización asignada.')
+        return redirect('login')
+    
+    # Filtrar SOLO CLIENTES de la organización
+    customers_qs = AppUser.objects.filter(
+        organization=organization,
+        role='customer'
+    ).select_related('organization')
+    
+    # Filtros
+    status_filter = request.GET.get('status', '')
+    search_query = request.GET.get('search', '')
+    
+    if status_filter == 'active':
+        customers_qs = customers_qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        customers_qs = customers_qs.filter(is_active=False)
+    
+    if search_query:
+        customers_qs = customers_qs.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(national_id__icontains=search_query)
+        )
+    
+    # Ordenar por fecha de registro (más recientes primero)
+    customers = customers_qs.order_by('-date_joined')
+    
+    # Estadísticas
+    today = timezone.now().date()
+    total_customers = customers_qs.count()
+    active_customers = customers_qs.filter(is_active=True).count()
+    inactive_customers = customers_qs.filter(is_active=False).count()
+    customers_with_rides = customers_qs.filter(rides_as_customer__isnull=False).distinct().count()
+    customers_today = customers_qs.filter(date_joined__date=today).count()
+    
+    context = {
+        'organization': organization,
+        'customers': customers,
+        'total_customers': total_customers,
+        'active_customers': active_customers,
+        'inactive_customers': inactive_customers,
+        'customers_with_rides': customers_with_rides,
+        'customers_today': customers_today,
+        'status_filter': status_filter,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'admin_customers.html', context)
 
 def taxis_ubicacion(request):
     try:

@@ -2006,7 +2006,7 @@ def customer_detail(request, customer_id):
         from django.db.models import Sum
         total_spent = customer.rides_as_customer.filter(
             status='completed'
-        ).aggregate(Sum('final_price'))['final_price__sum'] or 0
+        ).aggregate(Sum('price'))['price__sum'] or 0
         
         # Última carrera
         last_ride = customer.rides_as_customer.order_by('-created_at').first()
@@ -2024,7 +2024,7 @@ def customer_detail(request, customer_id):
                 'destination': ride.dropoff_location if ride.dropoff_location else 'No especificado',
                 'status': ride.get_status_display(),
                 'status_code': ride.status,
-                'price': float(ride.final_price) if ride.final_price else 0,
+                'price': float(ride.price) if ride.price else 0,
                 'created_at': ride.created_at.strftime('%d/%m/%Y %H:%M'),
                 'driver': driver_name
             })

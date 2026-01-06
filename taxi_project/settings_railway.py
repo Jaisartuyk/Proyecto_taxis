@@ -426,12 +426,12 @@ if RAILWAY_ENVIRONMENT:
     # Configuración de Claude AI para Railway (opcional)
     CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY', '')
     
-    # Configuración de timezone para Colombia
-    TIME_ZONE = 'America/Bogota'
-    USE_TZ = True
+    # Configuración de timezone para Ecuador
+    TIME_ZONE = 'America/Guayaquil'  # Ecuador (UTC-5)
+    USE_TZ = True  # Mantener True para que Django maneje zonas horarias automáticamente
     
     # Configuración de idioma
-    LANGUAGE_CODE = 'es-co'
+    LANGUAGE_CODE = 'es-ec'  # Español de Ecuador
     USE_I18N = True
     USE_L10N = True
     

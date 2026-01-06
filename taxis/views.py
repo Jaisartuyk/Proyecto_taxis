@@ -2018,10 +2018,14 @@ def customer_detail(request, customer_id):
             if ride.driver:
                 driver_name = f"{ride.driver.first_name} {ride.driver.last_name}".strip() or ride.driver.username
             
+            # Obtener primer destino si existe
+            first_destination = ride.destinations.first()
+            destination_text = first_destination.destination if first_destination else 'No especificado'
+            
             rides_data.append({
                 'id': ride.id,
-                'pickup': ride.pickup_location,
-                'destination': ride.dropoff_location if ride.dropoff_location else 'No especificado',
+                'pickup': ride.origin,
+                'destination': destination_text,
                 'status': ride.get_status_display(),
                 'status_code': ride.status,
                 'price': float(ride.price) if ride.price else 0,

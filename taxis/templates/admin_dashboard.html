@@ -920,6 +920,146 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- 📱 Códigos QR de Invitación -->
+    <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #10B981;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3><i class="fas fa-qrcode"></i> 📱 Códigos QR de Invitación</h3>
+            <div style="display: flex; gap: 1rem;">
+                <span class="badge" style="background: #10B981; padding: 0.5rem 1rem;">
+                    📊 Total: {{ total_qr_codes }}
+                </span>
+                <span class="badge" style="background: #3B82F6; padding: 0.5rem 1rem;">
+                    ✅ Activos: {{ active_qr_codes }}
+                </span>
+                <span class="badge" style="background: #F59E0B; padding: 0.5rem 1rem;">
+                    👥 Clientes: {{ qr_customer_codes }}
+                </span>
+                <span class="badge" style="background: #8B5CF6; padding: 0.5rem 1rem;">
+                    🚗 Conductores: {{ qr_driver_codes }}
+                </span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <button onclick="showCreateQRModal()" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-plus-circle"></i> Crear Nuevo Código QR
+            </button>
+        </div>
+
+        {% if invitation_codes %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Tipo</th>
+                        <th>Usos</th>
+                        <th>Expira</th>
+                        <th>Estado</th>
+                        <th>Creado</th>
+                        <th>QR</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for code in invitation_codes %}
+                    <tr>
+                        <td>
+                            <strong style="color: #FFD700; font-family: monospace; font-size: 1.1em;">
+                                {{ code.code }}
+                            </strong>
+                        </td>
+                        <td>
+                            {% if code.role == 'customer' %}
+                                <span class="badge" style="background: #3B82F6;">
+                                    👥 Cliente
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background: #8B5CF6;">
+                                    🚗 Conductor
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="color: #9ca3af;">
+                                {{ code.current_uses }}
+                                {% if code.max_uses > 0 %}
+                                    / {{ code.max_uses }}
+                                {% else %}
+                                    / ∞
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if code.expires_at %}
+                                <span style="color: #F59E0B;">
+                                    <i class="fas fa-clock"></i>
+                                    {{ code.expires_at|date:"d/m/Y" }}
+                                </span>
+                            {% else %}
+                                <span style="color: #10B981;">
+                                    ♾️ Sin expiración
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if code.is_active %}
+                                <span class="status-badge" style="background-color: rgba(16, 185, 129, 0.1); color: #10B981; border: 1px solid #10B981;">
+                                    ✅ Activo
+                                </span>
+                            {% else %}
+                                <span class="status-badge" style="background-color: rgba(239, 68, 68, 0.1); color: #EF4444; border: 1px solid #EF4444;">
+                                    ❌ Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small style="color: #9ca3af;">
+                                {{ code.created_at|date:"d/m/Y H:i" }}
+                            </small>
+                        </td>
+                        <td>
+                            <button onclick='showQRCode("{{ code.code }}", "{{ code.get_qr_url }}")' 
+                                    class="btn btn-primary btn-sm">
+                                <i class="fas fa-qrcode"></i> Ver QR
+                            </button>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick='copyQRLink("{{ code.get_qr_url }}")' 
+                                        class="btn btn-secondary btn-sm" 
+                                        title="Copiar enlace">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button onclick='toggleQRStatus({{ code.id }}, {% if code.is_active %}true{% else %}false{% endif %})' 
+                                        class="btn btn-warning btn-sm" 
+                                        title="{% if code.is_active %}Desactivar{% else %}Activar{% endif %}">
+                                    <i class="fas fa-{% if code.is_active %}ban{% else %}check{% endif %}"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #2d2d2d;">
+            <p style="color: #9ca3af; margin: 0;">
+                💡 <strong>Tip:</strong> Los códigos QR permiten que clientes y conductores se registren automáticamente en tu cooperativa.
+            </p>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-qrcode" style="font-size: 3rem; color: #4B5563; margin-bottom: 1rem;"></i>
+            <p>No hay códigos QR creados</p>
+            <button onclick="showCreateQRModal()" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Crear Primer Código QR
+            </button>
+        </div>
+        {% endif %}
+    </div>
 </div>
 
 <script>
@@ -1039,6 +1179,108 @@ async function rejectNegotiation(negotiationId) {
         alert('❌ Error de conexión');
     }
 }
+
+// ============================================
+// GESTIÓN DE CÓDIGOS QR
+// ============================================
+
+function showCreateQRModal() {
+    // Por ahora redirigir al Django Admin para crear códigos
+    window.location.href = '/admin/taxis/invitationcode/add/';
+}
+
+function showQRCode(code, url) {
+    // Crear modal para mostrar QR
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: #1f1f1f; padding: 2rem; border-radius: 16px; max-width: 500px; text-align: center; border: 2px solid #FFD700;">
+            <h2 style="color: #FFD700; margin-bottom: 1rem;">📱 Código QR: ${code}</h2>
+            <div id="qrcode" style="background: white; padding: 1rem; border-radius: 8px; display: inline-block; margin-bottom: 1rem;"></div>
+            <p style="color: #9ca3af; margin-bottom: 1rem; word-break: break-all;">${url}</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="copyQRLink('${url}')" class="btn btn-primary">
+                    <i class="fas fa-copy"></i> Copiar Enlace
+                </button>
+                <button onclick="this.closest('div').parentElement.parentElement.remove()" class="btn btn-secondary">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Generar QR usando API de Google Charts
+    const qrDiv = modal.querySelector('#qrcode');
+    const qrImg = document.createElement('img');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+    qrImg.style.width = '300px';
+    qrImg.style.height = '300px';
+    qrDiv.appendChild(qrImg);
+    
+    // Cerrar al hacer click fuera
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+function copyQRLink(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        alert('✅ Enlace copiado al portapapeles');
+    }).catch(() => {
+        // Fallback para navegadores antiguos
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('✅ Enlace copiado al portapapeles');
+    });
+}
+
+async function toggleQRStatus(codeId, currentStatus) {
+    const action = currentStatus ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de ${action} este código QR?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/invitation-code/${codeId}/toggle/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        if (response.ok) {
+            alert(`✅ Código ${action === 'desactivar' ? 'desactivado' : 'activado'} correctamente`);
+            location.reload();
+        } else {
+            alert('❌ Error al cambiar el estado del código');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
 {% endverbatim %}
 </script>
 

@@ -527,6 +527,18 @@ def admin_dashboard(request):
     customers_with_rides = customers.filter(rides_as_customer__isnull=False).distinct().count()
     customers_active_today = customers.filter(rides_as_customer__created_at__date=today).distinct().count()
     
+    # Códigos de invitación QR
+    from .models import InvitationCode
+    invitation_codes = InvitationCode.objects.filter(
+        organization=organization
+    ).order_by('-created_at')[:10]
+    
+    # Estadísticas de códigos QR
+    total_qr_codes = InvitationCode.objects.filter(organization=organization).count()
+    active_qr_codes = InvitationCode.objects.filter(organization=organization, is_active=True).count()
+    qr_customer_codes = InvitationCode.objects.filter(organization=organization, role='customer').count()
+    qr_driver_codes = InvitationCode.objects.filter(organization=organization, role='driver').count()
+    
     context = {
         'organization': organization,  # Para mostrar nombre de la cooperativa
         'total_users': total_users,
@@ -549,6 +561,11 @@ def admin_dashboard(request):
         'customers': customers,  # Lista completa de clientes
         'customers_with_rides': customers_with_rides,
         'customers_active_today': customers_active_today,
+        'invitation_codes': invitation_codes,
+        'total_qr_codes': total_qr_codes,
+        'active_qr_codes': active_qr_codes,
+        'qr_customer_codes': qr_customer_codes,
+        'qr_driver_codes': qr_driver_codes,
     }
     
     return render(request, 'admin_dashboard.html', context)

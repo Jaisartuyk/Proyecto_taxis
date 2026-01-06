@@ -1425,8 +1425,9 @@ def available_rides(request):
 
     # Si es un POST, es para actualizar el precio
     if request.method == 'POST':
-        if not request.user.is_superuser:
-            return JsonResponse({'error': 'Solo el superusuario puede establecer el precio'}, status=403)
+        # Permitir a superadmin y admins de cooperativa establecer precios
+        if not request.user.is_superuser and request.user.role != 'admin':
+            return JsonResponse({'error': 'Solo administradores pueden establecer el precio'}, status=403)
 
         ride_id = request.POST.get('ride_id')
         price = request.POST.get('price')
@@ -1435,6 +1436,11 @@ def available_rides(request):
             return JsonResponse({'error': 'Precio no válido'}, status=400)
 
         ride = get_object_or_404(Ride, id=ride_id)
+        
+        # ✅ MULTI-TENANT: Validar que el admin solo modifique carreras de su organización
+        if not request.user.is_superuser and ride.organization != request.user.organization:
+            return JsonResponse({'error': 'No tienes permiso para modificar esta carrera'}, status=403)
+        
         ride.price = float(price)
         ride.save()
 
@@ -1519,16 +1525,20 @@ def ride_detail(request, ride_id):
         # Obtener la carrera específica
         ride = get_object_or_404(Ride, id=ride_id)
 
-        # Verificar permisos: admin, conductor asignado, cliente dueño, o conductor disponible (para aceptar)
+        # Verificar permisos: superadmin, admin de cooperativa, conductor asignado, cliente dueño, o conductor disponible
         is_involved = (
             request.user.is_superuser or 
             request.user == ride.driver or 
-            request.user == ride.customer
+            request.user == ride.customer or
+            (request.user.role == 'admin' and request.user.organization == ride.organization)  # ✅ Admin de cooperativa
         )
         
         # Permitir ver si es un conductor y la carrera está solicitada (para aceptarla)
         if not is_involved and request.user.role == 'driver' and ride.status == 'requested':
-            pass
+            # Conductor puede ver carreras disponibles de su organización
+            if ride.organization != request.user.organization:
+                messages.error(request, 'No tiene permiso para ver esta carrera.')
+                return redirect('available_rides')
         elif not is_involved:
             messages.error(request, 'No tiene permiso para ver esta carrera.')
             return redirect('available_rides')

@@ -197,12 +197,34 @@
     .table-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        margin: 0 -2rem;
+        padding: 0 2rem;
+        max-width: calc(100% + 4rem);
     }
 
     .table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 800px;
+        min-width: 1000px;
+    }
+    
+    /* Scrollbar personalizado */
+    .table-container::-webkit-scrollbar {
+        height: 10px;
+    }
+    
+    .table-container::-webkit-scrollbar-track {
+        background: #2d2d2d;
+        border-radius: 5px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb {
+        background: #FFD700;
+        border-radius: 5px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb:hover {
+        background: #FFC107;
     }
 
     .table thead {

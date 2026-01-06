@@ -1353,6 +1353,12 @@ function handleAudioMessage(data) {
                 sender = data.senderName || data.sender_name || `Conductor #${senderId}`;
             }
             
+            // 🚫 NO reproducir el audio del propio usuario
+            if (window.currentUser && String(senderId) === String(window.currentUser.id)) {
+                console.log('🔇 Audio propio ignorado en comunicacion-completa.js (no reproducir)');
+                return;
+            }
+            
             console.log(`🎵 Reproduciendo audio de: ${sender} (${audioData.length} bytes)`);
             
             // Reproducir audio inmediatamente usando el mismo método del conductor

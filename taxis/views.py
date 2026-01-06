@@ -8,6 +8,7 @@ from channels.layers import get_channel_layer
 import json
 import logging
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view
 from django.db import models
 from django.db.models import Count, Q

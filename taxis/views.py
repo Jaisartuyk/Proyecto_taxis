@@ -2031,7 +2031,7 @@ def customer_detail(request, customer_id):
                 'last_name': customer.last_name,
                 'email': customer.email or 'Sin email',
                 'phone': customer.phone_number or 'Sin teléfono',
-                'cedula': customer.cedula or 'Sin cédula',
+                'cedula': customer.national_id or 'Sin cédula',
                 'is_active': customer.is_active,
                 'date_joined': customer.date_joined.strftime('%d/%m/%Y %H:%M'),
                 'profile_picture': customer.profile_picture.url if customer.profile_picture else None,

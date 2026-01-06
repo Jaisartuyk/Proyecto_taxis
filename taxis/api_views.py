@@ -1718,6 +1718,7 @@ def get_user_profile(request):
                     'car_model': taxi.car_model,
                     'car_color': taxi.car_color,
                     'car_year': taxi.car_year,
+                    'vehicle_description': taxi.vehicle_description,
                 }
             except:
                 profile_data['driver_info'] = {
@@ -1727,6 +1728,7 @@ def get_user_profile(request):
                     'car_model': None,
                     'car_color': None,
                     'car_year': None,
+                    'vehicle_description': None,
                 }
         
         return Response({

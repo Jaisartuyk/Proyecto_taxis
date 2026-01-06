@@ -1982,9 +1982,12 @@ def customer_detail(request, customer_id):
     Vista para obtener detalles completos de un cliente.
     """
     from django.utils import timezone
+    import logging
+    logger = logging.getLogger(__name__)
     
     try:
         organization = request.user.organization
+        logger.info(f"Buscando cliente {customer_id} para organización {organization}")
         
         # Obtener cliente verificando que pertenece a la organización
         customer = AppUser.objects.select_related('organization').get(
@@ -2011,6 +2014,10 @@ def customer_detail(request, customer_id):
         # Preparar datos de carreras recientes
         rides_data = []
         for ride in rides:
+            driver_name = 'Sin asignar'
+            if ride.driver:
+                driver_name = f"{ride.driver.first_name} {ride.driver.last_name}".strip() or ride.driver.username
+            
             rides_data.append({
                 'id': ride.id,
                 'pickup': ride.pickup_location,
@@ -2019,16 +2026,16 @@ def customer_detail(request, customer_id):
                 'status_code': ride.status,
                 'price': float(ride.final_price) if ride.final_price else 0,
                 'created_at': ride.created_at.strftime('%d/%m/%Y %H:%M'),
-                'driver': ride.driver.get_full_name() if ride.driver else 'Sin asignar'
+                'driver': driver_name
             })
         
         context = {
             'customer': {
                 'id': customer.id,
                 'username': customer.username,
-                'full_name': customer.get_full_name(),
-                'first_name': customer.first_name,
-                'last_name': customer.last_name,
+                'full_name': f"{customer.first_name} {customer.last_name}".strip() or customer.username,
+                'first_name': customer.first_name or '',
+                'last_name': customer.last_name or '',
                 'email': customer.email or 'Sin email',
                 'phone': customer.phone_number or 'Sin teléfono',
                 'cedula': customer.national_id or 'Sin cédula',
@@ -2049,8 +2056,10 @@ def customer_detail(request, customer_id):
         return JsonResponse(context)
         
     except AppUser.DoesNotExist:
+        logger.error(f"Cliente {customer_id} no encontrado")
         return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
     except Exception as e:
+        logger.error(f"Error al obtener detalles del cliente {customer_id}: {str(e)}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 

@@ -562,6 +562,15 @@ async function showCustomerDetail(customerId) {
         const statusColor = data.customer.is_active ? '#10B981' : '#EF4444';
         const statusText = data.customer.is_active ? '✅ Activo' : '❌ Inactivo';
         
+        // Construir imagen de perfil
+        let profileImage = '';
+        if (data.customer.profile_picture) {
+            profileImage = '<img src="' + data.customer.profile_picture + '" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid white; object-fit: cover;">';
+        } else {
+            const initial = data.customer.first_name ? data.customer.first_name.charAt(0).toUpperCase() : '?';
+            profileImage = '<div style="width: 80px; height: 80px; border-radius: 50%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; color: #FFD700; font-size: 2.5rem; font-weight: bold; border: 3px solid white;">' + initial + '</div>';
+        }
+        
         modal.innerHTML = `
             <div style="background: #1f1f1f; border-radius: 20px; max-width: 900px; width: 100%; border: 2px solid #FFD700; max-height: 90vh; overflow-y: auto;">
                 <!-- Header -->
@@ -571,12 +580,7 @@ async function showCustomerDetail(customerId) {
                         ×
                     </button>
                     <div style="display: flex; align-items: center; gap: 1.5rem;">
-                        ${data.customer.profile_picture ? 
-                            `<img src="${data.customer.profile_picture}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid white; object-fit: cover;">` :
-                            `<div style="width: 80px; height: 80px; border-radius: 50%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; color: #FFD700; font-size: 2.5rem; font-weight: bold; border: 3px solid white;">
-                                ${data.customer.first_name.charAt(0).toUpperCase()}
-                            </div>`
-                        }
+                        ${profileImage}
                         <div>
                             <h2 style="color: #1a1a1a; margin: 0; font-size: 2rem;">${data.customer.full_name}</h2>
                             <p style="color: #1a1a1a; margin: 0.5rem 0 0 0; font-size: 1.1rem;">@${data.customer.username}</p>

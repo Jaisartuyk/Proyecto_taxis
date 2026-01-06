@@ -43,15 +43,17 @@ function initFloatingAudioButton() {
         return;
     }
     
-    // SOLO mostrar para conductores (is_driver=true) o admin (is_superuser=true)
+    // SOLO mostrar para conductores (is_driver=true), admin de cooperativa (role='admin') o superadmin (is_superuser=true)
     // NO mostrar para clientes normales
     const isDriverElement = document.querySelector('[data-user-is-driver]');
     const isSuperuserElement = document.querySelector('[data-user-is-superuser]');
+    const userRoleElement = document.querySelector('[data-user-role]');
     
     const isDriver = isDriverElement && isDriverElement.getAttribute('data-user-is-driver') === 'true';
     const isSuperuser = isSuperuserElement && isSuperuserElement.getAttribute('data-user-is-superuser') === 'true';
+    const isAdmin = userRoleElement && userRoleElement.getAttribute('data-user-role') === 'admin';
     
-    if (!isDriver && !isSuperuser) {
+    if (!isDriver && !isSuperuser && !isAdmin) {
         console.log('[FLOATING AUDIO] Usuario no es conductor ni admin, no se inicializa');
         return;
     }

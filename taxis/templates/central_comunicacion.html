@@ -1545,12 +1545,47 @@
     const recordBtn = document.getElementById('record-audio-btn');
     const audioPlayer = document.getElementById('audio-player');
 
-    // Configurar WebSocket de audio (AHORA MANEJADO GLOBALMENTE EN BASE.HTML)
-    /*
+    // Configurar WebSocket de audio para la central
     function setupAudioWebSocket() {
-        // ... lógica movida a base.html ...
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/audio/conductores/`;
+        
+        console.log('🔌 Conectando WebSocket de audio central:', wsUrl);
+        
+        audioSocket = new WebSocket(wsUrl);
+        
+        audioSocket.onopen = function() {
+            console.log('✅ WebSocket de audio central conectado');
+        };
+        
+        audioSocket.onclose = function() {
+            console.log('⚠️ WebSocket de audio central desconectado, reconectando...');
+            setTimeout(setupAudioWebSocket, 3000);
+        };
+        
+        audioSocket.onerror = function(error) {
+            console.error('❌ Error en WebSocket de audio:', error);
+        };
+        
+        audioSocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log('📥 Audio recibido:', data);
+            
+            if (data.type === 'audio_message' || data.type === 'audio_broadcast') {
+                // Reproducir audio recibido
+                const audioData = 'data:audio/webm;base64,' + data.audio;
+                audioPlayer.src = audioData;
+                audioPlayer.play();
+                
+                // Agregar al registro
+                const senderName = data.senderName || `Conductor ${data.senderId}`;
+                addAudioLogEntry(`📥 ${senderName}`, 'received');
+            }
+        };
     }
-    */
+    
+    // Inicializar WebSocket de audio al cargar
+    setupAudioWebSocket();
 
     // WALKIE-TALKIE: Mantener presionado para hablar
     let audioStream = null;

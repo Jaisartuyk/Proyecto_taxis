@@ -531,6 +531,7 @@
 </style>
 
 <script>
+{% verbatim %}
 async function showCustomerDetail(customerId) {
     try {
         const response = await fetch(`/api/customer/${customerId}/detail/`);
@@ -733,6 +734,7 @@ async function showCustomerDetail(customerId) {
         alert('❌ Error al cargar detalles del cliente');
     }
 }
+{% endverbatim %}
 </script>
 
 {% endblock %}

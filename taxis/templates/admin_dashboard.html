@@ -737,13 +737,13 @@
                             </td>
                             <td>
                                 <div class="negotiation-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                    <button class="btn btn-success btn-sm" onclick="acceptNegotiation({{ negotiation.id }}, {{ negotiation.proposed_price }})" style="flex: 1; min-width: 80px;">
+                                    <button class="btn btn-success btn-sm" onclick='acceptNegotiation({{ negotiation.id }}, {{ negotiation.proposed_price }})' style="flex: 1; min-width: 80px;">
                                         ✅ Aceptar
                                     </button>
-                                    <button class="btn btn-warning btn-sm" onclick="counterOffer({{ negotiation.id }})" style="flex: 1; min-width: 100px;">
+                                    <button class="btn btn-warning btn-sm" onclick='counterOffer({{ negotiation.id }})' style="flex: 1; min-width: 100px;">
                                         💬 Contraoferta
                                     </button>
-                                    <button class="btn btn-danger btn-sm" onclick="rejectNegotiation({{ negotiation.id }})" style="flex: 1; min-width: 90px;">
+                                    <button class="btn btn-danger btn-sm" onclick='rejectNegotiation({{ negotiation.id }})' style="flex: 1; min-width: 90px;">
                                         ❌ Rechazar
                                     </button>
                                 </div>

@@ -1787,7 +1787,7 @@ def check_new_rides(request):
     return JsonResponse({"new_ride": False})
 
 @login_required
-@role_required('admin')
+@organization_admin_required
 def admin_users(request):
     """
     Vista de gestión de CLIENTES para admins de cooperativa.

@@ -46,6 +46,7 @@ urlpatterns = [
     path('superadmin/dashboard/', views.superadmin_dashboard, name='superadmin_dashboard'),
     path('api/check_new_rides/', views.check_new_rides, name='check_new_rides'),
     path('admin_users/', views.admin_users, name='admin_users'),
+    path('api/customer/<int:customer_id>/detail/', views.customer_detail, name='customer_detail'),
     path('api/invitation-code/create/', views.create_invitation_code, name='create_invitation_code'),
     path('api/invitation-code/<int:code_id>/toggle/', views.toggle_invitation_code, name='toggle_invitation_code'),
     path("api/taxis_ubicacion/", views.taxis_ubicacion, name="taxis_ubicacion"),

@@ -1975,6 +1975,85 @@ def toggle_invitation_code(request, code_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required
+@organization_admin_required
+def customer_detail(request, customer_id):
+    """
+    Vista para obtener detalles completos de un cliente.
+    """
+    from django.utils import timezone
+    
+    try:
+        organization = request.user.organization
+        
+        # Obtener cliente verificando que pertenece a la organización
+        customer = AppUser.objects.select_related('organization').get(
+            id=customer_id,
+            organization=organization,
+            role='customer'
+        )
+        
+        # Obtener carreras del cliente
+        rides = customer.rides_as_customer.all().order_by('-created_at')[:10]
+        total_rides = customer.rides_as_customer.count()
+        completed_rides = customer.rides_as_customer.filter(status='completed').count()
+        canceled_rides = customer.rides_as_customer.filter(status='canceled').count()
+        
+        # Calcular gasto total
+        from django.db.models import Sum
+        total_spent = customer.rides_as_customer.filter(
+            status='completed'
+        ).aggregate(Sum('final_price'))['final_price__sum'] or 0
+        
+        # Última carrera
+        last_ride = customer.rides_as_customer.order_by('-created_at').first()
+        
+        # Preparar datos de carreras recientes
+        rides_data = []
+        for ride in rides:
+            rides_data.append({
+                'id': ride.id,
+                'pickup': ride.pickup_location,
+                'destination': ride.dropoff_location if ride.dropoff_location else 'No especificado',
+                'status': ride.get_status_display(),
+                'status_code': ride.status,
+                'price': float(ride.final_price) if ride.final_price else 0,
+                'created_at': ride.created_at.strftime('%d/%m/%Y %H:%M'),
+                'driver': ride.driver.get_full_name() if ride.driver else 'Sin asignar'
+            })
+        
+        context = {
+            'customer': {
+                'id': customer.id,
+                'username': customer.username,
+                'full_name': customer.get_full_name(),
+                'first_name': customer.first_name,
+                'last_name': customer.last_name,
+                'email': customer.email or 'Sin email',
+                'phone': customer.phone_number or 'Sin teléfono',
+                'cedula': customer.cedula or 'Sin cédula',
+                'is_active': customer.is_active,
+                'date_joined': customer.date_joined.strftime('%d/%m/%Y %H:%M'),
+                'profile_picture': customer.profile_picture.url if customer.profile_picture else None,
+            },
+            'stats': {
+                'total_rides': total_rides,
+                'completed_rides': completed_rides,
+                'canceled_rides': canceled_rides,
+                'total_spent': float(total_spent),
+                'last_ride_date': last_ride.created_at.strftime('%d/%m/%Y') if last_ride else 'Nunca',
+            },
+            'recent_rides': rides_data
+        }
+        
+        return JsonResponse(context)
+        
+    except AppUser.DoesNotExist:
+        return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def taxis_ubicacion(request):
     try:
         taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)

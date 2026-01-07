@@ -8,6 +8,7 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from django.contrib.auth import get_user_model
 from cloudinary.models import CloudinaryField
+from django.core.files.storage import FileSystemStorage
 
 
 #from django.utils.timezone import now
@@ -965,6 +966,9 @@ class InvitationCode(models.Model):
 # APLICACIÓN MÓVIL PARA CONDUCTORES
 # ============================================
 
+# Storage local para APKs (no usar Cloudinary para archivos grandes)
+local_storage = FileSystemStorage(location=settings.MEDIA_ROOT)
+
 class DriverApp(models.Model):
     """
     Modelo para gestionar las versiones del APK de la aplicación Android para conductores.
@@ -978,7 +982,8 @@ class DriverApp(models.Model):
     
     apk_file = models.FileField(
         upload_to='driver_apps/',
-        help_text="Archivo APK de la aplicación"
+        help_text="Archivo APK de la aplicación",
+        storage=local_storage  # Usa almacenamiento local en lugar de Cloudinary
     )
     
     release_notes = models.TextField(

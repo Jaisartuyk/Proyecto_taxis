@@ -434,6 +434,18 @@
         .customers-table-container .table td {
             white-space: normal; /* permitir multi-línea */
             word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Reducir padding en tabla de clientes para espacio limitado */
+        .customers-table-container .table td {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.8rem;
+        }
+        
+        .customers-table-container .table th {
+            padding: 0.75rem 0.25rem;
+            font-size: 0.75rem;
         }
         
         /* Badges y botones más pequeños */
@@ -1036,8 +1048,9 @@
                             </small>
                         </td>
                         <td>
-                            <button onclick='showQRCode("{{ code.code|escapejs }}", "{{ code.get_qr_url|escapejs }}")' 
-                                    class="btn btn-primary btn-sm">
+                            <button class="btn btn-primary btn-sm btn-show-qr-code"
+                                    data-code="{{ code.code|escapejs }}"
+                                    data-qr-url="{{ code.get_qr_url|escapejs }}">
                                 <i class="fas fa-qrcode"></i> Ver QR
                             </button>
                         </td>
@@ -1470,6 +1483,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const codeId = this.dataset.codeId;
             const isActive = this.dataset.isActive === 'true';
             toggleQRStatus(codeId, isActive);
+        });
+    });
+    
+    // Botón: Ver QR Code
+    document.querySelectorAll('.btn-show-qr-code').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const code = this.dataset.code;
+            const qrUrl = this.dataset.qrUrl;
+            showQRCode(code, qrUrl);
         });
     });
     

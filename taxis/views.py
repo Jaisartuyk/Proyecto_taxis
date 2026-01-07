@@ -2297,6 +2297,67 @@ def list_drivers(request):
     return render(request, 'list_drivers.html', context)
 
 @login_required
+def driver_profile(request, driver_id):
+    """
+    Vista del perfil completo de un conductor para administradores.
+    Muestra información detallada, estadísticas, historial de carreras, etc.
+    """
+    if request.user.role not in ['admin', 'superadmin']:
+        messages.error(request, "No tienes permiso para acceder a esta página.")
+        return redirect('home')
+    
+    # Obtener el conductor
+    driver = get_object_or_404(AppUser, id=driver_id, role='driver')
+    
+    # Si es admin de cooperativa, verificar que el conductor sea de su organización
+    if request.user.role == 'admin' and request.user.organization:
+        if driver.organization != request.user.organization:
+            messages.error(request, "No tienes permiso para ver este perfil.")
+            return redirect('list_drivers')
+    
+    # Obtener información del taxi
+    taxi = getattr(driver, 'taxi', None)
+    
+    # Estadísticas de carreras
+    from django.db.models import Count, Sum, Avg, Q
+    rides_stats = driver.rides_as_driver.aggregate(
+        total=Count('id'),
+        completed=Count('id', filter=Q(status='completed')),
+        canceled=Count('id', filter=Q(status='canceled')),
+        in_progress=Count('id', filter=Q(status='in_progress')),
+        accepted=Count('id', filter=Q(status='accepted')),
+        total_earnings=Sum('price', filter=Q(status='completed')),
+    )
+    
+    # Calificaciones
+    from .models import Rating
+    ratings_stats = Rating.objects.filter(rated=driver).aggregate(
+        avg_rating=Avg('rating'),
+        total_ratings=Count('id')
+    )
+    
+    # Historial reciente de carreras (últimas 10)
+    recent_rides = driver.rides_as_driver.select_related('customer').order_by('-created_at')[:10]
+    
+    # Calcular tasa de completación
+    total_rides = rides_stats['total'] or 0
+    completed_rides = rides_stats['completed'] or 0
+    completion_rate = (completed_rides / total_rides * 100) if total_rides > 0 else 0
+    
+    context = {
+        'driver': driver,
+        'taxi': taxi,
+        'rides_stats': rides_stats,
+        'ratings_stats': ratings_stats,
+        'recent_rides': recent_rides,
+        'completion_rate': round(completion_rate, 1),
+        'avg_rating': round(ratings_stats['avg_rating'] or 0, 1),
+        'total_ratings': ratings_stats['total_ratings'] or 0,
+    }
+    
+    return render(request, 'driver_profile.html', context)
+
+@login_required
 def delete_driver(request, user_id):
     if request.user.role != 'admin':  # Solo los administradores pueden eliminar
         messages.error(request, "No tienes permiso para realizar esta acción.")

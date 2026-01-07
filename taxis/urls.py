@@ -56,6 +56,7 @@ urlpatterns = [
     
     path("api/taxis_ubicacion/", views.taxis_ubicacion, name="taxis_ubicacion"),
     path('conductores/', views.list_drivers, name='list_drivers'),
+    path('conductor/<int:driver_id>/', views.driver_profile, name='driver_profile'),
     path('eliminar_conductor/<int:user_id>/', views.delete_driver, name='delete_driver'),
     path('comunicacion/', views.comunicacion_conductores, name='comunicacion_conductores'),
     path("api/actualizar_ubicacion/", views.actualizar_ubicacion, name="actualizar_ubicacion"),

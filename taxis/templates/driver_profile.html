@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 600px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #ffffff;
+    }
+
+    .profile-container {
+        padding: 2rem 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .profile-header {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: #000;
+        flex-shrink: 0;
+    }
+
+    .profile-info h1 {
+        font-size: 2rem;
+        margin: 0 0 0.5rem 0;
+        color: #FFD700;
+    }
+
+    .profile-info p {
+        margin: 0.25rem 0;
+        color: #b0b0b0;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 15px;
+        padding: 1.5rem;
+        border: 1px solid #2d2d2d;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-card .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #FFD700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .stat-label {
+        color: #b0b0b0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .section {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid #2d2d2d;
+    }
+
+    .section h2 {
+        color: #FFD700;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        padding: 1rem;
+        background: rgba(20, 20, 20, 0.5);
+        border-radius: 10px;
+        border: 1px solid #2d2d2d;
+    }
+
+    .info-item label {
+        display: block;
+        color: #9ca3af;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-item .value {
+        color: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    .ride-item {
+        padding: 1rem;
+        background: rgba(20, 20, 20, 0.5);
+        border-radius: 10px;
+        border: 1px solid #2d2d2d;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ride-info {
+        flex: 1;
+    }
+
+    .ride-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-completed {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+
+    .status-canceled {
+        background: rgba(244, 67, 54, 0.2);
+        color: #F44336;
+        border: 1px solid #F44336;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: rgba(31, 31, 31, 0.8);
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 10px;
+        border: 1px solid #2d2d2d;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .btn-back:hover {
+        background: #FFD700;
+        color: #000;
+        border-color: #FFD700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <a href="{% url 'list_drivers' %}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Volver a Lista de Conductores
+    </a>
+
+    <!-- Header del Perfil -->
+    <div class="profile-header">
+        <div class="profile-avatar">
+            {{ driver.first_name.0|default:"?" }}{{ driver.last_name.0|default:"" }}
+        </div>
+        <div class="profile-info">
+            <h1>{{ driver.get_full_name|default:driver.username }}</h1>
+            <p><i class="fas fa-envelope"></i> {{ driver.email }}</p>
+            <p><i class="fas fa-phone"></i> {{ driver.phone_number|default:"No especificado" }}</p>
+            {% if driver.organization %}
+            <p><i class="fas fa-building"></i> {{ driver.organization.name }}</p>
+            {% endif %}
+            <p>
+                <span style="padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem; 
+                {% if driver.driver_status == 'approved' %}
+                    background: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 1px solid #4CAF50;
+                {% elif driver.driver_status == 'pending' %}
+                    background: rgba(255, 193, 7, 0.2); color: #FFC107; border: 1px solid #FFC107;
+                {% else %}
+                    background: rgba(244, 67, 54, 0.2); color: #F44336; border: 1px solid #F44336;
+                {% endif %}">
+                    {{ driver.get_driver_status_display|default:"Sin estado" }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ rides_stats.total|default:0 }}</div>
+            <div class="stat-label">Total Carreras</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ rides_stats.completed|default:0 }}</div>
+            <div class="stat-label">Completadas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ completion_rate }}%</div>
+            <div class="stat-label">Tasa Completación</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ avg_rating }}</div>
+            <div class="stat-label">⭐ Calificación</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">${{ rides_stats.total_earnings|default:0|floatformat:2 }}</div>
+            <div class="stat-label">Ganancias Totales</div>
+        </div>
+    </div>
+
+    <!-- Información del Conductor -->
+    <div class="section">
+        <h2><i class="fas fa-user"></i> Información Personal</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Nombre Completo</label>
+                <div class="value">{{ driver.get_full_name|default:driver.username }}</div>
+            </div>
+            <div class="info-item">
+                <label>Usuario</label>
+                <div class="value">{{ driver.username }}</div>
+            </div>
+            <div class="info-item">
+                <label>Email</label>
+                <div class="value">{{ driver.email }}</div>
+            </div>
+            <div class="info-item">
+                <label>Teléfono</label>
+                <div class="value">{{ driver.phone_number|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Cédula/ID Nacional</label>
+                <div class="value">{{ driver.national_id|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Número de Unidad</label>
+                <div class="value">{{ driver.driver_number|default:"No asignado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Estado del Conductor</label>
+                <div class="value">
+                    <span style="padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem; 
+                    {% if driver.driver_status == 'approved' %}
+                        background: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 1px solid #4CAF50;
+                    {% elif driver.driver_status == 'pending' %}
+                        background: rgba(255, 193, 7, 0.2); color: #FFC107; border: 1px solid #FFC107;
+                    {% elif driver.driver_status == 'suspended' %}
+                        background: rgba(255, 152, 0, 0.2); color: #FF9800; border: 1px solid #FF9800;
+                    {% else %}
+                        background: rgba(244, 67, 54, 0.2); color: #F44336; border: 1px solid #F44336;
+                    {% endif %}">
+                        {{ driver.get_driver_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="info-item">
+                <label>Fecha de Registro</label>
+                <div class="value">{{ driver.date_joined|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% if driver.approved_at %}
+            <div class="info-item">
+                <label>Aprobado el</label>
+                <div class="value">{{ driver.approved_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% if driver.approved_by %}
+            <div class="info-item">
+                <label>Aprobado por</label>
+                <div class="value">{{ driver.approved_by.get_full_name|default:driver.approved_by.username }}</div>
+            </div>
+            {% endif %}
+            {% if driver.last_login %}
+            <div class="info-item">
+                <label>Último Acceso</label>
+                <div class="value">{{ driver.last_login|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% if driver.telegram_chat_id %}
+            <div class="info-item">
+                <label>Telegram ID</label>
+                <div class="value">{{ driver.telegram_chat_id }}</div>
+            </div>
+            {% endif %}
+            {% if driver.last_latitude and driver.last_longitude %}
+            <div class="info-item">
+                <label>Última Ubicación Conocida</label>
+                <div class="value">{{ driver.last_latitude|floatformat:6 }}, {{ driver.last_longitude|floatformat:6 }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información del Vehículo -->
+    {% if taxi %}
+    <div class="section">
+        <h2><i class="fas fa-car"></i> Información del Vehículo</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Placa</label>
+                <div class="value">{{ taxi.plate_number|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Descripción del Vehículo</label>
+                <div class="value">{{ taxi.vehicle_description|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Modelo</label>
+                <div class="value">{{ taxi.car_model|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Color</label>
+                <div class="value">{{ taxi.car_color|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Año</label>
+                <div class="value">{{ taxi.car_year|default:"No especificado" }}</div>
+            </div>
+            <div class="info-item">
+                <label>Estado del Taxi</label>
+                <div class="value">
+                    {% if taxi.is_active %}
+                        <span style="color: #4CAF50;">✓ Activo</span>
+                    {% else %}
+                        <span style="color: #F44336;">✗ Inactivo</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-item">
+                <label>Estado de Ubicación</label>
+                <div class="value">
+                    {% if taxi.latitude and taxi.longitude %}
+                        <span style="color: #4CAF50;">🟢 En línea</span>
+                    {% else %}
+                        <span style="color: #9E9E9E;">⚪ Sin ubicación</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if taxi.latitude and taxi.longitude %}
+            <div class="info-item">
+                <label>Coordenadas Actuales</label>
+                <div class="value">{{ taxi.latitude|floatformat:6 }}, {{ taxi.longitude|floatformat:6 }}</div>
+            </div>
+            {% endif %}
+            {% if taxi.direccion_origen %}
+            <div class="info-item">
+                <label>Dirección de Origen</label>
+                <div class="value">{{ taxi.direccion_origen }}</div>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <label>Última Actualización</label>
+                <div class="value">{{ taxi.updated_at|date:"d/m/Y H:i" }}</div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="section">
+        <h2><i class="fas fa-car"></i> Información del Vehículo</h2>
+        <p style="color: #b0b0b0; text-align: center; padding: 2rem;">
+            <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+            Este conductor no tiene un vehículo asignado
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Historial de Carreras -->
+    <div class="section">
+        <h2><i class="fas fa-history"></i> Historial Reciente</h2>
+        {% if recent_rides %}
+            {% for ride in recent_rides %}
+            <div class="ride-item">
+                <div class="ride-info">
+                    <div style="color: #ffffff; font-weight: 600; margin-bottom: 0.5rem;">
+                        {{ ride.origin }} → {{ ride.destinations.first.destination|default:"Destino no especificado" }}
+                    </div>
+                    <div style="color: #9ca3af; font-size: 0.9rem;">
+                        <i class="fas fa-user"></i> {{ ride.customer.get_full_name|default:ride.customer.username }}
+                        &nbsp;|&nbsp;
+                        <i class="fas fa-calendar"></i> {{ ride.created_at|date:"d/m/Y H:i" }}
+                        &nbsp;|&nbsp;
+                        <i class="fas fa-dollar-sign"></i> ${{ ride.price|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="ride-status status-{{ ride.status }}">
+                    {{ ride.get_status_display }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #b0b0b0; text-align: center; padding: 2rem;">
+                No hay carreras registradas
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

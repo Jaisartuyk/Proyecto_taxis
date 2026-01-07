@@ -360,6 +360,14 @@
         <h2><i class="fas fa-user"></i> Información Personal</h2>
         <div class="info-grid">
             <div class="info-item">
+                <span class="info-label">👤 Nombre completo</span>
+                <span class="info-value">{{ user.get_full_name|default:user.username }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">🔑 Usuario</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            <div class="info-item">
                 <span class="info-label">📧 Email</span>
                 <span class="info-value">{{ user.email|default:"No registrado" }}</span>
             </div>
@@ -367,7 +375,7 @@
                 <span class="info-label">📱 Teléfono</span>
                 <span class="info-value">
                     {% if user.phone_number %}
-                        <a href="tel:{{ user.phone_number }}">{{ user.phone_number }}</a>
+                        <a href="tel:{{ user.phone_number }}" style="color: #FFD700; text-decoration: none;">{{ user.phone_number }}</a>
                     {% else %}
                         No registrado
                     {% endif %}
@@ -375,14 +383,48 @@
             </div>
             {% if user.national_id %}
             <div class="info-item">
-                <span class="info-label">🆔 Cédula</span>
+                <span class="info-label">🆔 Cédula/ID Nacional</span>
                 <span class="info-value">{{ user.national_id }}</span>
+            </div>
+            {% endif %}
+            {% if user.organization %}
+            <div class="info-item">
+                <span class="info-label">🏢 Organización</span>
+                <span class="info-value">{{ user.organization.name }}</span>
+            </div>
+            {% endif %}
+            {% if user.role == 'driver' and user.driver_number %}
+            <div class="info-item">
+                <span class="info-label">🔢 Número de Unidad</span>
+                <span class="info-value">{{ user.driver_number }}</span>
+            </div>
+            {% endif %}
+            {% if user.role == 'driver' %}
+            <div class="info-item">
+                <span class="info-label">📋 Estado del Conductor</span>
+                <span class="info-value">
+                    <span class="status-badge {% if user.driver_status == 'approved' %}status-online{% elif user.driver_status == 'pending' %}status-pending{% else %}status-offline{% endif %}">
+                        {{ user.get_driver_status_display }}
+                    </span>
+                </span>
             </div>
             {% endif %}
             {% if user.date_joined %}
             <div class="info-item">
                 <span class="info-label">📅 Miembro desde</span>
                 <span class="info-value">{{ user.date_joined|date:"d/m/Y" }}</span>
+            </div>
+            {% endif %}
+            {% if user.last_login %}
+            <div class="info-item">
+                <span class="info-label">🕐 Último acceso</span>
+                <span class="info-value">{{ user.last_login|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% endif %}
+            {% if user.telegram_chat_id %}
+            <div class="info-item">
+                <span class="info-label">💬 Telegram ID</span>
+                <span class="info-value">{{ user.telegram_chat_id }}</span>
             </div>
             {% endif %}
                     </div>
@@ -401,19 +443,59 @@
                 </span>
             </div>
             <div class="info-item">
-                <span class="info-label">🚙 Descripción</span>
+                <span class="info-label">🚙 Descripción del Vehículo</span>
                 <span class="info-value">{{ taxi.vehicle_description|default:"No especificada" }}</span>
             </div>
+            {% if taxi.car_model %}
             <div class="info-item">
-                <span class="info-label">📍 Estado</span>
+                <span class="info-label">🚘 Modelo</span>
+                <span class="info-value">{{ taxi.car_model }}</span>
+            </div>
+            {% endif %}
+            {% if taxi.car_color %}
+            <div class="info-item">
+                <span class="info-label">🎨 Color</span>
+                <span class="info-value">{{ taxi.car_color }}</span>
+            </div>
+            {% endif %}
+            {% if taxi.car_year %}
+            <div class="info-item">
+                <span class="info-label">📅 Año</span>
+                <span class="info-value">{{ taxi.car_year }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">⚙️ Estado del Taxi</span>
                 <span class="info-value">
-                    {% if has_location %}
-                        <span class="status-badge status-online">En línea</span>
+                    {% if taxi.is_active %}
+                        <span class="status-badge status-online">✓ Activo</span>
                     {% else %}
-                        <span class="status-badge status-offline">Sin ubicación</span>
+                        <span class="status-badge status-offline">✗ Inactivo</span>
                     {% endif %}
                 </span>
             </div>
+            <div class="info-item">
+                <span class="info-label">📍 Estado de Ubicación</span>
+                <span class="info-value">
+                    {% if has_location %}
+                        <span class="status-badge status-online">🟢 En línea</span>
+                    {% else %}
+                        <span class="status-badge status-offline">⚪ Sin ubicación</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if taxi.latitude and taxi.longitude %}
+            <div class="info-item">
+                <span class="info-label">🗺️ Coordenadas</span>
+                <span class="info-value">{{ taxi.latitude|floatformat:6 }}, {{ taxi.longitude|floatformat:6 }}</span>
+            </div>
+            {% endif %}
+            {% if taxi.direccion_origen %}
+            <div class="info-item">
+                <span class="info-label">📍 Dirección de Origen</span>
+                <span class="info-value">{{ taxi.direccion_origen }}</span>
+            </div>
+            {% endif %}
             {% if taxi.updated_at %}
             <div class="info-item">
                 <span class="info-label">🕒 Última actualización</span>

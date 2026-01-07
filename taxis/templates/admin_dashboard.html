@@ -1355,13 +1355,17 @@ function showQRCode(code, url) {
         z-index: 9999;
     `;
     
+    // Escapar código y URL para HTML seguro
+    const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const escapedUrl = url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    
     modal.innerHTML = `
         <div style="background: #1f1f1f; padding: 2rem; border-radius: 16px; max-width: 500px; text-align: center; border: 2px solid #FFD700;">
-            <h2 style="color: #FFD700; margin-bottom: 1rem;">📱 Código QR: ${code}</h2>
+            <h2 style="color: #FFD700; margin-bottom: 1rem;">📱 Código QR: ${escapedCode}</h2>
             <div id="qrcode" style="background: white; padding: 1rem; border-radius: 8px; display: inline-block; margin-bottom: 1rem;"></div>
-            <p style="color: #9ca3af; margin-bottom: 1rem; word-break: break-all;">${url}</p>
+            <p style="color: #9ca3af; margin-bottom: 1rem; word-break: break-all;">${escapedUrl}</p>
             <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button class="btn btn-primary btn-copy-qr-link-modal" data-url="${url}">
+                <button class="btn btn-primary btn-copy-qr-link-modal">
                     <i class="fas fa-copy"></i> Copiar Enlace
                 </button>
                 <button class="btn btn-secondary btn-close-qr-modal">
@@ -1379,7 +1383,6 @@ function showQRCode(code, url) {
     
     if (copyBtn) {
         copyBtn.addEventListener('click', () => {
-            const url = copyBtn.getAttribute('data-url');
             navigator.clipboard.writeText(url).then(() => {
                 alert('✅ Enlace copiado al portapapeles');
             }).catch(() => {

@@ -1059,15 +1059,15 @@
                         </td>
                         <td>
                             <button class="btn btn-primary btn-sm btn-show-qr-code"
-                                    data-code="{{ code.code|escapejs }}"
-                                    data-qr-url="{{ code.get_qr_url|escapejs }}">
+                                    data-code="{{ code.code }}"
+                                    data-qr-url="{{ code.get_qr_url }}">
                                 <i class="fas fa-qrcode"></i> Ver QR
                             </button>
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-secondary btn-sm btn-copy-qr-link" 
-                                        data-qr-url="{{ code.get_qr_url|escapejs }}" 
+                                        data-qr-url="{{ code.get_qr_url }}" 
                                         title="Copiar enlace">
                                     <i class="fas fa-copy"></i>
                                 </button>

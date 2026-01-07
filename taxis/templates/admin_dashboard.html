@@ -753,13 +753,13 @@
                             </td>
                             <td>
                                 <div class="negotiation-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                    <button class="btn btn-success btn-sm" onclick='acceptNegotiation({{ negotiation.id }}, {{ negotiation.proposed_price }})' style="flex: 1; min-width: 80px;">
+                                    <button class="btn btn-success btn-sm btn-accept-negotiation" data-negotiation-id="{{ negotiation.id }}" data-proposed-price="{{ negotiation.proposed_price }}" style="flex: 1; min-width: 80px;">
                                         ✅ Aceptar
                                     </button>
-                                    <button class="btn btn-warning btn-sm" onclick='counterOffer({{ negotiation.id }})' style="flex: 1; min-width: 100px;">
+                                    <button class="btn btn-warning btn-sm btn-counter-offer" data-negotiation-id="{{ negotiation.id }}" style="flex: 1; min-width: 100px;">
                                         💬 Contraoferta
                                     </button>
-                                    <button class="btn btn-danger btn-sm" onclick='rejectNegotiation({{ negotiation.id }})' style="flex: 1; min-width: 90px;">
+                                    <button class="btn btn-danger btn-sm btn-reject-negotiation" data-negotiation-id="{{ negotiation.id }}" style="flex: 1; min-width: 90px;">
                                         ❌ Rechazar
                                     </button>
                                 </div>
@@ -958,7 +958,7 @@
         </div>
 
         <div style="margin-bottom: 1.5rem;">
-            <button onclick="showCreateQRModal()" class="btn btn-primary" style="width: 100%;">
+            <button class="btn btn-primary btn-create-qr-modal" style="width: 100%;">
                 <i class="fas fa-plus-circle"></i> Crear Nuevo Código QR
             </button>
         </div>
@@ -1043,13 +1043,14 @@
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button onclick='copyQRLink("{{ code.get_qr_url|escapejs }}")' 
-                                        class="btn btn-secondary btn-sm" 
+                                <button class="btn btn-secondary btn-sm btn-copy-qr-link" 
+                                        data-qr-url="{{ code.get_qr_url|escapejs }}" 
                                         title="Copiar enlace">
                                     <i class="fas fa-copy"></i>
                                 </button>
-                                <button onclick='toggleQRStatus({{ code.id }}, {% if code.is_active %}true{% else %}false{% endif %})' 
-                                        class="btn btn-warning btn-sm" 
+                                <button class="btn btn-warning btn-sm btn-toggle-qr-status" 
+                                        data-code-id="{{ code.id }}" 
+                                        data-is-active="{% if code.is_active %}true{% else %}false{% endif %}"
                                         title="{% if code.is_active %}Desactivar{% else %}Activar{% endif %}">
                                     <i class="fas fa-{% if code.is_active %}ban{% else %}check{% endif %}"></i>
                                 </button>
@@ -1070,7 +1071,7 @@
         <div class="empty-state">
             <i class="fas fa-qrcode" style="font-size: 3rem; color: #4B5563; margin-bottom: 1rem;"></i>
             <p>No hay códigos QR creados</p>
-            <button onclick="showCreateQRModal()" class="btn btn-primary">
+            <button class="btn btn-primary btn-create-qr-modal">
                 <i class="fas fa-plus-circle"></i> Crear Primer Código QR
             </button>
         </div>
@@ -1419,6 +1420,68 @@ async function toggleQRStatus(codeId, currentStatus) {
 }
 
 {% endverbatim %}
+
+// ============================================
+// EVENT LISTENERS (Evitar SyntaxError en onclick)
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Botón: Aceptar Negociación
+    document.querySelectorAll('.btn-accept-negotiation').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const negotiationId = this.dataset.negotiationId;
+            const proposedPrice = this.dataset.proposedPrice;
+            acceptNegotiation(negotiationId, proposedPrice);
+        });
+    });
+    
+    // Botón: Contraoferta
+    document.querySelectorAll('.btn-counter-offer').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const negotiationId = this.dataset.negotiationId;
+            counterOffer(negotiationId);
+        });
+    });
+    
+    // Botón: Rechazar Negociación
+    document.querySelectorAll('.btn-reject-negotiation').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const negotiationId = this.dataset.negotiationId;
+            rejectNegotiation(negotiationId);
+        });
+    });
+    
+    // Botón: Copiar Enlace QR
+    document.querySelectorAll('.btn-copy-qr-link').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const qrUrl = this.dataset.qrUrl;
+            copyQRLink(qrUrl);
+        });
+    });
+    
+    // Botón: Toggle QR Status
+    document.querySelectorAll('.btn-toggle-qr-status').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const codeId = this.dataset.codeId;
+            const isActive = this.dataset.isActive === 'true';
+            toggleQRStatus(codeId, isActive);
+        });
+    });
+    
+    // Botón: Crear Modal QR (todos los botones con clase)
+    document.querySelectorAll('.btn-create-qr-modal').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showCreateQRModal();
+        });
+    });
+});
+
 </script>
 
 {% endblock %}

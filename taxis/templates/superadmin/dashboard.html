@@ -1,0 +1,928 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    :root {
+        --primary-color: #1a1a1a;
+        --secondary-color: #FFD700;
+        --accent-color: #2a2a2a;
+        --text-primary: #f8f9fa;
+        --text-secondary: #adb5bd;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+    }
+
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 600px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: var(--text-primary);
+    }
+
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    .stat-card {
+        background: rgba(31, 31, 31, 0.8);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-card .icon {
+        font-size: 2.5rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+
+    .stat-card h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .stat-card .number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+        line-height: 1.2;
+    }
+
+    .card {
+        background: rgba(31, 31, 31, 0.8);
+        border: 1px solid #2d2d2d;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background: rgba(42, 42, 42, 0.8);
+        border-bottom: 1px solid #2d2d2d;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .card-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--secondary-color);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-header h2 i {
+        font-size: 1.1em;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .table {
+        color: var(--text-primary);
+        margin-bottom: 0;
+    }
+
+    .table th {
+        border-top: none;
+        border-bottom: 1px solid #2d2d2d;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+    }
+
+    .table td {
+        border-top: 1px solid #2d2d2d;
+        vertical-align: middle;
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+        border-radius: 50px;
+        font-size: 0.75rem;
+    }
+
+    .btn-action {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.85rem;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+    }
+
+    .btn-action i {
+        font-size: 0.9em;
+    }
+
+    .btn-edit {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+
+    .btn-edit:hover {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .btn-delete {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .btn-delete:hover {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border-color: rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        border: none;
+        color: #000;
+        font-weight: 600;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        background: linear-gradient(135deg, #FFC107, #FFD700);
+        color: #000;
+    }
+
+    .search-box {
+        position: relative;
+        max-width: 300px;
+    }
+
+    .search-box input {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid #2d2d2d;
+        color: var(--text-primary);
+        border-radius: 8px;
+        padding: 0.5rem 1rem 0.5rem 2.5rem;
+        width: 100%;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+    }
+
+    .pagination .page-link {
+        background-color: transparent;
+        border: 1px solid #2d2d2d;
+        color: var(--text-primary);
+        margin: 0 0.25rem;
+        border-radius: 6px !important;
+        min-width: 2.25rem;
+        text-align: center;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        color: #000;
+    }
+
+    .pagination .page-link:hover {
+        background-color: rgba(255, 215, 0, 0.1);
+        border-color: rgba(255, 215, 0, 0.3);
+    }
+
+    .status-badge {
+        padding: 0.35em 0.8em;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-active {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    .status-suspended {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+
+    .status-inactive {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+    }
+
+    /* Modal styles */
+    .modal-content {
+        background-color: #1f1f1f;
+        border: 1px solid #2d2d2d;
+        border-radius: 12px;
+        color: var(--text-primary);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid #2d2d2d;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .modal-title {
+        color: var(--secondary-color);
+        font-weight: 600;
+    }
+
+    .close {
+        color: var(--text-secondary);
+        opacity: 1;
+    }
+
+    .form-control, .form-select, .form-control:focus, .form-select:focus {
+        background-color: #2a2a2a;
+        border: 1px solid #2d2d2d;
+        color: var(--text-primary);
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+    }
+
+    .form-label {
+        color: var(--text-primary);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-text {
+        color: var(--text-secondary);
+    }
+
+    .select2-container--bootstrap-5 .select2-selection {
+        background-color: #2a2a2a;
+        border: 1px solid #2d2d2d;
+        color: var(--text-primary);
+        border-radius: 8px;
+        min-height: calc(1.5em + 1.2rem + 2px);
+        padding: 0.6rem 1rem;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        color: var(--text-primary);
+        padding: 0;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        height: 100%;
+        right: 0.75rem;
+    }
+
+    .select2-dropdown {
+        background-color: #2a2a2a;
+        border: 1px solid #2d2d2d;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .select2-results__option {
+        color: var(--text-primary);
+        padding: 0.5rem 1rem;
+    }
+
+    .select2-results__option--highlighted {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+        color: var(--secondary-color) !important;
+    }
+
+    .select2-search--dropdown .select2-search__field {
+        background-color: #1f1f1f;
+        border: 1px solid #2d2d2d;
+        color: var(--text-primary);
+        border-radius: 6px;
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1f1f1f;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #3d3d3d;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #4d4d4d;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 767.98px) {
+        .dashboard-container {
+            padding: 0 1rem;
+        }
+
+        .card-header {
+            padding: 1rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .table-responsive {
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Panel de Administración</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Inicio</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Cooperativas</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCooperativeModal">
+                <i class="fas fa-plus me-1"></i> Nueva Cooperativa
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3>Total Cooperativas</h3>
+                        <div class="number">{{ cooperatives.count }}</div>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3>Activas</h3>
+                        <div class="number">{{ active_cooperatives }}</div>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3>Conductores</h3>
+                        <div class="number">{{ total_drivers }}</div>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3>Ingresos Totales</h3>
+                        <div class="number">${{ total_revenue|default:"0.00" }}</div>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cooperatives Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-building me-2"></i>Cooperativas Registradas</h2>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar cooperativa...">
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Plan</th>
+                            <th>Estado</th>
+                            <th>Conductores</th>
+                            <th>Ingresos</th>
+                            <th>Fecha de Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for coop in cooperatives %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if coop.logo %}
+                                    <img src="{{ coop.logo.url }}" alt="{{ coop.name }}" class="rounded-circle me-2" width="36" height="36">
+                                    {% else %}
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
+                                        <i class="fas fa-building text-light"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-semibold">{{ coop.name }}</div>
+                                        <small class="text-muted">{{ coop.slug }}.deaquipalla.com</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary bg-opacity-10 text-primary">{{ coop.get_plan_display }}</span>
+                            </td>
+                            <td>
+                                {% if coop.status == 'active' %}
+                                <span class="status-badge status-active">
+                                    <i class="fas fa-circle me-1"></i> Activo
+                                </span>
+                                {% elif coop.status == 'suspended' %}
+                                <span class="status-badge status-suspended">
+                                    <i class="fas fa-pause-circle me-1"></i> Suspendido
+                                </span>
+                                {% else %}
+                                <span class="status-badge status-inactive">
+                                    <i class="fas fa-times-circle me-1"></i> Inactivo
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ coop.driver_percentage|default:0 }}%" 
+                                             aria-valuenow="{{ coop.driver_percentage|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <small class="text-nowrap">{{ coop.drivers_count }}/{{ coop.max_drivers|default:'∞' }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">${{ coop.monthly_revenue|default:0|floatformat:2 }}</div>
+                                <small class="text-muted">este mes</small>
+                            </td>
+                            <td>
+                                <div class="text-nowrap">{{ coop.created_at|date:"d M Y" }}</div>
+                                <small class="text-muted">{{ coop.created_at|timesince }}</small>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'cooperative_detail' coop.id %}" class="btn btn-sm btn-action btn-edit" data-bs-toggle="tooltip" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-action btn-edit" data-bs-toggle="modal" data-bs-target="#editCooperativeModal{{ coop.id }}" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-action btn-delete" data-bs-toggle="modal" data-bs-target="#deleteCooperativeModal{{ coop.id }}" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Edit Cooperative Modal -->
+                        <div class="modal fade" id="editCooperativeModal{{ coop.id }}" tabindex="-1" aria-labelledby="editCooperativeModalLabel{{ coop.id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editCooperativeModalLabel{{ coop.id }}">
+                                            <i class="fas fa-edit me-2"></i>Editar Cooperativa
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="editCooperativeForm{{ coop.id }}" method="POST" action="{% url 'edit_cooperative' coop.id %}" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="name{{ coop.id }}" class="form-label">Nombre de la Cooperativa</label>
+                                                        <input type="text" class="form-control" id="name{{ coop.id }}" name="name" value="{{ coop.name }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="slug{{ coop.id }}" class="form-label">URL</label>
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control" id="slug{{ coop.id }}" name="slug" value="{{ coop.slug }}" required>
+                                                            <span class="input-group-text">.deaquipalla.com</span>
+                                                        </div>
+                                                        <div class="form-text">Solo letras minúsculas, números y guiones</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="plan{{ coop.id }}" class="form-label">Plan</label>
+                                                        <select class="form-select" id="plan{{ coop.id }}" name="plan" required>
+                                                            {% for value, label in coop.PLAN_CHOICES %}
+                                                            <option value="{{ value }}" {% if coop.plan == value %}selected{% endif %}>{{ label }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="status{{ coop.id }}" class="form-label">Estado</label>
+                                                        <select class="form-select" id="status{{ coop.id }}" name="status" required>
+                                                            {% for value, label in coop.STATUS_CHOICES %}
+                                                            <option value="{{ value }}" {% if coop.status == value %}selected{% endif %}>{{ label }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="logo{{ coop.id }}" class="form-label">Logo</label>
+                                                        <input class="form-control" type="file" id="logo{{ coop.id }}" name="logo" accept="image/*">
+                                                        {% if coop.logo %}
+                                                        <div class="mt-2">
+                                                            <img src="{{ coop.logo.url }}" alt="Logo actual" class="img-thumbnail" style="max-height: 100px;">
+                                                        </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="max_drivers{{ coop.id }}" class="form-label">Límite de Conductores</label>
+                                                        <input type="number" class="form-control" id="max_drivers{{ coop.id }}" name="max_drivers" value="{{ coop.max_drivers|default:'' }}" min="1">
+                                                        <div class="form-text">Dejar vacío para ilimitado</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="monthly_fee{{ coop.id }}" class="form-label">Tarifa Mensual ($)</label>
+                                                        <input type="number" class="form-control" id="monthly_fee{{ coop.id }}" name="monthly_fee" value="{{ coop.monthly_fee|default:'0.00' }}" step="0.01" min="0" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="mb-3">
+                                                        <label for="description{{ coop.id }}" class="form-label">Descripción</label>
+                                                        <textarea class="form-control" id="description{{ coop.id }}" name="description" rows="3">{{ coop.description }}</textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-1"></i> Guardar Cambios
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Cooperative Modal -->
+                        <div class="modal fade" id="deleteCooperativeModal{{ coop.id }}" tabindex="-1" aria-labelledby="deleteCooperativeModalLabel{{ coop.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title text-danger" id="deleteCooperativeModalLabel{{ coop.id }}">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>¿Estás seguro de que deseas eliminar la cooperativa <strong>{{ coop.name }}</strong>?</p>
+                                        <p class="mb-0">Esta acción no se puede deshacer y se eliminarán todos los datos asociados, incluyendo conductores y viajes.</p>
+                                        <div class="alert alert-warning mt-3 mb-0">
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                            <strong>Advertencia:</strong> Esta acción es irreversible.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <form action="{% url 'delete_cooperative' coop.id %}" method="POST" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="fas fa-trash me-1"></i> Eliminar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <h5>No hay cooperativas registradas</h5>
+                                    <p class="mb-0">Comienza agregando una nueva cooperativa</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if cooperatives.has_other_pages %}
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <div class="text-muted">
+                Mostrando {{ cooperatives.start_index }} a {{ cooperatives.end_index }} de {{ cooperatives.paginator.count }} entradas
+            </div>
+            <nav aria-label="Page navigation">
+                <ul class="pagination mb-0">
+                    {% if cooperatives.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cooperatives.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;&laquo;</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                    {% endif %}
+
+                    {% for i in cooperatives.paginator.page_range %}
+                        {% if cooperatives.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > cooperatives.number|add:'-3' and i < cooperatives.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if cooperatives.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cooperatives.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ cooperatives.paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Cooperative Modal -->
+<div class="modal fade" id="addCooperativeModal" tabindex="-1" aria-labelledby="addCooperativeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCooperativeModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Nueva Cooperativa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addCooperativeForm" method="POST" action="{% url 'add_cooperative' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nombre de la Cooperativa</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="slug" class="form-label">URL</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="slug" name="slug" required>
+                                    <span class="input-group-text">.deaquipalla.com</span>
+                                </div>
+                                <div class="form-text">Solo letras minúsculas, guiones y números</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Teléfono de Contacto</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="plan" class="form-label">Plan</label>
+                                <select class="form-select" id="plan" name="plan" required>
+                                    <option value="" selected disabled>Seleccionar plan...</option>
+                                    <option value="owner">Propietario</option>
+                                    <option value="basic">Básico</option>
+                                    <option value="standard">Estándar</option>
+                                    <option value="premium">Premium</option>
+                                    <option value="enterprise">Enterprise</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Estado</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="active" selected>Activo</option>
+                                    <option value="trial">Prueba</option>
+                                    <option value="suspended">Suspendido</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="logo" class="form-label">Logo (Opcional)</label>
+                                <input class="form-control" type="file" id="logo" name="logo" accept="image/*">
+                            </div>
+                            <div class="mb-3">
+                                <label for="max_drivers" class="form-label">Límite de Conductores</label>
+                                <input type="number" class="form-control" id="max_drivers" name="max_drivers" min="1">
+                                <div class="form-text">Dejar vacío para ilimitado</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i> Crear Cooperativa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    // Initialize Select2
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Seleccionar...',
+            allowClear: true
+        });
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Search functionality
+        $('#searchInput').on('keyup', function() {
+            var value = $(this).val().toLowerCase();
+            $('table tbody tr').filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            });
+        });
+
+        // Auto-slug generation
+        $('#name').on('input', function() {
+            var slug = $(this).val()
+                .toLowerCase()
+                .trim()
+                .replace(/[^\w\s-]/g, '') // Remove special chars
+                .replace(/\s+/g, '-')      // Replace spaces with -
+                .replace(/--+/g, '-');     // Replace multiple - with single -
+            
+            // Remove leading/trailing -
+            slug = slug.replace(/^-+|-+$/g, '');
+            
+            $('#slug').val(slug);
+        });
+
+        // Form validation
+        $('#addCooperativeForm, .edit-cooperative-form').on('submit', function(e) {
+            var form = $(this);
+            var submitBtn = form.find('button[type="submit"]');
+            
+            // Disable submit button to prevent double submission
+            submitBtn.prop('disabled', true);
+            
+            // Add loading state
+            submitBtn.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...');
+            
+            // You can add additional validation here if needed
+            
+            // If validation passes, the form will submit
+            // If there's an error, make sure to re-enable the button
+            form.one('ajax:error', function() {
+                submitBtn.prop('disabled', false);
+                submitBtn.html('<i class="fas fa-save me-1"></i> Guardar Cambios');
+            });
+        });
+
+        // Initialize modals
+        var modals = document.querySelectorAll('.modal');
+        modals.forEach(function(modal) {
+            modal.addEventListener('hidden.bs.modal', function () {
+                // Reset form when modal is closed
+                var form = this.querySelector('form');
+                if (form) {
+                    form.reset();
+                    // Reset any validation states
+                    form.find('.is-invalid').removeClass('is-invalid');
+                    form.find('.invalid-feedback').remove();
+                }
+            });
+        });
+    });
+
+    // Function to confirm before deleting
+    function confirmDelete(coopId, coopName) {
+        if (confirm(`¿Estás seguro de que deseas eliminar la cooperativa "${coopName}"? Esta acción no se puede deshacer.`)) {
+            document.getElementById(`deleteForm${coopId}`).submit();
+        }
+        return false;
+    }
+</script>
+{% endblock %}

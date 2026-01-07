@@ -79,8 +79,35 @@ class TaxiRouteForm(forms.ModelForm):
 class TaxiForm(forms.ModelForm):
     class Meta:
         model = Taxi
-        fields = ['plate_number', 'vehicle_description', 'latitude', 'longitude']
+        fields = ['plate_number', 'vehicle_description', 'car_model', 'car_color', 
+                 'car_year', 'is_active', 'latitude', 'longitude', 'direccion_origen']
         widgets = {
+            'plate_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: ABC-1234'
+            }),
+            'vehicle_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción detallada del vehículo'
+            }),
+            'car_model': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Toyota Corolla'
+            }),
+            'car_color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Rojo'
+            }),
+            'car_year': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 2020',
+                'min': '1900',
+                'max': '2030'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
             'latitude': forms.TextInput(attrs={
                 'readonly': 'readonly',
                 'class': 'form-control'
@@ -88,6 +115,10 @@ class TaxiForm(forms.ModelForm):
             'longitude': forms.TextInput(attrs={
                 'readonly': 'readonly',
                 'class': 'form-control'
+            }),
+            'direccion_origen': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Dirección de origen del taxi'
             }),
         }
 

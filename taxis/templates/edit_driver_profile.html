@@ -1,114 +1,338 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .edit-profile-container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .profile-card {
+        background: rgba(31, 31, 31, 0.9);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+    }
+
+    .section-title {
+        color: #FFD700;
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #333;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        color: #e0e0e0;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        background-color: #1f1f1f;
+        border: 1px solid #333;
+        color: #fff;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        width: 100%;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: #FFD700;
+        box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
+        background-color: #2a2a2a;
+        color: #fff;
+    }
+
+    .form-control::placeholder {
+        color: #6c757d;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        border: none;
+        color: #000;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        width: 100%;
+        margin-top: 1rem;
+        transition: all 0.3s;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        color: #FFD700;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s;
+    }
+
+    .back-button:hover {
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .back-button i {
+        margin-right: 0.5rem;
+    }
+
+    .form-check-input:checked {
+        background-color: #FFD700;
+        border-color: #FFD700;
+    }
+
+    .form-check-label {
+        color: #e0e0e0;
+        margin-left: 0.5rem;
+    }
+
+    .form-text {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+
+    .profile-picture-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #FFD700;
+        margin-bottom: 1rem;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .file-input-label {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: #333;
+        color: #fff;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        width: 100%;
+    }
+
+    .file-input-label:hover {
+        background: #444;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Actualizar Perfil del Taxista</h2>
+<div class="edit-profile-container">
+    <a href="{% url 'driver_profile' user.id %}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Volver al perfil
+    </a>
 
-    <form method="POST" enctype="multipart/form-data" class="shadow p-4 rounded bg-light">
-        {% csrf_token %}
+    <div class="profile-card">
+        <h1 class="mb-4" style="color: #FFD700;">
+            <i class="fas fa-user-edit me-2"></i>Editar Perfil
+        </h1>
 
-        <!-- Información Personal -->
-        <h4 class="mb-3 text-primary">Información Personal</h4>
-
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="{{ user_form.first_name.id_for_label }}" class="form-label">Nombre</label>
-                {{ user_form.first_name }}
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Sección de Foto de Perfil -->
+            <div class="text-center mb-4">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Foto de perfil" class="profile-picture-preview" id="profile-preview">
+                {% else %}
+                    <div class="profile-picture-preview d-flex align-items-center justify-content-center" style="background: #333;" id="profile-preview">
+                        <i class="fas fa-user fa-3x text-muted"></i>
+                    </div>
+                {% endif %}
+                <div class="file-input-wrapper mt-2">
+                    <label class="file-input-label">
+                        <i class="fas fa-camera me-2"></i>Cambiar foto
+                        {{ user_form.profile_picture }}
+                    </label>
+                    <small class="form-text">Formatos: JPG, PNG, WEBP (Máx. 5MB)</small>
+                </div>
             </div>
 
-            <div class="col-md-6 mb-3">
-                <label for="{{ user_form.last_name.id_for_label }}" class="form-label">Apellido</label>
-                {{ user_form.last_name }}
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="{{ user_form.phone_number.id_for_label }}" class="form-label">Número de Teléfono</label>
-                {{ user_form.phone_number }}
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label for="{{ user_form.national_id.id_for_label }}" class="form-label">Número de Cédula</label>
-                {{ user_form.national_id }}
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label for="{{ user_form.profile_picture.id_for_label }}" class="form-label">Foto de Perfil</label>
-            {{ user_form.profile_picture }}
-        </div>
-
-        <!-- Información del Taxi -->
-        <h4 class="mb-3 text-primary mt-4">Información del Taxi</h4>
-
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="{{ taxi_form.plate_number.id_for_label }}" class="form-label">Número de Placa</label>
-                {{ taxi_form.plate_number }}
+            <!-- Información Personal -->
+            <h3 class="section-title">
+                <i class="fas fa-user"></i> Información Personal
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.first_name.id_for_label }}" class="form-label">Nombre</label>
+                        {{ user_form.first_name }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.last_name.id_for_label }}" class="form-label">Apellido</label>
+                        {{ user_form.last_name }}
+                    </div>
+                </div>
             </div>
 
-            <div class="col-md-6 mb-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.phone_number.id_for_label }}" class="form-label">Teléfono</label>
+                        {{ user_form.phone_number }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.national_id.id_for_label }}" class="form-label">Cédula</label>
+                        {{ user_form.national_id }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Taxi -->
+            <h3 class="section-title mt-5">
+                <i class="fas fa-car"></i> Información del Vehículo
+            </h3>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ taxi_form.plate_number.id_for_label }}" class="form-label">Placa</label>
+                        {{ taxi_form.plate_number }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ taxi_form.car_model.id_for_label }}" class="form-label">Modelo</label>
+                        {{ taxi_form.car_model }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ taxi_form.car_color.id_for_label }}" class="form-label">Color</label>
+                        {{ taxi_form.car_color }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ taxi_form.car_year.id_for_label }}" class="form-label">Año</label>
+                        {{ taxi_form.car_year }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label for="{{ taxi_form.vehicle_description.id_for_label }}" class="form-label">Descripción del Vehículo</label>
                 {{ taxi_form.vehicle_description }}
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="{{ taxi_form.car_model.id_for_label }}" class="form-label">Modelo del Vehículo</label>
-                {{ taxi_form.car_model }}
+                <small class="form-text">Incluye detalles como tipo de vehículo, características especiales, etc.</small>
             </div>
 
-            <div class="col-md-6 mb-3">
-                <label for="{{ taxi_form.car_color.id_for_label }}" class="form-label">Color del Vehículo</label>
-                {{ taxi_form.car_color }}
-            </div>
-        </div>
+            <!-- Ubicación -->
+            <h3 class="section-title mt-5">
+                <i class="fas fa-map-marker-alt"></i> Ubicación
+            </h3>
 
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="{{ taxi_form.car_year.id_for_label }}" class="form-label">Año del Vehículo</label>
-                {{ taxi_form.car_year }}
-            </div>
-
-            <div class="col-md-6 mb-3">
+            <div class="form-group">
                 <label for="{{ taxi_form.direccion_origen.id_for_label }}" class="form-label">Dirección de Origen</label>
                 {{ taxi_form.direccion_origen }}
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="{{ taxi_form.latitude.id_for_label }}" class="form-label">Latitud</label>
-                {{ taxi_form.latitude }}
+                <small class="form-text">Esta es la ubicación desde donde sueles operar</small>
             </div>
 
-            <div class="col-md-6 mb-3">
-                <label for="{{ taxi_form.longitude.id_for_label }}" class="form-label">Longitud</label>
-                {{ taxi_form.longitude }}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ taxi_form.latitude.id_for_label }}" class="form-label">Latitud</label>
+                        {{ taxi_form.latitude }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ taxi_form.longitude.id_for_label }}" class="form-label">Longitud</label>
+                        {{ taxi_form.longitude }}
+                    </div>
+                </div>
             </div>
-        </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> La ubicación se actualiza automáticamente cuando cargas la página.
+            </div>
 
-        <div class="mb-3">
-            <div class="form-check">
+            <!-- Estado del Taxi -->
+            <div class="form-group form-check mt-4">
                 {{ taxi_form.is_active }}
                 <label class="form-check-label" for="{{ taxi_form.is_active.id_for_label }}">
                     Taxi Activo
                 </label>
+                <small class="form-text d-block">Desactiva esta opción si temporalmente no estás disponible</small>
             </div>
-        </div>
 
-
-        <button type="submit" class="btn btn-success w-100 mt-3">Actualizar Perfil</button>
-    </form>
+            <button type="submit" class="btn btn-save">
+                <i class="fas fa-save me-2"></i>Guardar Cambios
+            </button>
+        </form>
+    </div>
 </div>
 
-<!-- Script para obtener la ubicación automáticamente -->
+<!-- Script para vista previa de la imagen -->
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    // Vista previa de la imagen de perfil
+    document.getElementById('{{ user_form.profile_picture.id_for_label }}').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('profile-preview');
+                preview.innerHTML = ''; // Limpiar contenido anterior
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'profile-picture-preview';
+                img.style.objectFit = 'cover';
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Geolocalización automática
+    document.addEventListener("DOMContentLoaded", function() {
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
+            navigator.geolocation.getCurrentPosition(function(position) {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
 
@@ -116,14 +340,47 @@
                 const lonInput = document.getElementById("{{ taxi_form.longitude.id_for_label }}");
 
                 if (latInput && lonInput) {
-                    latInput.value = lat;
-                    lonInput.value = lon;
+                    latInput.value = lat.toFixed(6);
+                    lonInput.value = lon.toFixed(6);
                 }
-            }, function (error) {
+            }, function(error) {
                 console.warn("No se pudo obtener la ubicación:", error.message);
+                // Si falla, intentar con la API de geocodificación inversa del navegador
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+                            
+                            const latInput = document.getElementById("{{ taxi_form.latitude.id_for_label }}");
+                            const lonInput = document.getElementById("{{ taxi_form.longitude.id_for_label }}");
+                            
+                            if (latInput && lonInput) {
+                                latInput.value = lat.toFixed(6);
+                                lonInput.value = lon.toFixed(6);
+                                
+                                // Opcional: Actualizar la dirección basada en las coordenadas
+                                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=es`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.display_name) {
+                                            document.getElementById("{{ taxi_form.direccion_origen.id_for_label }}").value = data.display_name;
+                                        }
+                                    })
+                                    .catch(error => console.error("Error al obtener la dirección:", error));
+                            }
+                        },
+                        (error) => {
+                            console.error("Error al obtener la ubicación:", error);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                }
             });
-        } else {
-            alert("Tu navegador no soporta geolocalización.");
         }
     });
 </script>

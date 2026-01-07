@@ -408,16 +408,32 @@
             margin: 0 -1rem;
             padding: 0 1rem;
         }
-        
+
+        /* Tabla general: permitir ancho mínimo para tablas anchas pero
+           por defecto respetar el ancho del contenedor (evita sobresalir) */
         .table {
             min-width: 800px;
             font-size: 0.85rem;
         }
-        
+
         .table th,
         .table td {
             padding: 0.75rem 0.5rem;
             white-space: nowrap;
+        }
+
+        /* Estilos específicos para la tabla de Clientes: permitir wrap y
+           ajustar al ancho del contenedor para que no sobresalga del card */
+        .customers-table-container .table {
+            min-width: 0; /* permitir reducción por debajo de 800px */
+            width: 100%;
+            table-layout: auto;
+        }
+
+        .customers-table-container .table th,
+        .customers-table-container .table td {
+            white-space: normal; /* permitir multi-línea */
+            word-break: break-word;
         }
         
         /* Badges y botones más pequeños */
@@ -814,7 +830,7 @@
             </div>
         </div>
         
-        <div class="table-container">
+    <div class="table-container customers-table-container">
             <table class="table">
                 <thead>
                     <tr>
@@ -835,7 +851,7 @@
                         <td>{{ forloop.counter }}</td>
                         <td>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                {% if customer.profile_picture %}
+                                {% if customer.profile_picture and customer.profile_picture.name and customer.profile_picture.name != 'default.jpg' %}
                                     <img src="{{ customer.profile_picture.url }}" 
                                          alt="{{ customer.get_full_name }}" 
                                          style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
@@ -1020,14 +1036,14 @@
                             </small>
                         </td>
                         <td>
-                            <button onclick='showQRCode("{{ code.code }}", "{{ code.get_qr_url }}")' 
+                            <button onclick='showQRCode("{{ code.code|escapejs }}", "{{ code.get_qr_url|escapejs }}")' 
                                     class="btn btn-primary btn-sm">
                                 <i class="fas fa-qrcode"></i> Ver QR
                             </button>
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button onclick='copyQRLink("{{ code.get_qr_url }}")' 
+                                <button onclick='copyQRLink("{{ code.get_qr_url|escapejs }}")' 
                                         class="btn btn-secondary btn-sm" 
                                         title="Copiar enlace">
                                     <i class="fas fa-copy"></i>

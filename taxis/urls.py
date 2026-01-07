@@ -49,6 +49,11 @@ urlpatterns = [
     path('api/customer/<int:customer_id>/detail/', views.customer_detail, name='customer_detail'),
     path('api/invitation-code/create/', views.create_invitation_code, name='create_invitation_code'),
     path('api/invitation-code/<int:code_id>/toggle/', views.toggle_invitation_code, name='toggle_invitation_code'),
+    
+    # Gestión de APK para conductores
+    path('download-driver-app/<int:app_id>/', views.download_driver_app, name='download_driver_app'),
+    path('api/driver-app/latest/', views.get_latest_driver_app, name='get_latest_driver_app'),
+    
     path("api/taxis_ubicacion/", views.taxis_ubicacion, name="taxis_ubicacion"),
     path('conductores/', views.list_drivers, name='list_drivers'),
     path('eliminar_conductor/<int:user_id>/', views.delete_driver, name='delete_driver'),

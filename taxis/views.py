@@ -2067,6 +2067,74 @@ def customer_detail(request, customer_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+# ============================================
+# GESTIÓN DE APK PARA CONDUCTORES
+# ============================================
+
+@login_required
+def download_driver_app(request, app_id):
+    """
+    Vista para descargar el APK de la aplicación de conductores.
+    Incrementa el contador de descargas.
+    """
+    from .models import DriverApp
+    from django.http import FileResponse
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        app = DriverApp.objects.get(id=app_id, is_active=True)
+        
+        # Incrementar contador de descargas
+        app.increment_downloads()
+        
+        logger.info(f"Usuario {request.user.username} descargó Driver App v{app.version}")
+        
+        # Servir el archivo APK
+        response = FileResponse(app.apk_file.open('rb'), content_type='application/vnd.android.package-archive')
+        response['Content-Disposition'] = f'attachment; filename="DeAquiPaYa-v{app.version}.apk"'
+        
+        return response
+        
+    except DriverApp.DoesNotExist:
+        logger.error(f"APK {app_id} no encontrado")
+        return JsonResponse({'error': 'APK no encontrado'}, status=404)
+    except Exception as e:
+        logger.error(f"Error al descargar APK {app_id}: {str(e)}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_latest_driver_app(request):
+    """
+    Vista API para obtener información de la última versión del APK.
+    """
+    from .models import DriverApp
+    
+    try:
+        latest_app = DriverApp.objects.filter(is_active=True, is_latest=True).first()
+        
+        if not latest_app:
+            return JsonResponse({
+                'available': False,
+                'message': 'No hay versiones disponibles'
+            })
+        
+        return JsonResponse({
+            'available': True,
+            'version': latest_app.version,
+            'size_mb': latest_app.get_file_size_mb(),
+            'min_android': latest_app.min_android_version,
+            'release_notes': latest_app.release_notes,
+            'downloads': latest_app.downloads_count,
+            'download_url': f'/download-driver-app/{latest_app.id}/',
+            'created_at': latest_app.created_at.strftime('%d/%m/%Y')
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def taxis_ubicacion(request):
     try:
         taxis = Taxi.objects.exclude(latitude__isnull=True, longitude__isnull=True)

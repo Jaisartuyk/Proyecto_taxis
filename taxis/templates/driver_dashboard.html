@@ -639,6 +639,151 @@
     </div>
 </div>
 
+<!-- Botón flotante para descargar APK -->
+<div id="download-apk-btn" style="
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    border: 3px solid #1a1a1a;
+" onclick="showApkModal()">
+    <i class="fas fa-mobile-alt" style="font-size: 2rem; color: white;"></i>
+</div>
+
+<!-- Modal de descarga de APK -->
+<div id="apk-modal" style="
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+" onclick="closeApkModal()">
+    <div style="
+        background: #1f1f1f;
+        border-radius: 20px;
+        max-width: 500px;
+        width: 90%;
+        border: 2px solid #4CAF50;
+        padding: 2rem;
+        position: relative;
+    " onclick="event.stopPropagation()">
+        <button onclick="closeApkModal()" style="
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+        ">×</button>
+        
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+                border-radius: 20px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 1rem;
+            ">
+                <i class="fas fa-mobile-alt" style="font-size: 2.5rem; color: white;"></i>
+            </div>
+            <h2 style="color: #4CAF50; margin: 0;">App Móvil para Conductores</h2>
+            <p style="color: #9ca3af; margin-top: 0.5rem;">Descarga la aplicación Android</p>
+        </div>
+        
+        <div id="apk-info" style="color: white;">
+            <div style="text-align: center; padding: 2rem;">
+                <div class="spinner" style="
+                    border: 4px solid rgba(255,255,255,0.1);
+                    border-top: 4px solid #4CAF50;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto;
+                "></div>
+                <p style="margin-top: 1rem; color: #9ca3af;">Cargando información...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    #download-apk-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(76, 175, 80, 0.6);
+    }
+    
+    .apk-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 1rem;
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+    }
+    
+    .apk-detail strong {
+        color: #4CAF50;
+    }
+    
+    .download-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+    }
+    
+    .release-notes {
+        background: rgba(255,255,255,0.05);
+        border-left: 3px solid #4CAF50;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 1rem;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+</style>
+
 <script>
     // Auto-refresh para nuevas carreras cada 30 segundos
     setInterval(function() {
@@ -669,6 +814,90 @@
             }, index * 100);
         });
     });
+    
+    // Funciones para el modal de descarga de APK
+    function showApkModal() {
+        const modal = document.getElementById('apk-modal');
+        modal.style.display = 'flex';
+        loadApkInfo();
+    }
+    
+    function closeApkModal() {
+        const modal = document.getElementById('apk-modal');
+        modal.style.display = 'none';
+    }
+    
+    function loadApkInfo() {
+        fetch('/api/driver-app/latest/')
+            .then(response => response.json())
+            .then(data => {
+                const infoDiv = document.getElementById('apk-info');
+                
+                if (!data.available) {
+                    infoDiv.innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: #FFC107; margin-bottom: 1rem;"></i>
+                            <p style="color: #9ca3af;">${data.message}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                infoDiv.innerHTML = `
+                    <div class="apk-detail">
+                        <strong>Versión:</strong>
+                        <span>${data.version}</span>
+                    </div>
+                    <div class="apk-detail">
+                        <strong>Tamaño:</strong>
+                        <span>${data.size_mb} MB</span>
+                    </div>
+                    <div class="apk-detail">
+                        <strong>Android mínimo:</strong>
+                        <span>${data.min_android}</span>
+                    </div>
+                    <div class="apk-detail">
+                        <strong>Descargas:</strong>
+                        <span>${data.downloads}</span>
+                    </div>
+                    <div class="apk-detail">
+                        <strong>Fecha:</strong>
+                        <span>${data.created_at}</span>
+                    </div>
+                    
+                    ${data.release_notes ? `
+                        <div class="release-notes">
+                            <strong style="color: #4CAF50; display: block; margin-bottom: 0.5rem;">📝 Novedades:</strong>
+                            <p style="margin: 0; white-space: pre-line;">${data.release_notes}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <button class="download-btn" onclick="downloadApk('${data.download_url}')">
+                        <i class="fas fa-download"></i> Descargar APK
+                    </button>
+                    
+                    <p style="text-align: center; color: #9ca3af; font-size: 0.875rem; margin-top: 1rem;">
+                        ⚠️ Asegúrate de habilitar "Instalar desde fuentes desconocidas" en tu dispositivo
+                    </p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('apk-info').innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-times-circle" style="font-size: 3rem; color: #EF4444; margin-bottom: 1rem;"></i>
+                        <p style="color: #9ca3af;">Error al cargar la información del APK</p>
+                    </div>
+                `;
+            });
+    }
+    
+    function downloadApk(url) {
+        window.location.href = url;
+        setTimeout(() => {
+            closeApkModal();
+        }, 1000);
+    }
 </script>
 {% endblock %}
 

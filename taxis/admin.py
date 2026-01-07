@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     AppUser, Taxi, TaxiRoute, Ride, RideDestination,
     WhatsAppConversation, WhatsAppMessage, WhatsAppStats, WebPushSubscription,
-    FCMToken, Organization, PriceNegotiation
+    FCMToken, Organization, PriceNegotiation, DriverApp
 )
 
 
@@ -436,6 +436,59 @@ class PriceNegotiationAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Las negociaciones se crean desde el frontend
         return False
+
+
+# ============================================
+# ADMIN DE APLICACIÓN MÓVIL PARA CONDUCTORES
+# ============================================
+
+@admin.register(DriverApp)
+class DriverAppAdmin(admin.ModelAdmin):
+    list_display = (
+        'version',
+        'is_latest',
+        'is_active',
+        'file_size_display',
+        'downloads_count',
+        'min_android_version',
+        'uploaded_by',
+        'created_at'
+    )
+    
+    list_filter = ('is_active', 'is_latest', 'created_at')
+    search_fields = ('version', 'release_notes')
+    readonly_fields = ('file_size', 'downloads_count', 'created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Información de la Versión', {
+            'fields': ('version', 'min_android_version', 'release_notes')
+        }),
+        ('Archivo APK', {
+            'fields': ('apk_file', 'file_size')
+        }),
+        ('Estado', {
+            'fields': ('is_active', 'is_latest')
+        }),
+        ('Estadísticas', {
+            'fields': ('downloads_count', 'uploaded_by'),
+            'classes': ('collapse',)
+        }),
+        ('Fechas', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def file_size_display(self, obj):
+        """Muestra el tamaño del archivo en MB"""
+        return f"{obj.get_file_size_mb()} MB"
+    file_size_display.short_description = 'Tamaño'
+    
+    def save_model(self, request, obj, form, change):
+        """Asigna el usuario que sube el APK"""
+        if not change:  # Solo al crear
+            obj.uploaded_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 # Register your models here.

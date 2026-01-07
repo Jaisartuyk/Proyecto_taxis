@@ -962,6 +962,100 @@ class InvitationCode(models.Model):
 
 
 # ============================================
+# APLICACIÓN MÓVIL PARA CONDUCTORES
+# ============================================
+
+class DriverApp(models.Model):
+    """
+    Modelo para gestionar las versiones del APK de la aplicación Android para conductores.
+    Solo el super admin puede subir nuevas versiones.
+    """
+    version = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Versión del APK (ej: 1.0.0, 1.1.0)"
+    )
+    
+    apk_file = models.FileField(
+        upload_to='driver_apps/',
+        help_text="Archivo APK de la aplicación"
+    )
+    
+    release_notes = models.TextField(
+        blank=True,
+        help_text="Notas de la versión (qué hay de nuevo)"
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si esta versión está activa para descarga"
+    )
+    
+    is_latest = models.BooleanField(
+        default=False,
+        help_text="Si es la versión más reciente"
+    )
+    
+    min_android_version = models.CharField(
+        max_length=10,
+        default="5.0",
+        help_text="Versión mínima de Android requerida"
+    )
+    
+    file_size = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Tamaño del archivo en bytes"
+    )
+    
+    downloads_count = models.IntegerField(
+        default=0,
+        help_text="Número de descargas"
+    )
+    
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_apps'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Aplicación de Conductor'
+        verbose_name_plural = 'Aplicaciones de Conductor'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Driver App v{self.version} {'(Activa)' if self.is_latest else ''}"
+    
+    def save(self, *args, **kwargs):
+        # Si esta versión se marca como latest, desmarcar las demás
+        if self.is_latest:
+            DriverApp.objects.exclude(pk=self.pk).update(is_latest=False)
+        
+        # Calcular tamaño del archivo si no está establecido
+        if self.apk_file and not self.file_size:
+            self.file_size = self.apk_file.size
+        
+        super().save(*args, **kwargs)
+    
+    def get_file_size_mb(self):
+        """Retorna el tamaño del archivo en MB"""
+        if self.file_size:
+            return round(self.file_size / (1024 * 1024), 2)
+        return 0
+    
+    def increment_downloads(self):
+        """Incrementa el contador de descargas"""
+        self.downloads_count += 1
+        self.save(update_fields=['downloads_count'])
+
+
+# ============================================
 # NEGOCIACIÓN DE PRECIOS
 # ============================================
 

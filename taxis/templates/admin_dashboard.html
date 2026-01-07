@@ -1278,8 +1278,7 @@ function showCreateQRModal() {
                     <button type="submit" class="btn btn-primary" style="flex: 1;">
                         <i class="fas fa-plus-circle"></i> Crear Código
                     </button>
-                    <button type="button" onclick="this.closest('div').parentElement.parentElement.parentElement.remove()" 
-                            class="btn btn-secondary" style="flex: 1;">
+                    <button type="button" class="btn btn-secondary btn-cancel-qr-modal" style="flex: 1;">
                         Cancelar
                     </button>
                 </div>
@@ -1362,10 +1361,10 @@ function showQRCode(code, url) {
             <div id="qrcode" style="background: white; padding: 1rem; border-radius: 8px; display: inline-block; margin-bottom: 1rem;"></div>
             <p style="color: #9ca3af; margin-bottom: 1rem; word-break: break-all;">${url}</p>
             <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button onclick="copyQRLink('${url}')" class="btn btn-primary">
+                <button class="btn btn-primary btn-copy-qr-link-modal" data-url="${url}">
                     <i class="fas fa-copy"></i> Copiar Enlace
                 </button>
-                <button onclick="this.closest('div').parentElement.parentElement.remove()" class="btn btn-secondary">
+                <button class="btn btn-secondary btn-close-qr-modal">
                     Cerrar
                 </button>
             </div>
@@ -1373,6 +1372,33 @@ function showQRCode(code, url) {
     `;
     
     document.body.appendChild(modal);
+    
+    // Event listeners para los botones del modal
+    const copyBtn = modal.querySelector('.btn-copy-qr-link-modal');
+    const closeBtn = modal.querySelector('.btn-close-qr-modal');
+    
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const url = copyBtn.getAttribute('data-url');
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ Enlace copiado al portapapeles');
+            }).catch(() => {
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                alert('✅ Enlace copiado al portapapeles');
+            });
+        });
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+    }
     
     // Generar QR usando API de Google Charts
     const qrDiv = modal.querySelector('#qrcode');
@@ -1502,6 +1528,14 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             showCreateQRModal();
         });
+    });
+    
+    // Botón: Cancelar Modal QR (delegación de eventos)
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-cancel-qr-modal')) {
+            const modal = e.target.closest('div').parentElement.parentElement.parentElement;
+            if (modal) modal.remove();
+        }
     });
 });
 

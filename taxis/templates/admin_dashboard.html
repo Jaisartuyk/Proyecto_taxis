@@ -405,8 +405,9 @@
         .table-container {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            margin: 0 -1rem;
-            padding: 0 1rem;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         /* Tabla general: permitir ancho mínimo para tablas anchas pero
@@ -424,10 +425,19 @@
 
         /* Estilos específicos para la tabla de Clientes: permitir wrap y
            ajustar al ancho del contenedor para que no sobresalga del card */
+        .customers-table-container {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            margin: 0;
+            padding: 0;
+        }
+
         .customers-table-container .table {
             min-width: 0; /* permitir reducción por debajo de 800px */
             width: 100%;
             table-layout: auto;
+            margin: 0;
         }
 
         .customers-table-container .table th,

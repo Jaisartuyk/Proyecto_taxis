@@ -488,7 +488,7 @@
                     </div>
 
                     <div class="driver-actions">
-                        <a href="{% url 'profile' %}" class="btn-action btn-info" title="Ver perfil">
+                        <a href="{% url 'driver_profile' driver.id %}" class="btn-action btn-info" title="Ver perfil del conductor">
                             <i class="fas fa-user"></i> Ver Perfil
                         </a>
                         <a href="{% url 'delete_driver' driver.id %}" 

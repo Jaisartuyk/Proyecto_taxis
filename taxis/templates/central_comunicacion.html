@@ -183,6 +183,24 @@
         border: none !important;
     }
 
+    /* Ocultar todo excepto el mapa cuando está en fullscreen */
+    body.map-fullscreen-active .command-center-header,
+    body.map-fullscreen-active .content-layout,
+    body.map-fullscreen-active .chat-container,
+    body.map-fullscreen-active .user-list,
+    body.map-fullscreen-active .chat-window,
+    body.map-fullscreen-active .audio-log-panel,
+    body.map-fullscreen-active .floating-controls {
+        display: none !important;
+    }
+
+    /* Asegurar que solo el contenedor del mapa sea visible */
+    body.map-fullscreen-active .main-layout {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
     .map-fullscreen-btn {
         position: absolute;
         top: 10px;
@@ -2295,10 +2313,12 @@
     function toggleFullscreen() {
         const mapContainer = document.getElementById('map-container');
         const button = document.getElementById('fullscreen-toggle');
+        const body = document.body;
         
         if (mapContainer.classList.contains('fullscreen')) {
             // Salir de pantalla completa
             mapContainer.classList.remove('fullscreen');
+            body.classList.remove('map-fullscreen-active');
             button.textContent = '🖵 Pantalla Completa';
             button.style.borderColor = '#2196F3';
             button.style.color = '#2196F3';
@@ -2307,6 +2327,7 @@
         } else {
             // Entrar en pantalla completa
             mapContainer.classList.add('fullscreen');
+            body.classList.add('map-fullscreen-active');
             button.textContent = '✕ Salir';
             button.style.borderColor = '#f44336';
             button.style.color = '#f44336';

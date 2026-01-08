@@ -1537,6 +1537,80 @@
         }
     }
 
+    // ✅ NUEVO: Función global para enviar archivos e imágenes
+    window.sendMessageToDriver = function(driverId, file, textMessage = null) {
+        return new Promise((resolve, reject) => {
+            console.log('📤 sendMessageToDriver iniciado', { driverId, fileName: file ? file.name : 'null', textMessage });
+            
+            if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+                console.error('❌ WebSocket no conectado');
+                alert('Error de conexión: El chat no está conectado. Intente recargar la página.');
+                reject('WebSocket no conectado');
+                return;
+            }
+
+            const description = textMessage || '';
+
+            if (file) {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = function () {
+                    const base64Data = reader.result.split(',')[1];
+                    
+                    // Determinar tipo
+                    let type = 'image';
+                    if (file.type.startsWith('video/')) type = 'video';
+                    
+                    console.log('📤 Enviando archivo por WebSocket...', { type, size: file.size });
+                    
+                    chatSocket.send(JSON.stringify({
+                        'message': description,
+                        'recipient_id': driverId,
+                        'file_data': base64Data, // El backend debe esperar esto
+                        'file_name': file.name,
+                        'message_type': type
+                    }));
+                    
+                    // Mostrar en el chat localmente
+                    // Como appendMessage solo maneja texto, creamos un mensaje especial o HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.classList.add('message', 'sent');
+                    tempDiv.innerHTML = `
+                        <div>
+                            <div class="message-sender">Tú</div>
+                            <div class="message-bubble">
+                                <div style="margin-bottom: 5px;">
+                                    ${type === 'image' 
+                                        ? `<img src="${reader.result}" style="max-width: 200px; border-radius: 8px;">` 
+                                        : `[Video: ${file.name}]`}
+                                </div>
+                                ${description ? `<div>${description}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    chatLog.appendChild(tempDiv);
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                    
+                    resolve();
+                };
+                reader.onerror = function (error) {
+                    console.error('❌ Error leyendo archivo:', error);
+                    reject(error);
+                };
+                
+            } else if (description) {
+                chatSocket.send(JSON.stringify({
+                    'message': description,
+                    'recipient_id': driverId
+                }));
+                appendMessage(description, currentUser.id, 'Tú');
+                resolve();
+            } else {
+                reject('Nada que enviar');
+            }
+        });
+    };
+
     messageSubmit.addEventListener('click', sendMessage);
     messageInput.addEventListener('keyup', function (e) {
         if (e.key === 'Enter') {
@@ -2246,7 +2320,7 @@ function fetchDriverLocations() {
                 title: driverInfo.nombre || driverId,
                 icon: {
                     url: '{% static "imagenes/map-marker-icon.png" %}', // Intentar usar un icono local si existe
-                    scaledSize: new google.maps.Size(40, 40)
+                    scaledSize: new google.maps.Size(30, 30)
                 }
             });
             
@@ -2256,9 +2330,9 @@ function fetchDriverLocations() {
 
              marker.setIcon({
                 url: iconUrl,
-                scaledSize: new google.maps.Size(40, 40), // Tamaño ajustado para logo
+                scaledSize: new google.maps.Size(30, 30), // Tamaño ajustado para logo
                 origin: new google.maps.Point(0, 0),
-                anchor: new google.maps.Point(20, 20)
+                anchor: new google.maps.Point(15, 15)
             });
 
             // InfoWindow con información completa
@@ -2305,9 +2379,9 @@ function fetchDriverLocations() {
             title: 'Conductor ' + driverId,
             icon: {
                 url: iconUrl,
-                scaledSize: new google.maps.Size(40, 40),
+                scaledSize: new google.maps.Size(30, 30),
                 origin: new google.maps.Point(0, 0),
-                anchor: new google.maps.Point(20, 20)
+                anchor: new google.maps.Point(15, 15)
             }
         });
         
@@ -2899,9 +2973,9 @@ function updateMarkers(taxis) {
                 driverId: taxi.id, // Almacenar ID del conductor en el marcador
                 icon: {
                     url: iconUrl,
-                    scaledSize: new google.maps.Size(40, 40),
+                    scaledSize: new google.maps.Size(30, 30),
                     origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(20, 20)
+                    anchor: new google.maps.Point(15, 15)
                 }
             });
 

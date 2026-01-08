@@ -172,33 +172,20 @@
         height: 100%;
     }
 
-    /* ESTILOS PARA PANTALLA COMPLETA DEL MAPA */
-    .map-container.fullscreen {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
+    /* ESTILOS PARA PANTALLA COMPLETA DEL MAPA (usando API nativa del navegador) */
+    #map-container:fullscreen,
+    #map-container:-webkit-full-screen,
+    #map-container:-moz-full-screen {
         width: 100vw !important;
         height: 100vh !important;
-        z-index: 9999 !important;
-        border: none !important;
+        background: #000;
     }
 
-    /* Ocultar todo excepto el mapa cuando está en fullscreen */
-    body.map-fullscreen-active .command-center-header,
-    body.map-fullscreen-active .content-layout,
-    body.map-fullscreen-active .chat-container,
-    body.map-fullscreen-active .user-list,
-    body.map-fullscreen-active .chat-window,
-    body.map-fullscreen-active .audio-log-panel,
-    body.map-fullscreen-active .floating-controls {
-        display: none !important;
-    }
-
-    /* Asegurar que solo el contenedor del mapa sea visible */
-    body.map-fullscreen-active .main-layout {
-        display: block !important;
-        padding: 0 !important;
-        margin: 0 !important;
+    #map-container:fullscreen #map,
+    #map-container:-webkit-full-screen #map,
+    #map-container:-moz-full-screen #map {
+        width: 100% !important;
+        height: 100% !important;
     }
 
     .map-fullscreen-btn {
@@ -2313,12 +2300,17 @@
     function toggleFullscreen() {
         const mapContainer = document.getElementById('map-container');
         const button = document.getElementById('fullscreen-toggle');
-        const body = document.body;
         
-        if (mapContainer.classList.contains('fullscreen')) {
+        // Verificar si ya está en pantalla completa
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
             // Salir de pantalla completa
-            mapContainer.classList.remove('fullscreen');
-            body.classList.remove('map-fullscreen-active');
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            }
             button.textContent = '🖵 Pantalla Completa';
             button.style.borderColor = '#2196F3';
             button.style.color = '#2196F3';
@@ -2326,8 +2318,13 @@
             console.log('🖵 Saliendo de pantalla completa');
         } else {
             // Entrar en pantalla completa
-            mapContainer.classList.add('fullscreen');
-            body.classList.add('map-fullscreen-active');
+            if (mapContainer.requestFullscreen) {
+                mapContainer.requestFullscreen();
+            } else if (mapContainer.webkitRequestFullscreen) {
+                mapContainer.webkitRequestFullscreen();
+            } else if (mapContainer.mozRequestFullScreen) {
+                mapContainer.mozRequestFullScreen();
+            }
             button.textContent = '✕ Salir';
             button.style.borderColor = '#f44336';
             button.style.color = '#f44336';
@@ -2337,12 +2334,34 @@
         
         // Forzar redimensionamiento del mapa después de cambiar de tamaño
         setTimeout(() => {
-            google.maps.event.trigger(window.map, 'resize');
-            if (window.map.getCenter()) {
-                window.map.setCenter(window.map.getCenter());
+            if (window.map) {
+                google.maps.event.trigger(window.map, 'resize');
+                if (window.map.getCenter()) {
+                    window.map.setCenter(window.map.getCenter());
+                }
             }
         }, 100);
     }
+    
+    // Escuchar cambios en el estado de pantalla completa
+    document.addEventListener('fullscreenchange', function() {
+        const button = document.getElementById('fullscreen-toggle');
+        if (!document.fullscreenElement) {
+            button.textContent = '🖵 Pantalla Completa';
+            button.style.borderColor = '#2196F3';
+            button.style.color = '#2196F3';
+            button.style.background = 'white';
+            // Redimensionar mapa al salir
+            setTimeout(() => {
+                if (window.map) {
+                    google.maps.event.trigger(window.map, 'resize');
+                    if (window.map.getCenter()) {
+                        window.map.setCenter(window.map.getCenter());
+                    }
+                }
+            }, 100);
+        }
+    });
 
     // DEBUGGING: Verificar archivo que se está cargando
     console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-completa.js con timestamp:', '{{ timestamp }}');

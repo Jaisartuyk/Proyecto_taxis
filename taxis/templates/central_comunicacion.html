@@ -1494,11 +1494,18 @@
 
         chatSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
-            const { message, sender_id, sender_name, type } = data;
+            console.log('📥 [CHAT] Mensaje recibido:', data);
+            
+            const { message, sender_id, sender_name, type, message_type, media_url, thumbnail_url } = data;
 
             // Solo mostrar mensajes recibidos (mis mensajes ya se agregaron al enviar)
             if (sender_id == activeChatRecipientId) {
-                appendMessage(message, sender_id, sender_name);
+                // Si hay media_url, mostrar imagen/video
+                if (media_url && (message_type === 'image' || message_type === 'video')) {
+                    appendMediaMessage(message, sender_id, sender_name, message_type, media_url, thumbnail_url);
+                } else {
+                    appendMessage(message, sender_id, sender_name);
+                }
             }
         };
     }
@@ -1516,6 +1523,37 @@
             <div>
                 <div class="message-sender">${isSent ? 'Tú' : sender_name}</div>
                 <div class="message-bubble">${message}</div>
+            </div>
+        `;
+        chatLog.appendChild(messageDiv);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function appendMediaMessage(message, sender_id, sender_name, message_type, media_url, thumbnail_url, isSentOverride = null) {
+        if (noChatSelected) noChatSelected.style.display = 'none';
+
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        const isSent = isSentOverride !== null ? isSentOverride : (String(sender_id) === String(currentUser.id));
+        messageDiv.classList.add(isSent ? 'sent' : 'received');
+
+        let mediaContent = '';
+        if (message_type === 'image') {
+            mediaContent = `<img src="${media_url}" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open('${media_url}', '_blank')">`;
+        } else if (message_type === 'video') {
+            mediaContent = `<video controls style="max-width: 200px; max-height: 200px; border-radius: 8px;" ${thumbnail_url ? `poster="${thumbnail_url}"` : ''}>
+                <source src="${media_url}" type="video/mp4">
+                Tu navegador no soporta la reproducción de video.
+            </video>`;
+        }
+
+        messageDiv.innerHTML = `
+            <div>
+                <div class="message-sender">${isSent ? 'Tú' : sender_name}</div>
+                <div class="message-bubble">
+                    ${mediaContent}
+                    ${message ? `<div style="margin-top: 8px;">${message}</div>` : ''}
+                </div>
             </div>
         `;
         chatLog.appendChild(messageDiv);

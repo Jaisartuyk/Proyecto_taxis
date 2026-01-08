@@ -2319,6 +2319,8 @@
     function toggleFullscreen() {
         const mapContainer = document.getElementById('map-container');
         const button = document.getElementById('fullscreen-toggle');
+        const contentLayout = document.querySelector('.content-layout');
+        const audioLogPanel = document.querySelector('.audio-log-panel');
         
         // Verificar si ya está en pantalla completa
         if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
@@ -2335,15 +2337,39 @@
             button.style.color = '#2196F3';
             button.style.background = 'white';
             console.log('🖵 Saliendo de pantalla completa');
+            
+            // Mostrar nuevamente los paneles laterales
+            if (contentLayout) contentLayout.style.display = 'flex';
+            if (audioLogPanel) audioLogPanel.style.display = 'block';
+            
+            // Ajustar el ancho del mapa al salir de pantalla completa
+            if (mapContainer) mapContainer.style.width = '70%';
+            
         } else {
-            // Entrar en pantalla completa
-            if (mapContainer.requestFullscreen) {
-                mapContainer.requestFullscreen();
-            } else if (mapContainer.webkitRequestFullscreen) {
-                mapContainer.webkitRequestFullscreen();
-            } else if (mapContainer.mozRequestFullScreen) {
-                mapContainer.mozRequestFullScreen();
+            // Guardar el estado actual de visibilidad de los paneles
+            if (contentLayout) {
+                contentLayout.dataset.wasVisible = contentLayout.style.display !== 'none';
+                contentLayout.style.display = 'none';
             }
+            if (audioLogPanel) {
+                audioLogPanel.dataset.wasVisible = audioLogPanel.style.display !== 'none';
+                audioLogPanel.style.display = 'none';
+            }
+            
+            // Ajustar el ancho del mapa para pantalla completa
+            if (mapContainer) mapContainer.style.width = '100%';
+            
+            // Entrar en pantalla completa
+            if (mapContainer) {
+                if (mapContainer.requestFullscreen) {
+                    mapContainer.requestFullscreen();
+                } else if (mapContainer.webkitRequestFullscreen) {
+                    mapContainer.webkitRequestFullscreen();
+                } else if (mapContainer.mozRequestFullScreen) {
+                    mapContainer.mozRequestFullScreen();
+                }
+            }
+            
             button.textContent = '✕ Salir';
             button.style.borderColor = '#f44336';
             button.style.color = '#f44336';

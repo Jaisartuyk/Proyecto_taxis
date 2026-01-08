@@ -172,6 +172,39 @@
         height: 100%;
     }
 
+    /* ESTILOS PARA PANTALLA COMPLETA DEL MAPA */
+    .map-container.fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        border: none !important;
+    }
+
+    .map-fullscreen-btn {
+        position: absolute;
+        top: 10px;
+        right: 70px;
+        z-index: 1000;
+        background: white;
+        border: 2px solid #2196F3;
+        border-radius: 8px;
+        padding: 10px 15px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        font-weight: bold;
+        color: #2196F3;
+        transition: all 0.3s ease;
+    }
+
+    .map-fullscreen-btn:hover {
+        background: #2196F3;
+        color: white;
+        transform: scale(1.05);
+    }
+
     .content-layout {
         display: flex;
         flex: 1;
@@ -1147,8 +1180,12 @@
 
 <div class="main-layout">
     <!-- MAPA DE UBICACIONES EN TIEMPO REAL -->
-    <div class="map-container">
+    <div class="map-container" id="map-container">
         <div id="map"></div>
+        <!-- Botón para pantalla completa -->
+        <button id="fullscreen-toggle" class="map-fullscreen-btn" onclick="toggleFullscreen()">
+            🖵 Pantalla Completa
+        </button>
         <!-- Botón flotante para controlar tráfico -->
         <button id="traffic-toggle" onclick="toggleTraffic()" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; border: 2px solid #4CAF50; border-radius: 8px; padding: 10px 15px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-weight: bold; color: #4CAF50;">
             🚦 Tráfico: ON
@@ -2102,7 +2139,12 @@
                     content: `
             <div style="padding: 10px;">
                 <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
-                <p style="margin: 0; color: #666;">🚕 ${taxi.placa || 'Sin placa'}</p>
+                <p style="margin: 0; color: #666;">
+                    <strong>� Unidad:</strong> ${taxi.numero_unidad || 'S/N'}
+                </p>
+                <p style="margin: 5px 0 0 0; color: #666;">
+                    <strong>�🚕 Placa:</strong> ${taxi.placa || 'Sin placa'}
+                </p>
                 <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
                     ${taxi.descripcion || 'Sin descripción'}
                 </p>
@@ -2142,6 +2184,38 @@
             button.style.color = '#4CAF50';
             console.log('🚦 Capa de tráfico activada');
         }
+    }
+
+    // Función para activar/desactivar pantalla completa del mapa
+    function toggleFullscreen() {
+        const mapContainer = document.getElementById('map-container');
+        const button = document.getElementById('fullscreen-toggle');
+        
+        if (mapContainer.classList.contains('fullscreen')) {
+            // Salir de pantalla completa
+            mapContainer.classList.remove('fullscreen');
+            button.textContent = '🖵 Pantalla Completa';
+            button.style.borderColor = '#2196F3';
+            button.style.color = '#2196F3';
+            button.style.background = 'white';
+            console.log('🖵 Saliendo de pantalla completa');
+        } else {
+            // Entrar en pantalla completa
+            mapContainer.classList.add('fullscreen');
+            button.textContent = '✕ Salir';
+            button.style.borderColor = '#f44336';
+            button.style.color = '#f44336';
+            button.style.background = 'white';
+            console.log('🖵 Entrando en pantalla completa');
+        }
+        
+        // Forzar redimensionamiento del mapa después de cambiar de tamaño
+        setTimeout(() => {
+            google.maps.event.trigger(window.map, 'resize');
+            if (window.map.getCenter()) {
+                window.map.setCenter(window.map.getCenter());
+            }
+        }, 100);
     }
 
     // DEBUGGING: Verificar archivo que se está cargando
@@ -3106,7 +3180,12 @@ function updateMarkers(taxis) {
                 content: `
                     <div style="padding: 10px;">
                         <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
-                        <p style="margin: 0; color: #666;">🚕 ${taxi.placa || 'Sin placa'}</p>
+                        <p style="margin: 0; color: #666;">
+                            <strong>� Unidad:</strong> ${taxi.numero_unidad || 'S/N'}
+                        </p>
+                        <p style="margin: 5px 0 0 0; color: #666;">
+                            <strong>�🚕 Placa:</strong> ${taxi.placa || 'Sin placa'}
+                        </p>
                         <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
                             ${taxi.descripcion || 'Sin descripción'}
                         </p>

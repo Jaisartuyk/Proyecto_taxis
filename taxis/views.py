@@ -2436,6 +2436,7 @@ def ubicaciones_taxis(request):
                 'foto': taxi.user.profile_picture.url if taxi.user.profile_picture else '/static/imagenes/logo1.png',
                 'placa': taxi.plate_number,
                 'descripcion': taxi.vehicle_description,
+                'numero_unidad': taxi.user.driver_number or 'S/N',  # Número de unidad del conductor
             })
             
     return JsonResponse({'taxis': data})

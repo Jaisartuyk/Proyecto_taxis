@@ -2363,10 +2363,35 @@ function fetchDriverLocations() {
 
     // Función para actualizar marcador de un conductor específico desde WebSocket
     async function updateDriverMarker(data) {
-        // Intentar obtener ID de varias propiedades posibles para robustez
-        const driverId = data.driverId || data.senderId || data.id;
+        console.log('🔍 updateDriverMarker recibió datos:', data);
+        
+        // ✅ PRIORIZAR el ID numérico: primero intentar con 'id' o 'senderId', luego 'driverId'
+        // Si driverId es un string como "carlos", intentar extraer el ID numérico de otras propiedades
+        let driverId = data.id || data.senderId || data.user_id || data.driver_id;
+        
+        // Si no encontramos un ID numérico, intentar con driverId
+        if (!driverId) {
+            driverId = data.driverId;
+        }
+        
+        // Si driverId es un string no numérico (como "carlos"), buscarlo en el DOM
+        if (driverId && isNaN(driverId)) {
+            console.warn(`⚠️ driverId no es numérico: "${driverId}", buscando en DOM...`);
+            // Buscar el elemento del conductor por nombre para obtener su ID numérico
+            const driverElement = document.querySelector(`[data-driver-name*="${driverId}" i]`);
+            if (driverElement) {
+                driverId = driverElement.dataset.driverId;
+                console.log(`✅ ID numérico encontrado en DOM: ${driverId}`);
+            } else {
+                console.error(`❌ No se encontró conductor con nombre: ${driverId}`);
+                return;
+            }
+        }
+        
         const latitude = parseFloat(data.latitude);
         const longitude = parseFloat(data.longitude);
+        
+        console.log('🔍 driverId final:', driverId, 'tipo:', typeof driverId);
         
         if (!driverId || !latitude || !longitude) {
             console.warn('⚠️ Datos de ubicación incompletos:', data);
@@ -2445,6 +2470,8 @@ function fetchDriverLocations() {
             });
 
             window.markers[driverId] = marker; // ✅ Usar window.markers
+            console.log(`✅ Marcador CREADO y guardado con clave: ${driverId} (tipo: ${typeof driverId})`);
+            console.log('📊 Marcadores actuales:', Object.keys(window.markers));
 
         } catch (error) {
             console.error('Error al actualizar driver:', error);
@@ -2477,6 +2504,8 @@ function fetchDriverLocations() {
         });
         
         window.markers[driverId] = marker; // ✅ Usar window.markers
+        console.log(`✅ Marcador básico CREADO y guardado con clave: ${driverId} (tipo: ${typeof driverId})`);
+        console.log('📊 Marcadores actuales:', Object.keys(window.markers));
     }
 
 window.openDriverChatFromList = function(driverId, driverName) {

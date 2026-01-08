@@ -2239,6 +2239,35 @@ function fetchDriverLocations() {
                         </p>
                         <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
                             Última actualización: ${new Date().toLocaleTimeString()}
+                        </p>
+                    </div>
+                `
+            });
+
+            marker.addListener('click', function() {
+                infoWindow.open(window.map, marker);
+            });
+
+            markers[driverId] = marker;
+
+        } catch (error) {
+            console.error('Error al actualizar driver:', error);
+            createBasicMarker(driverId, position, data);
+        }
+    }
+
+    function createBasicMarker(driverId, position, data) {
+         const marker = new google.maps.Marker({
+            position: position,
+            map: window.map,
+            title: 'Conductor ' + driverId,
+            icon: {
+                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            }
+        });
+        markers[driverId] = marker;
+    }
+
 window.openDriverChatFromList = function(driverId, driverName) {
     console.log('🚨 PARCHE EJECUTÁNDOSE: openDriverChatFromList');
     console.log('💬 Conductor:', driverName, 'ID:', driverId);
@@ -2797,8 +2826,7 @@ function updateMarkers(taxis) {
                 icon: {
                     url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
                     scaledSize: new google.maps.Size(32, 32)
-                },
-                driverId: taxiId // Almacenar el ID del conductor en el marcador
+                }
             });
 
             // InfoWindow con información del conductor
@@ -2852,19 +2880,11 @@ function updateMarkers(taxis) {
 
 // Cargar el mapa cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar si Google Maps ya está cargado
+    // Si Google Maps ya está cargado, inicializar
     if (typeof google !== 'undefined' && google.maps) {
         initMap();
-    } else {
-        // Si no está cargado, esperar a que se cargue
-        window.initMap = function() {
-            if (typeof google === 'undefined' || !google.maps) {
-                console.error('Google Maps no se ha cargado correctamente');
-                return;
-            }
-            initMap();
-        };
     }
+    // Si no, el callback en la URL del script se encargará
 });
 </script>
 

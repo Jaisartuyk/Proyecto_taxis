@@ -1613,12 +1613,8 @@
             if (data.type === 'driver_location_update' || data.type === 'location_update' || data.type === 'location') {
                 console.log('📍 Mensaje de ubicación detectado:', data);
                 
-                // Llamar a handleLocationUpdate de comunicacion-completa.js si existe
-                if (typeof handleLocationUpdate === 'function') {
-                    handleLocationUpdate(data);
-                } else {
-                    console.warn('⚠️ handleLocationUpdate no está disponible');
-                }
+                // Actualizar marcador con información del conductor
+                updateDriverMarker(data);
                 return;
             }
             
@@ -2103,6 +2099,115 @@
                 }
             })
             .catch(error => console.error('❌ Error al obtener ubicaciones:', error));
+    }
+
+    // Función para actualizar marcador de un conductor específico desde WebSocket
+    async function updateDriverMarker(data) {
+        const driverId = data.driverId;
+        const latitude = parseFloat(data.latitude);
+        const longitude = parseFloat(data.longitude);
+        
+        if (!driverId || !latitude || !longitude) {
+            console.warn('⚠️ Datos de ubicación incompletos:', data);
+            return;
+        }
+
+        const position = { lat: latitude, lng: longitude };
+
+        // Si el marcador ya existe, solo actualizar posición
+        if (markers[driverId]) {
+            markers[driverId].setPosition(position);
+            console.log(`📍 Marcador actualizado: ${driverId}`);
+            return;
+        }
+
+        // Si no existe, obtener información completa del conductor desde la API
+        try {
+            const response = await fetch(`/api/driver-info/${driverId}/`);
+            if (!response.ok) {
+                console.warn(`⚠️ No se pudo obtener información del conductor ${driverId}`);
+                // Crear marcador básico con la info disponible
+                createBasicMarker(driverId, position, data);
+                return;
+            }
+
+            const driverInfo = await response.json();
+            
+            // Crear marcador con información completa
+            const marker = new google.maps.Marker({
+                position: position,
+                map: window.map,
+                title: driverInfo.nombre || driverId,
+                icon: {
+                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                }
+            });
+
+            // InfoWindow con información completa
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="padding: 10px;">
+                        <h3 style="margin: 0 0 5px 0; color: #333;">${driverInfo.nombre || driverId}</h3>
+                        <p style="margin: 0; color: #666;">
+                            <strong>🚖 Unidad:</strong> ${driverInfo.numero_unidad || 'S/N'}
+                        </p>
+                        <p style="margin: 5px 0 0 0; color: #666;">
+                            <strong>🚕 Placa:</strong> ${driverInfo.placa || 'Sin placa'}
+                        </p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                            ${driverInfo.descripcion || 'Sin descripción'}
+                        </p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                            Última actualización: ${new Date().toLocaleTimeString()}
+                        </p>
+                    </div>
+                `
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.open(window.map, marker);
+            });
+
+            markers[driverId] = marker;
+            console.log(`📍 Nuevo marcador creado: ${driverInfo.nombre}`);
+            
+        } catch (error) {
+            console.error('❌ Error al obtener info del conductor:', error);
+            createBasicMarker(driverId, position, data);
+        }
+    }
+
+    // Función auxiliar para crear marcador básico cuando no hay información completa
+    function createBasicMarker(driverId, position, data) {
+        const marker = new google.maps.Marker({
+            position: position,
+            map: window.map,
+            title: driverId,
+            icon: {
+                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            }
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div style="padding: 10px;">
+                    <h3 style="margin: 0 0 5px 0; color: #333;">${driverId}</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                        Origen: ${data.source || 'Desconocido'}
+                    </p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                        Última actualización: ${new Date().toLocaleTimeString()}
+                    </p>
+                </div>
+            `
+        });
+
+        marker.addListener('click', () => {
+            infoWindow.open(window.map, marker);
+        });
+
+        markers[driverId] = marker;
+        console.log(`📍 Marcador básico creado: ${driverId}`);
     }
 
     function updateMarkers(taxis) {

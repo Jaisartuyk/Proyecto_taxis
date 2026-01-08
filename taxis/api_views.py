@@ -1925,3 +1925,44 @@ def get_notifications_settings(request):
         return Response({
             'error': f'Error al obtener configuración: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def driver_info(request, driver_id):
+    """
+    Obtiene información completa de un conductor por su ID o username
+    """
+    try:
+        # Intentar buscar por ID primero
+        try:
+            driver_id_int = int(driver_id)
+            driver = AppUser.objects.filter(id=driver_id_int, role='driver').first()
+        except ValueError:
+            # Si no es un número, buscar por username
+            driver = AppUser.objects.filter(username=driver_id, role='driver').first()
+        
+        if not driver:
+            return Response({
+                'error': 'Conductor no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Obtener información del taxi
+        taxi = Taxi.objects.filter(user=driver).first()
+        
+        driver_data = {
+            'id': driver.id,
+            'nombre': driver.get_full_name(),
+            'username': driver.username,
+            'numero_unidad': driver.driver_number or 'S/N',
+            'placa': taxi.plate_number if taxi else 'Sin placa',
+            'descripcion': taxi.vehicle_description if taxi else 'Sin descripción',
+            'foto': driver.profile_picture.url if driver.profile_picture else '/static/imagenes/logo1.png',
+        }
+        
+        return Response(driver_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al obtener información del conductor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

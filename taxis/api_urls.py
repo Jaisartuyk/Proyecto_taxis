@@ -5,7 +5,7 @@ Incluye endpoints para Flutter y otras apps móviles
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .api_views import LoginAPIView, save_webpush_subscription, UpdateLocationAPIView, test_push_notification
+from .api_views import LoginAPIView, save_webpush_subscription, UpdateLocationAPIView, test_push_notification, driver_info
 from .badge_api import get_badge_count, clear_badge, mark_messages_read
 from .api_viewsets import (
     ProfileViewSet, RegisterViewSet, DriverViewSet,
@@ -46,6 +46,11 @@ urlpatterns = [
     # UBICACIÓN
     # =====================================================
     path('update-location/', UpdateLocationAPIView.as_view(), name='api_update_location'),
+    
+    # =====================================================
+    # INFORMACIÓN DE CONDUCTORES
+    # =====================================================
+    path('driver-info/<str:driver_id>/', driver_info, name='api_driver_info'),
     
     # =====================================================
     # BADGES Y NOTIFICACIONES

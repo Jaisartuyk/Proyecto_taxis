@@ -2088,73 +2088,85 @@
     // setupAudioWebSocket(); // AHORA GLOBAL
 });
 
-    // ==================== MAPA DE GOOGLE MAPS ====================
-    // Función global para inicializar el mapa
-    window.initMap = function () {
-        // Centro en Guayaquil, Ecuador
-        window.map = new google.maps.Map(document.getElementById('map'), {
-            center: { lat: -2.1894, lng: -79.8890 },
-            zoom: 13,
-            styles: [
-                {
-                    "featureType": "all",
-                    "elementType": "geometry",
-                    "stylers": [{ "color": "#242f3e" }]
-                },
-                {
-                    "featureType": "all",
-                    "elementType": "labels.text.stroke",
-                    "stylers": [{ "lightness": -80 }]
-                },
-                {
-                    "featureType": "administrative",
-                    "elementType": "labels.text.fill",
-                    "stylers": [{ "color": "#746855" }]
-                },
-                {
-                    "featureType": "poi",
-                    "elementType": "labels.text.fill",
-                    "stylers": [{ "color": "#d59563" }]
-                },
-                {
-                    "featureType": "road",
-                    "elementType": "geometry.fill",
-                    "stylers": [{ "color": "#2b3544" }]
-                },
-                {
-                    "featureType": "road",
-                    "elementType": "labels.text.fill",
-                    "stylers": [{ "color": "#9ca5b3" }]
-                },
-                {
-                    "featureType": "water",
-                    "elementType": "geometry",
-                    "stylers": [{ "color": "#17263c" }]
-                }
-            ]
-        });
+// ==================== MAPA DE GOOGLE MAPS ====================
+// Función global para inicializar el mapa
+function initMap() {
+        // Verificar si el mapa ya está inicializado
+        if (window.map) {
+            console.log('ℹ️ El mapa ya está inicializado');
+            return;
+        }
 
-        // Agregar capa de tráfico (variable global para poder controlarla)
-        window.trafficLayer = new google.maps.TrafficLayer();
-        window.trafficLayer.setMap(window.map);
-        window.trafficEnabled = true;
+        // Verificar que el elemento del mapa exista
+        const mapElement = document.getElementById('map');
+        if (!mapElement) {
+            console.error('❌ No se encontró el elemento del mapa');
+            return;
+        }
 
-        console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
+        try {
+            // Centro en Guayaquil, Ecuador
+            window.map = new google.maps.Map(mapElement, {
+                center: { lat: -2.1894, lng: -79.8890 },
+                zoom: 13,
+                styles: [
+                    {
+                        "featureType": "all",
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#242f3e" }]
+                    },
+                    {
+                        "featureType": "all",
+                        "elementType": "labels.text.stroke",
+                        "stylers": [{ "lightness": -80 }]
+                    },
+                    {
+                        "featureType": "administrative",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#746855" }]
+                    },
+                    {
+                        "featureType": "poi",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#d59563" }]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "geometry.fill",
+                        "stylers": [{ "color": "#2b3544" }]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{ "color": "#9ca5b3" }]
+                    },
+                    {
+                        "featureType": "water",
+                        "elementType": "geometry",
+                        "stylers": [{ "color": "#17263c" }]
+                    }
+                ]
+            });
 
-        // ⚠️ POLLING DESACTIVADO - Ahora usamos WebSocket en tiempo real (comunicacion-completa.js)
-        // Si necesitas reactivar el polling, descomenta las siguientes líneas:
-        
-        // Obtener ubicaciones iniciales
-        // fetchDriverLocations();
+            // Agregar capa de tráfico (variable global para poder controlarla)
+            window.trafficLayer = new google.maps.TrafficLayer();
+            window.trafficLayer.setMap(window.map);
+            window.trafficEnabled = true;
+            window.markers = window.markers || {}; // Inicializar si no existe
 
-        // Actualizar cada 5 segundos
-        // setInterval(fetchDriverLocations, 5000);
-        
-        console.log('ℹ️ Polling de ubicaciones desactivado - Usando WebSocket en tiempo real');
-    };
+            console.log('🗺️ Mapa de Google Maps inicializado con capa de tráfico activa');
+            
+            // Inicializar WebSocket para actualizaciones en tiempo real
+            if (typeof setupWebSocket === 'function') {
+                setupWebSocket();
+            }
+        } catch (error) {
+            console.error('❌ Error al inicializar el mapa:', error);
+        }
+};
 
-    // Funciones auxiliares globales
-    function fetchDriverLocations() {
+// Funciones auxiliares globales
+function fetchDriverLocations() {
         fetch('/api/ubicaciones_taxis/')
             .then(response => response.json())
             .then(data => {
@@ -2836,9 +2848,26 @@ function updateMarkers(taxis) {
     });
 }
 
-// ==================== FIN DE LA CONFIGURACIÓN DEL MAPA ====================
-```
-<!-- Cargar Google Maps API con callback a initMap -->
+
+
+// Cargar el mapa cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si Google Maps ya está cargado
+    if (typeof google !== 'undefined' && google.maps) {
+        initMap();
+    } else {
+        // Si no está cargado, esperar a que se cargue
+        window.initMap = function() {
+            if (typeof google === 'undefined' || !google.maps) {
+                console.error('Google Maps no se ha cargado correctamente');
+                return;
+            }
+            initMap();
+        };
+    }
+});
+
+// Cargar Google Maps API con callback a initMap
 <script async defer
     src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}&callback=initMap&libraries=places">
 </script>

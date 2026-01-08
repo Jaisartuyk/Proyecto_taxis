@@ -2227,672 +2227,54 @@
                         </p>
                         <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
                             Última actualización: ${new Date().toLocaleTimeString()}
-                        </p>
-                    </div>
-                `
-            });
-
-            marker.addListener('click', () => {
-                infoWindow.open(window.map, marker);
-            });
-
-            markers[driverId] = marker;
-            console.log(`📍 Nuevo marcador creado: ${driverInfo.nombre}`);
-            
-        } catch (error) {
-            console.error('❌ Error al obtener info del conductor:', error);
-            createBasicMarker(driverId, position, data);
-        }
-    }
-
-    // Función auxiliar para crear marcador básico cuando no hay información completa
-    function createBasicMarker(driverId, position, data) {
-        const marker = new google.maps.Marker({
-            position: position,
-            map: window.map,
-            title: driverId,
-            icon: {
-                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-            }
-        });
-
-        const infoWindow = new google.maps.InfoWindow({
-            content: `
-                <div style="padding: 10px;">
-                    <h3 style="margin: 0 0 5px 0; color: #333;">${driverId}</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
-                        Origen: ${data.source || 'Desconocido'}
-                    </p>
-                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
-                        Última actualización: ${new Date().toLocaleTimeString()}
-                    </p>
-                </div>
-            `
-        });
-
-        marker.addListener('click', () => {
-            infoWindow.open(window.map, marker);
-        });
-
-        markers[driverId] = marker;
-        console.log(`📍 Marcador básico creado: ${driverId}`);
-    }
-
-    function updateMarkers(taxis) {
-        console.log('🗺️ Actualizando marcadores:', taxis.length, 'taxis');
-
-        taxis.forEach(taxi => {
-            // Verificar que tenga coordenadas válidas
-            if (!taxi.lat || !taxi.lng) {
-                console.warn('⚠️ Taxi sin coordenadas:', taxi);
-                return;
-            }
-
-            const position = { lat: parseFloat(taxi.lat), lng: parseFloat(taxi.lng) };
-            const taxiId = taxi.id;
-
-            if (markers[taxiId]) {
-                // Actualizar posición del marcador existente
-                console.log('📍 Actualizando marcador:', taxi.nombre);
-                markers[taxiId].setPosition(position);
-            } else {
-                // Crear nuevo marcador
-                console.log('📍 Creando nuevo marcador:', taxi.nombre);
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: window.map,
-                    title: taxi.nombre,
-                    icon: {
-                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                    }
-                });
-
-                // InfoWindow con información del conductor
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `
-            <div style="padding: 10px;">
-                <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
-                <p style="margin: 0; color: #666;">
-                    <strong>� Unidad:</strong> ${taxi.numero_unidad || 'S/N'}
-                </p>
-                <p style="margin: 5px 0 0 0; color: #666;">
-                    <strong>�🚕 Placa:</strong> ${taxi.placa || 'Sin placa'}
-                </p>
-                <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
-                    ${taxi.descripcion || 'Sin descripción'}
-                </p>
-                <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
-                    Última actualización: ${new Date().toLocaleTimeString()}
-                </p>
-            </div>
-        `
-                });
-
-                marker.addListener('click', () => {
-                    infoWindow.open(map, marker);
-                });
-
-                markers[taxiId] = marker;
-            }
-        });
-    }
-
-    // Función para activar/desactivar la capa de tráfico
-    function toggleTraffic() {
-        const button = document.getElementById('traffic-toggle');
-        if (window.trafficEnabled) {
-            // Desactivar tráfico
-            window.trafficLayer.setMap(null);
-            window.trafficEnabled = false;
-            button.textContent = '🚦 Tráfico: OFF';
-            button.style.borderColor = '#9E9E9E';
-            button.style.color = '#9E9E9E';
-            console.log('🚦 Capa de tráfico desactivada');
-        } else {
-            // Activar tráfico
-            window.trafficLayer.setMap(map);
-            window.trafficEnabled = true;
-            button.textContent = '🚦 Tráfico: ON';
-            button.style.borderColor = '#4CAF50';
-            button.style.color = '#4CAF50';
-            console.log('🚦 Capa de tráfico activada');
-        }
-    }
-
-    // Función para activar/desactivar pantalla completa del mapa
-    function toggleFullscreen() {
-        const mapContainer = document.getElementById('map-container');
-        const button = document.getElementById('fullscreen-toggle');
-        const contentLayout = document.querySelector('.content-layout');
-        const audioLogPanel = document.querySelector('.audio-log-panel');
-        
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
-            // Entrar en pantalla completa
-            if (mapContainer.requestFullscreen) {
-                mapContainer.requestFullscreen();
-            } else if (mapContainer.webkitRequestFullscreen) {
-                mapContainer.webkitRequestFullscreen();
-            } else if (mapContainer.mozRequestFullScreen) {
-                mapContainer.mozRequestFullScreen();
-            }
-            
-            // Ocultar todo excepto el mapa
-            document.body.style.overflow = 'hidden';
-            if (contentLayout) contentLayout.style.display = 'none';
-            if (audioLogPanel) audioLogPanel.style.display = 'none';
-            
-            // Asegurar que el mapa ocupe toda la pantalla
-            mapContainer.style.position = 'fixed';
-            mapContainer.style.top = '0';
-            mapContainer.style.left = '0';
-            mapContainer.style.width = '100vw';
-            mapContainer.style.height = '100vh';
-            mapContainer.style.zIndex = '9999';
-            
-            button.textContent = '✕ Salir';
-        } else {
-            // Salir de pantalla completa
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
-            }
-            
-            // Restaurar estilos
-            document.body.style.overflow = '';
-            if (contentLayout) contentLayout.style.display = 'flex';
-            if (audioLogPanel) audioLogPanel.style.display = 'block';
-            
-            // Restaurar estilos del mapa
-            mapContainer.style.position = 'relative';
-            mapContainer.style.width = '400px';
-            mapContainer.style.height = '100%';
-            mapContainer.style.zIndex = '';
-            
-            button.textContent = '🖵 Pantalla Completa';
-            button.style.borderColor = '#f44336';
-            button.style.color = '#f44336';
-            button.style.background = 'white';
-            console.log('🖵 Entrando en pantalla completa');
-        }
-        
-        // Forzar redimensionamiento del mapa después de cambiar de tamaño
-        setTimeout(() => {
-            if (window.map) {
-                google.maps.event.trigger(window.map, 'resize');
-                if (window.map.getCenter()) {
-                    window.map.setCenter(window.map.getCenter());
-                }
-            }
-        }, 100);
-    }
-    
-    // Escuchar cambios en el estado de pantalla completa
-    document.addEventListener('fullscreenchange', function() {
-        const button = document.getElementById('fullscreen-toggle');
-        if (!document.fullscreenElement) {
-            button.textContent = '🖵 Pantalla Completa';
-            button.style.borderColor = '#2196F3';
-            button.style.color = '#2196F3';
-            button.style.background = 'white';
-            // Redimensionar mapa al salir
-            setTimeout(() => {
-                if (window.map) {
-                    google.maps.event.trigger(window.map, 'resize');
-                    if (window.map.getCenter()) {
-                        window.map.setCenter(window.map.getCenter());
-                    }
-                }
-            }, 100);
-        }
-    });
-
-    // DEBUGGING: Verificar archivo que se está cargando
-    console.log('🔥 TEMPLATE DEBUG: Cargando comunicacion-completa.js con timestamp:', '{{ timestamp }}');
-    console.log('📍 URL completa:', "{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}");
-    console.log('⏰ Timestamp actual:', new Date().toISOString());
-
-    // Sistema de Comunicación Walkie-Talkie - VERSIÓN COMPLETA CORREGIDA
-    //script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
-
-<!-- CACHE BUSTING: Timestamp dinámico para forzar recarga en cada despliegue -->
-<script src="{% static 'js/comunicacion-completa.js' %}?v={{ timestamp }}"></script>
-
-<!-- Funciones globales para controlar paneles -->
-<script>
-// Función para limpiar historial de audio
-window.clearHistory = function () {
-    console.log('🗑️ Limpiando historial...');
-    const audioLog = document.getElementById('audio-log');
-    if (audioLog) {
-        audioLog.innerHTML = '<div class="audio-log-empty">No hay comunicaciones de audio aún</div>';
-    }
-    // Mostrar notificación si la función existe
-    if (typeof showNotification === 'function') {
-        showNotification('🗑️ Historial limpiado', 'info');
-    }
-};
-
-// Función para mostrar/ocultar chat
-window.toggleChat = function () {
-    const chatWindow = document.querySelector('.chat-window');
-    const floatingBtn = document.getElementById('floating-chat-btn');
-
-    if (chatWindow && chatWindow.classList.contains('hidden')) {
-        chatWindow.classList.remove('hidden');
-        if (floatingBtn) floatingBtn.classList.remove('visible');
-        if (typeof showNotification === 'function') {
-            showNotification('💬 Chat activado', 'success');
-        }
-    } else if (chatWindow) {
-        chatWindow.classList.add('hidden');
-        if (floatingBtn) floatingBtn.classList.add('visible');
-        if (typeof showNotification === 'function') {
-            showNotification('💬 Chat oculto', 'info');
-        }
-    }
-};
-
-// Función para mostrar/ocultar registro de audio
-window.toggleAudioLog = function () {
-    const audioPanel = document.querySelector('.audio-log-panel');
-    const floatingBtn = document.getElementById('floating-audio-btn');
-
-    if (audioPanel && audioPanel.classList.contains('hidden')) {
-        audioPanel.classList.remove('hidden');
-        if (floatingBtn) floatingBtn.classList.remove('visible');
-        if (typeof showNotification === 'function') {
-            showNotification('📻 Registro de audio activado', 'success');
-        }
-    } else if (audioPanel) {
-        audioPanel.classList.add('hidden');
-        if (floatingBtn) floatingBtn.classList.add('visible');
-        if (typeof showNotification === 'function') {
-            showNotification('📻 Registro de audio oculto', 'info');
-        }
-    }
-};
-
-console.log('✅ Funciones globales cargadas: toggleChat, toggleAudioLog, clearHistory');
-</script>
-
-<!-- Función para activar/desactivar la capa de tráfico -->
-<script>
-// Función para activar/desactivar la capa de tráfico
-function toggleTraffic() {
-    const button = document.getElementById('traffic-toggle');
-    
-    // Verificar que el mapa y la capa de tráfico existan
-    if (!window.trafficLayer || !window.map) {
-        console.error('❌ Mapa o capa de tráfico no inicializados');
-        alert('El mapa aún no está listo. Por favor espera unos segundos.');
-        return;
-    }
-    
-    if (window.trafficEnabled) {
-        // Desactivar tráfico
-        window.trafficLayer.setMap(null);
-        window.trafficEnabled = false;
-        button.textContent = '🚦 Tráfico: OFF';
-        button.style.borderColor = '#9E9E9E';
-        button.style.color = '#9E9E9E';
-        console.log('🚦 Capa de tráfico desactivada');
-    } else {
-        // Activar tráfico
-        window.trafficLayer.setMap(window.map);
-        window.trafficEnabled = true;
-        button.textContent = '🚦 Tráfico: ON';
-        button.style.borderColor = '#4CAF50';
-        button.style.color = '#4CAF50';
-        console.log('🚦 Capa de tráfico activada');
-    }
-}
-</script>
-
-<!-- PARCHE CRÍTICO: Sobrescribir sendMessageToDriver con versión actualizada -->
-<script>
-console.log('🔧 PARCHE CRÍTICO: Sobrescribiendo sendMessageToDriver con soporte para archivos...');
-
-// Función helper para obtener cookie CSRF
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Función para subir archivo a Cloudinary
-async function uploadChatMedia(file) {
-    try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        // Obtener CSRF token
-        const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        
-        const response = await fetch('/api/chat/upload/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken
-            },
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Error subiendo archivo');
-        }
-        
-        return data;
-    } catch (error) {
-        console.error('❌ Error subiendo archivo:', error);
-        throw error;
-    }
-}
-
-// Sobrescribir sendMessageToDriver con versión completa
-window.sendMessageToDriver = async function(driverId, fileToSend = null) {
-    const input = document.getElementById('chat-message-input');
-    const fileInput = document.getElementById('chat-file-input');
-    
-    console.log('🔍 DEBUG sendMessageToDriver (PARCHE):');
-    console.log('  - driverId:', driverId);
-    console.log('  - fileToSend (parámetro):', fileToSend);
-    
-    // BUSCAR chatSocket - puede estar en window.chatSocket o en el scope del archivo JS
-    let chatSocketToUse = window.chatSocket;
-    
-    // Si window.chatSocket no existe, intentar buscar en el scope global
-    if (!chatSocketToUse) {
-        console.log('⚠️ window.chatSocket no existe, buscando en otros scopes...');
-        
-        // Esperar un poco por si se está inicializando
-        let attempts = 0;
-        while (!window.chatSocket && attempts < 20) {
-            console.log('⏳ Esperando... intento', attempts + 1);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-            
-            // Intentar acceder al chatSocket del archivo JS
-            if (typeof chatSocket !== 'undefined') {
-                chatSocketToUse = chatSocket;
-                console.log('✅ Encontrado chatSocket en scope global');
-                break;
-            }
-            
-            if (window.chatSocket) {
-                chatSocketToUse = window.chatSocket;
-                console.log('✅ Encontrado window.chatSocket');
-                break;
-            }
-        }
-    } else {
-        chatSocketToUse = window.chatSocket;
-    }
-    
-    if (!chatSocketToUse) {
-        console.error('❌ No se pudo encontrar chatSocket después de 2 segundos');
-        console.error('❌ window.chatSocket:', window.chatSocket);
-        console.error('❌ typeof chatSocket:', typeof chatSocket);
-        alert('Error: No se pudo conectar al chat. Recarga la página.');
-        return;
-    }
-    
-    console.log('✅ chatSocket encontrado:', chatSocketToUse);
-    
-    const message = input ? input.value.trim() : '';
-    
-    // Usar el archivo del parámetro si existe, sino buscar en fileInput
-    let file = fileToSend;
-    if (!file && fileInput && fileInput.files.length > 0) {
-        file = fileInput.files[0];
-    }
-    
-    console.log('  - message:', message);
-    console.log('  - file (final):', file);
-    
-    // Validar que haya mensaje o archivo
-    if (!message && !file) {
-        console.log('❌ No hay mensaje ni archivo, saliendo...');
-        return;
-    }
-    
-    console.log('📤 Enviando mensaje a conductor:', driverId, message || '(con archivo)');
-
-    try {
-        let mediaData = null;
-        let messageType = 'text';
-        
-        // Si hay archivo, subirlo primero
-        if (file) {
-            console.log('📤 Subiendo archivo:', file.name, file.type);
-            
-            // Mostrar indicador de carga
-            const chatLog = document.getElementById('chat-log');
-            if (chatLog) {
-                const loadingDiv = document.createElement('div');
-                loadingDiv.id = 'upload-loading';
-                loadingDiv.style.cssText = 'text-align: center; padding: 10px; color: #666; font-style: italic;';
-                loadingDiv.textContent = '⏳ Subiendo archivo...';
-                chatLog.appendChild(loadingDiv);
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }
-            
-            try {
-                mediaData = await uploadChatMedia(file);
-                messageType = mediaData.message_type;
-                console.log('✅ Archivo subido:', mediaData.media_url);
-                
-                // Remover indicador de carga
-                const loadingDiv = document.getElementById('upload-loading');
-                if (loadingDiv) loadingDiv.remove();
-            } catch (uploadError) {
-                console.error('❌ Error subiendo archivo:', uploadError);
-                
-                // Remover indicador de carga
-                const loadingDiv = document.getElementById('upload-loading');
-                if (loadingDiv) loadingDiv.remove();
-                
-                // Mostrar error
-                const chatLog = document.getElementById('chat-log');
-                if (chatLog) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.style.cssText = 'text-align: center; padding: 10px; color: #e74c3c; font-style: italic;';
-                    errorDiv.textContent = `❌ Error subiendo archivo: ${uploadError.message}`;
-                    chatLog.appendChild(errorDiv);
-                    chatLog.scrollTop = chatLog.scrollHeight;
-                }
-                return; // No enviar mensaje si falla la subida
-            }
-        }
-        
-        // Guardar mensaje en el historial
-        if (window.addMessageToHistory && typeof window.addMessageToHistory === 'function') {
-            const messageObj = {
-                message: message,
-                sender_name: 'Central',
-                sender_id: 1,
-                is_sent: true,
-                timestamp: new Date().toISOString(),
-                message_type: messageType,
-                media_url: mediaData ? mediaData.media_url : null,
-                thumbnail_url: mediaData ? mediaData.thumbnail_url : null,
-                metadata: mediaData ? mediaData.metadata : {}
-            };
-            window.addMessageToHistory(driverId, messageObj);
-            console.log('💾 Mensaje guardado en historial');
-        }
-        
-        // Agregar mensaje al chat log inmediatamente
-        const chatLog = document.getElementById('chat-log');
-        if (chatLog) {
-            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            // Construir contenido según tipo de mensaje
-            let messageContent = '';
-            if (mediaData && mediaData.media_url) {
-                if (messageType === 'image') {
-                    messageContent = `
-                        <div style="margin-bottom: 8px;">
-                            <img src="${mediaData.media_url}" 
-                                 style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
-                                 onclick="window.open('${mediaData.media_url}', '_blank')"
-                                 alt="Imagen">
-                        </div>
-                        ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
-                    `;
-                } else if (messageType === 'video') {
-                    messageContent = `
-                        <div style="margin-bottom: 8px;">
-                            <video controls 
-                                   style="max-width: 100%; max-height: 300px; border-radius: 8px;"
-                                   poster="${mediaData.thumbnail_url || ''}">
-                                <source src="${mediaData.media_url}" type="video/mp4">
-                                Tu navegador no soporta videos.
-                            </video>
-                        </div>
-                        ${message ? `<div style="display: block; word-wrap: break-word; margin-top: 8px;">${message}</div>` : ''}
-                    `;
-                }
-            } else {
-                messageContent = `<div style="display: block; word-wrap: break-word;">${message}</div>`;
-            }
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message sent';
-            messageDiv.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; margin-bottom: 10px; padding: 8px 12px; background: #007bff; color: white; border-radius: 8px; max-width: 70%; margin-left: auto;';
-            
-            messageDiv.innerHTML = `
-                <div style="font-weight: bold; margin-bottom: 4px; display: block;">Central</div>
-                ${messageContent}
-                <div class="message-time" style="font-size: 0.8em; opacity: 0.8; margin-top: 4px; display: block;">${timestamp}</div>
-            `;
-            
-            chatLog.appendChild(messageDiv);
-            chatLog.scrollTop = chatLog.scrollHeight;
-            console.log(`✅ Mensaje agregado al chat log: ${message || '(con media)'}`);
-        }
-        
-        // Enviar por WebSocket de Chat
-        console.log('🔍 DEBUG WebSocket:');
-        console.log('  - chatSocketToUse existe?', !!chatSocketToUse);
-        console.log('  - chatSocket.readyState:', chatSocketToUse?.readyState);
-        console.log('  - WebSocket.OPEN:', WebSocket.OPEN);
-        
-        if (chatSocketToUse && chatSocketToUse.readyState === WebSocket.OPEN) {
-            const wsMessage = {
-                'type': 'chat_message',
-                'message': message,
-                'recipient_id': driverId,
-                'sender_id': 'admin',
-                'message_type': messageType
-            };
-            
-            // Agregar campos de media si existen
-            if (mediaData) {
-                wsMessage.media_url = mediaData.media_url;
-                wsMessage.thumbnail_url = mediaData.thumbnail_url;
-                wsMessage.metadata = mediaData.metadata;
-            }
-            
-            console.log('📤 Enviando por WebSocket:', wsMessage);
-            chatSocketToUse.send(JSON.stringify(wsMessage));
-            console.log('✅ Mensaje enviado por Chat WebSocket');
-        } else {
-            console.error('❌ Chat WebSocket NO está conectado!');
-            console.error('  - chatSocketToUse existe?', !!chatSocketToUse);
-            console.error('  - readyState:', chatSocketToUse?.readyState);
-            console.error('  - Estados: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
-        }
-        
-        // Limpiar inputs
-        if (input) input.value = '';
-        if (fileInput) fileInput.value = '';
-        
-    } catch (error) {
-        console.error('❌ Error enviando mensaje:', error);
-    }
-};
-
-console.log('✅ PARCHE APLICADO: sendMessageToDriver con soporte completo para archivos');
-</script>
-
-<!-- PARCHE: Interceptar mensajes recibidos para mostrar imágenes del conductor -->
-<script>
-console.log('🔧 PARCHE: Interceptando handleChatMessage para mostrar imágenes del conductor...');
-
-// Esperar a que handleChatMessage esté disponible
-setTimeout(() => {
-    if (window.handleChatMessage && typeof window.handleChatMessage === 'function') {
-        const originalHandleChatMessage = window.handleChatMessage;
-        
-        window.handleChatMessage = function(data) {
-            console.log('🔍 PARCHE: Mensaje de chat interceptado:', data);
-            
-            // Si es un mensaje con imagen del conductor, mostrarlo
-            if (data.message_type === 'image' && data.media_url) {
-                console.log('📸 PARCHE: Mensaje con imagen detectado del conductor');
-                
-                const chatLog = document.getElementById('chat-log');
-                if (chatLog && window.currentChatDriverId && window.currentChatDriverId == data.sender_id) {
-                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const senderName = data.sender_name || `Conductor #${data.sender_id}`;
-                    
-                    const messageHtml = `
-                        <div class="message received" style="display: block !important; margin-bottom: 10px; padding: 8px 12px; background: #e9ecef; color: black; border-radius: 8px; max-width: 70%; margin-right: auto;">
-                            <div style="font-weight: bold; margin-bottom: 4px;">${senderName}</div>
-                            <div style="margin-bottom: 8px;">
-                                <img src="${data.media_url}" 
-                                     style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer;"
-                                     onclick="window.open('${data.media_url}', '_blank')"
-                                     alt="Imagen">
-                            </div>
-                            ${data.message ? `<div style="margin-top: 8px;">${data.message}</div>` : ''}
-                            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 4px;">${timestamp}</div>
-                        </div>
-                    `;
-                    
-                    chatLog.insertAdjacentHTML('beforeend', messageHtml);
-                    chatLog.scrollTop = chatLog.scrollHeight;
-                    console.log('✅ PARCHE: Imagen del conductor mostrada en el chat');
-                }
-            }
-            
-            // Llamar a la función original
-            originalHandleChatMessage.call(this, data);
-        };
-        
-        console.log('✅ PARCHE APLICADO: handleChatMessage interceptado');
-    } else {
-        console.warn('⚠️ handleChatMessage no disponible aún');
-    }
-}, 1000);
-</script>
-
-<!-- PARCHE TEMPORAL: Sobrescribir función para mostrar historial desde data-initial-history -->
-<script>
-console.log('🔧 PARCHE: Sobrescribiendo openDriverChatFromList para cargar historial...');
-
-// Guardar referencia a la función original
-const originalOpenDriverChatFromList = window.openDriverChatFromList || function() {};
-
-// Sobrescribir con nueva implementación
 window.openDriverChatFromList = function(driverId, driverName) {
     console.log('🚨 PARCHE EJECUTÁNDOSE: openDriverChatFromList');
     console.log('💬 Conductor:', driverName, 'ID:', driverId);
     
-    // Llamar a la función original primero
+    // Centrar el mapa en la ubicación del conductor si existe
+    if (window.markers && window.markers[driverId] && window.map) {
+        const marker = window.markers[driverId];
+        const position = marker.getPosition();
+        
+        // Centrar el mapa en la posición del conductor
+        window.map.panTo(position);
+        
+        // Ajustar el zoom si es necesario
+        if (window.map.getZoom() < 15) {
+            window.map.setZoom(15);
+        }
+        
+        // Resaltar el marcador
+        if (marker.setAnimation) {
+            // Detener animación anterior si existe
+            if (window.currentHighlightedMarker) {
+                window.currentHighlightedMarker.setAnimation(null);
+            }
+            
+            // Animación de rebote
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+            
+            // Detener la animación después de 2 segundos
+            setTimeout(() => {
+                if (marker.setAnimation) {
+                    marker.setAnimation(null);
+                }
+            }, 2000);
+            
+            window.currentHighlightedMarker = marker;
+        }
+        
+        // Abrir el infoWindow si existe
+        if (marker.infoWindow) {
+            marker.infoWindow.open(window.map, marker);
+        }
+        
+        console.log('🗺️ Mapa centrado en conductor:', driverName);
+    } else {
+        console.warn('⚠️ No se pudo centrar el mapa. Marcador no encontrado o mapa no inicializado');
+    }
+    
+    // Llamar a la función original
     if (typeof originalOpenDriverChatFromList === 'function') {
         originalOpenDriverChatFromList(driverId, driverName);
     }
@@ -2962,7 +2344,7 @@ window.openDriverChatFromList = function(driverId, driverName) {
                         messageContent = `
                             <div style="margin-bottom: 8px;">
                                 <img src="${msg.media_url}" 
-                                     style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; display: block;"
+                                     style="max-width: 100%; max-height: 300px; border-radius: 8px; display: block;"
                                      onclick="window.open('${msg.media_url}', '_blank')"
                                      alt="Imagen">
                             </div>
@@ -3248,10 +2630,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!fileInput) console.warn('  - chat-file-input no encontrado');
     }
 });
-</script>
 
-<!-- INICIALIZACIÓN DEL MAPA DE GOOGLE MAPS -->
-<script>
+// ==================== INICIALIZACIÓN DEL MAPA DE GOOGLE MAPS ====================
 // Variables globales para marcadores
 let markers = {};
 
@@ -3401,9 +2781,12 @@ function updateMarkers(taxis) {
                 position: position,
                 map: window.map,
                 title: taxi.nombre || 'Conductor',
+                driverId: taxi.id, // Almacenar ID del conductor en el marcador
                 icon: {
-                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                }
+                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                    scaledSize: new google.maps.Size(32, 32)
+                },
+                driverId: taxiId // Almacenar el ID del conductor en el marcador
             });
 
             // InfoWindow con información del conductor
@@ -3412,10 +2795,10 @@ function updateMarkers(taxis) {
                     <div style="padding: 10px;">
                         <h3 style="margin: 0 0 5px 0; color: #333;">${taxi.nombre}</h3>
                         <p style="margin: 0; color: #666;">
-                            <strong>� Unidad:</strong> ${taxi.numero_unidad || 'S/N'}
+                            <strong> Unidad:</strong> ${taxi.numero_unidad || 'S/N'}
                         </p>
                         <p style="margin: 5px 0 0 0; color: #666;">
-                            <strong>�🚕 Placa:</strong> ${taxi.placa || 'Sin placa'}
+                            <strong> Placa:</strong> ${taxi.placa || 'Sin placa'}
                         </p>
                         <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
                             ${taxi.descripcion || 'Sin descripción'}
@@ -3427,16 +2810,34 @@ function updateMarkers(taxis) {
                 `
             });
 
+            // Almacenar el infoWindow en el marcador para poder abrirlo después
+            marker.infoWindow = infoWindow;
+            
             marker.addListener('click', function () {
                 infoWindow.open(window.map, marker);
+                // Resaltar el elemento del conductor en la lista
+                const driverElement = document.querySelector(`[data-driver-id="${marker.driverId}"]`);
+                if (driverElement) {
+                    // Desactivar cualquier otro elemento activo
+                    document.querySelectorAll('.user-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    // Activar el elemento del conductor
+                    driverElement.classList.add('active');
+                    // Abrir el chat con este conductor
+                    if (typeof openDriverChatFromList === 'function') {
+                        openDriverChatFromList(marker.driverId, marker.getTitle());
+                    }
+                }
             });
 
             markers[taxiId] = marker;
         }
     });
 }
-</script>
 
+// ==================== FIN DE LA CONFIGURACIÓN DEL MAPA ====================
+```
 <!-- Cargar Google Maps API con callback a initMap -->
 <script async defer
     src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}&callback=initMap&libraries=places">

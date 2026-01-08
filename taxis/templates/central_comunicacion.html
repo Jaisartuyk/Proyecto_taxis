@@ -2202,7 +2202,8 @@ function fetchDriverLocations() {
 
     // Función para actualizar marcador de un conductor específico desde WebSocket
     async function updateDriverMarker(data) {
-        const driverId = data.driverId;
+        // Intentar obtener ID de varias propiedades posibles para robustez
+        const driverId = data.driverId || data.senderId || data.id;
         const latitude = parseFloat(data.latitude);
         const longitude = parseFloat(data.longitude);
         
@@ -2238,8 +2239,20 @@ function fetchDriverLocations() {
                 map: window.map,
                 title: driverInfo.nombre || driverId,
                 icon: {
-                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    url: '{% static "imagenes/map-marker-icon.png" %}', // Intentar usar un icono local si existe
+                    scaledSize: new google.maps.Size(40, 40)
                 }
+            });
+            
+            // Fallback a punto azul si falla la imagen
+            // Pero primero intentemos usar el logo de la app que sabemos que existe
+            const iconUrl = '{% static "imagenes/logo1.png" %}';
+
+             marker.setIcon({
+                url: iconUrl,
+                scaledSize: new google.maps.Size(40, 40), // Tamaño ajustado para logo
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(20, 20)
             });
 
             // InfoWindow con información completa
@@ -2262,6 +2275,9 @@ function fetchDriverLocations() {
                     </div>
                 `
             });
+            
+            // Guardar infoWindow en el marcador para usarlo al centrar
+            marker.infoWindow = infoWindow;
 
             marker.addListener('click', function() {
                 infoWindow.open(window.map, marker);
@@ -2276,14 +2292,29 @@ function fetchDriverLocations() {
     }
 
     function createBasicMarker(driverId, position, data) {
+         const iconUrl = '{% static "imagenes/logo1.png" %}';
          const marker = new google.maps.Marker({
             position: position,
             map: window.map,
             title: 'Conductor ' + driverId,
             icon: {
-                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                url: iconUrl,
+                scaledSize: new google.maps.Size(40, 40),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(20, 20)
             }
         });
+        
+        // Agregar infoWindow básico
+        const infoWindow = new google.maps.InfoWindow({
+            content: `<div>Conductor #${driverId}</div>`
+        });
+        marker.infoWindow = infoWindow;
+        
+        marker.addListener('click', function() {
+            infoWindow.open(window.map, marker);
+        });
+        
         markers[driverId] = marker;
     }
 
@@ -2837,14 +2868,17 @@ function updateMarkers(taxis) {
         } else {
             // Crear nuevo marcador
             console.log('📍 Creando nuevo marcador:', taxi.nombre);
+            const iconUrl = '{% static "imagenes/logo1.png" %}';
             const marker = new google.maps.Marker({
                 position: position,
                 map: window.map,
                 title: taxi.nombre || 'Conductor',
                 driverId: taxi.id, // Almacenar ID del conductor en el marcador
                 icon: {
-                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                    scaledSize: new google.maps.Size(32, 32)
+                    url: iconUrl,
+                    scaledSize: new google.maps.Size(40, 40),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(20, 20)
                 }
             });
 

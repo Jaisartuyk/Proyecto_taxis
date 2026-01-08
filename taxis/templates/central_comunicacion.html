@@ -1552,6 +1552,25 @@
                 this.classList.add('active');
 
                 activeChatRecipientId = this.dataset.driverId;
+                
+                // ✅ NUEVO: Centrar mapa en la ubicación del conductor al hacer clic en la lista
+                if (window.markers && window.markers[activeChatRecipientId] && window.map) {
+                    const marker = window.markers[activeChatRecipientId];
+                    window.map.panTo(marker.getPosition());
+                    window.map.setZoom(15);
+                    
+                    // Animación de rebote para resaltar
+                    if (marker.setAnimation) {
+                         marker.setAnimation(google.maps.Animation.BOUNCE);
+                         setTimeout(() => marker.setAnimation(null), 2000);
+                    }
+                    
+                    // Abrir infoWindow
+                    if (marker.infoWindow) {
+                        marker.infoWindow.open(window.map, marker);
+                    }
+                }
+
                 chatHeader.textContent = `Chat con: ${this.dataset.driverName}`;
                 inputContainer.style.display = 'flex';
                 if (noChatSelected) noChatSelected.style.display = 'none';

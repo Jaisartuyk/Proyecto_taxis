@@ -249,8 +249,69 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     
                     # Enviar notificación push a todos los conductores
                     await self.send_audio_push_to_drivers(sender_id)
+
+            # ✅ NUEVO: Alguien EMPEZÓ a transmitir audio
+            elif message_type == 'audio_transmission_started':
+                sender_id = data.get('sender_id') or getattr(self.scope.get('user'), 'id', None)
+                sender_name = data.get('sender_name', 'Usuario')
+                sender_role = data.get('sender_role', 'conductor')
+                
+                print(f"🎤 {sender_name} ({sender_role}) EMPEZÓ a transmitir")
+                
+                # Broadcast a TODOS en la organización
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'audio_transmission_status',
+                        'status': 'started',
+                        'sender_id': sender_id,
+                        'sender_name': sender_name,
+                        'sender_role': sender_role,
+                        'sender_channel': self.channel_name,
+                    }
+                )
+
+            # ✅ NUEVO: Alguien TERMINÓ de transmitir audio
+            elif message_type == 'audio_transmission_stopped':
+                sender_id = data.get('sender_id') or getattr(self.scope.get('user'), 'id', None)
+                sender_name = data.get('sender_name', 'Usuario')
+                
+                print(f"🔴 {sender_name} TERMINÓ de transmitir")
+                
+                # Broadcast a TODOS en la organización
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'audio_transmission_status',
+                        'status': 'stopped',
+                        'sender_id': sender_id,
+                        'sender_name': sender_name,
+                        'sender_channel': self.channel_name,
+                    }
+                )
+
+            # ✅ NUEVO: La CENTRAL fuerza la interrupción de una transmisión
+            elif message_type == 'force_stop_transmission':
+                # Solo permitir a usuarios admin/superuser
+                if self.user.is_superuser or getattr(self.user, 'role', '') == 'admin':
+                    print(f"🚨 CENTRAL forzó stop de transmisión")
+                    
+                    # Broadcast a TODOS que se detuvo forzadamente
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'audio_transmission_status',
+                            'status': 'force_stopped',
+                            'sender_id': None,
+                            'sender_name': 'Central',
+                            'sender_channel': self.channel_name,
+                        }
+                    )
                 else:
-                    print(f"⚠️ Mensaje de audio incompleto recibido desde la web: {data}")
+                    print(f"⚠️ Usuario sin permisos intentó forzar stop")
+
+            else:
+                print(f"⚠️ Tipo de mensaje desconocido: {message_type}")
 
     async def send_location_to_clients(self, event):
         await self.send(text_data=json.dumps({
@@ -293,6 +354,30 @@ class AudioConsumer(AsyncWebsocketConsumer):
             "audio": event["audio"],
         }))
         print(f"✅ Audio enviado a canal: {self.channel_name} (tipo: audio_broadcast)")
+
+    # ✅ NUEVO: Handler para notificar el estado de transmisión
+    async def audio_transmission_status(self, event):
+        """Notifica a todos cuando alguien empieza o termina de transmitir"""
+        status = event.get('status')
+        sender_id = event.get('sender_id')
+        sender_name = event.get('sender_name')
+        sender_role = event.get('sender_role')
+        sender_channel = event.get('sender_channel')
+        
+        # 🚫 NO enviar el evento de vuelta al mismo que lo generó (excepto force_stop)
+        if status != 'force_stopped' and sender_channel and sender_channel == self.channel_name:
+            print(f"🔇 Estado de transmisión NO enviado al remitente")
+            return
+        
+        # Enviar a todos los demás
+        await self.send(text_data=json.dumps({
+            "type": "audio_transmission_status",
+            "status": status,
+            "sender_id": sender_id,
+            "sender_name": sender_name,
+            "sender_role": sender_role,
+        }))
+        print(f"✅ Estado de transmisión enviado: {status} de {sender_name}")
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

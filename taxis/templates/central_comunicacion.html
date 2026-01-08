@@ -1305,6 +1305,23 @@
                 <div class="broadcast-header">
                     📢 COMUNICACIÓN CENTRAL
                 </div>
+                
+                <!-- ✅ NUEVO: Banner de "Alguien está hablando" -->
+                <div id="audio-transmission-banner" style="display: none; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; text-align: center; animation: pulse 1.5s infinite;">
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                        🔴 <span id="current-speaker-name">Alguien</span> está transmitiendo...
+                    </div>
+                    <div style="font-size: 14px; opacity: 0.9;">
+                        <span id="speaker-role-badge"></span> en el canal de audio
+                    </div>
+                    <!-- ✅ Botón de interrumpir (solo para la central) -->
+                    {% if request.user.is_superuser or request.user.role == 'admin' %}
+                    <button id="force-stop-btn" onclick="forceStopTransmission()" style="margin-top: 10px; padding: 8px 16px; background: #fff; color: #e74c3c; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                        🚨 Interrumpir Transmisión
+                    </button>
+                    {% endif %}
+                </div>
+                
                 <div class="broadcast-controls">
                     <!-- SECCIÓN DE MICRÓFONO PRINCIPAL -->
                     <div class="central-mic-section">
@@ -1866,6 +1883,12 @@
                 return;
             }
             
+            // ✅ NUEVO: MANEJO DE ESTADO DE TRANSMISIÓN
+            if (data.type === 'audio_transmission_status') {
+                handleTransmissionStatus(data);
+                return;
+            }
+            
             // 🎵 MANEJO DE AUDIO
             if (data.type === 'audio_message' || data.type === 'audio_broadcast') {
                 console.log('📥 Audio recibido:', data);
@@ -1898,9 +1921,126 @@
     // Inicializar WebSocket de audio al cargar
     setupAudioWebSocket();
     
-    // 🔔 CONFIRMACIÓN DE VERSIÓN ACTUALIZADA
-    console.log('✅ CÓDIGO DE AUDIO ACTUALIZADO - Versión 2026-01-06 09:37');
+    // ✅ NUEVO: Variables para el control de transmisión
+    let isSomeoneTransmitting = false;
+    let transmissionTimeout = null;
+    const TRANSMISSION_TIMEOUT_MS = 30000; // 30 segundos
+    
+    // ✅ NUEVO: Manejar el estado de transmisión (alguien hablando)
+    function handleTransmissionStatus(data) {
+        const status = data.status;
+        const senderName = data.sender_name || 'Usuario';
+        const senderRole = data.sender_role || 'conductor';
+        const senderId = data.sender_id;
+        
+        const banner = document.getElementById('audio-transmission-banner');
+        const speakerNameSpan = document.getElementById('current-speaker-name');
+        const roleBadge = document.getElementById('speaker-role-badge');
+        const recordBtn = document.getElementById('record-audio-btn');
+        
+        if (status === 'started') {
+            // Alguien empezó a transmitir
+            console.log(`� ${senderName} (${senderRole}) empezó a transmitir`);
+            
+            isSomeoneTransmitting = true;
+            
+            // Mostrar banner
+            if (banner && speakerNameSpan && roleBadge) {
+                speakerNameSpan.textContent = senderName;
+                roleBadge.textContent = senderRole === 'central' ? '📢 Central' : '🚖 Conductor';
+                banner.style.display = 'block';
+            }
+            
+            // Deshabilitar botón de micrófono para otros
+            if (senderId !== currentUser.id && recordBtn) {
+                recordBtn.disabled = true;
+                recordBtn.style.opacity = '0.5';
+                recordBtn.style.cursor = 'not-allowed';
+                recordBtn.title = `${senderName} está transmitiendo, espera...`;
+            }
+            
+        } else if (status === 'stopped' || status === 'force_stopped') {
+            // Alguien terminó de transmitir
+            console.log(`✅ ${senderName} terminó de transmitir`);
+            
+            isSomeoneTransmitting = false;
+            
+            // Ocultar banner
+            if (banner) {
+                banner.style.display = 'none';
+            }
+            
+            // Habilitar botón de micrófono
+            if (recordBtn) {
+                recordBtn.disabled = false;
+                recordBtn.style.opacity = '1';
+                recordBtn.style.cursor = 'pointer';
+                recordBtn.title = 'Mantén presionado para hablar';
+            }
+            
+            if (status === 'force_stopped') {
+                showNotification('🚨 Transmisión interrumpida por la central', 'warning');
+            }
+        }
+    }
+    
+    // ✅ NUEVO: Enviar que empezaste a transmitir
+    function notifyTransmissionStarted() {
+        if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
+            audioSocket.send(JSON.stringify({
+                type: 'audio_transmission_started',
+                sender_id: currentUser.id,
+                sender_name: currentUser.username || 'Central',
+                sender_role: 'central'
+            }));
+            console.log('📡 Notificado: transmisión iniciada');
+            
+            // Timeout de seguridad (30 segundos)
+            transmissionTimeout = setTimeout(() => {
+                console.warn('⏱️ Timeout alcanzado, deteniendo transmisión automáticamente');
+                notifyTransmissionStopped();
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                    recordBtn.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%)';
+                    recordBtn.style.transform = 'scale(1)';
+                }
+                showNotification('⚠️ Transmisión detenida automáticamente (30 seg)', 'warning');
+            }, TRANSMISSION_TIMEOUT_MS);
+        }
+    }
+    
+    // ✅ NUEVO: Enviar que terminaste de transmitir
+    function notifyTransmissionStopped() {
+        if (transmissionTimeout) {
+            clearTimeout(transmissionTimeout);
+            transmissionTimeout = null;
+        }
+        
+        if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
+            audioSocket.send(JSON.stringify({
+                type: 'audio_transmission_stopped',
+                sender_id: currentUser.id,
+                sender_name: currentUser.username || 'Central'
+            }));
+            console.log('📡 Notificado: transmisión detenida');
+        }
+    }
+    
+    // ✅ NUEVO: Forzar detener transmisión (solo para la central)
+    window.forceStopTransmission = function() {
+        if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
+            audioSocket.send(JSON.stringify({
+                type: 'force_stop_transmission'
+            }));
+            console.log('🚨 Forzando detención de transmisión');
+            showNotification('🚨 Transmisión interrumpida', 'info');
+        }
+    };
+    
+    // �🔔 CONFIRMACIÓN DE VERSIÓN ACTUALIZADA
+    console.log('✅ CÓDIGO DE AUDIO ACTUALIZADO - Versión 2026-01-08 - Sistema "Alguien está hablando"');
     console.log('✅ Filtro de audio propio: ACTIVO');
+    console.log('✅ Control de transmisión: ACTIVO');
 
     // WALKIE-TALKIE: Mantener presionado para hablar
     let audioStream = null;
@@ -1930,12 +2070,20 @@
 
     // Mousedown: Empezar a grabar COMUNICACIÓN CENTRAL
     recordBtn.addEventListener('mousedown', function () {
+        if (isSomeoneTransmitting) {
+            showNotification('⚠️ Alguien está transmitiendo, espera', 'warning');
+            return;
+        }
+        
         if (mediaRecorder && mediaRecorder.state === 'inactive') {
             audioChunks = [];
             mediaRecorder.start();
             recordBtn.style.background = 'linear-gradient(135deg, #cc4b43 0%, #aa3b33 100%)';
             recordBtn.style.transform = 'scale(0.95)';
             console.log('🎙️ Grabando COMUNICACIÓN CENTRAL... (suelta para enviar a TODOS)');
+            
+            // ✅ Notificar que empezaste a transmitir
+            notifyTransmissionStarted();
         }
     });
 
@@ -1946,6 +2094,9 @@
             recordBtn.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%)';
             recordBtn.style.transform = 'scale(1)';
             console.log('📤 Enviando audio central a TODOS los conductores...');
+            
+            // ✅ Notificar que terminaste de transmitir
+            notifyTransmissionStopped();
         }
     });
 
@@ -1956,18 +2107,29 @@
             recordBtn.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%)';
             recordBtn.style.transform = 'scale(1)';
             console.log('📤 Enviando audio central a TODOS los conductores...');
+            
+            // ✅ Notificar que terminaste de transmitir
+            notifyTransmissionStopped();
         }
     });
 
     // Touch para móviles - COMUNICACIÓN CENTRAL
     recordBtn.addEventListener('touchstart', function (e) {
         e.preventDefault();
+        if (isSomeoneTransmitting) {
+            showNotification('⚠️ Alguien está transmitiendo, espera', 'warning');
+            return;
+        }
+        
         if (mediaRecorder && mediaRecorder.state === 'inactive') {
             audioChunks = [];
             mediaRecorder.start();
             recordBtn.style.background = 'linear-gradient(135deg, #cc4b43 0%, #aa3b33 100%)';
             recordBtn.style.transform = 'scale(0.95)';
             console.log('🎙️ Grabando COMUNICACIÓN CENTRAL (touch)... (suelta para enviar a TODOS)');
+            
+            // ✅ Notificar que empezaste a transmitir
+            notifyTransmissionStarted();
         }
     });
 
@@ -1978,6 +2140,9 @@
             recordBtn.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%)';
             recordBtn.style.transform = 'scale(1)';
             console.log('📤 Enviando audio central (touch) a TODOS los conductores...');
+            
+            // ✅ Notificar que terminaste de transmitir
+            notifyTransmissionStopped();
         }
     });
 

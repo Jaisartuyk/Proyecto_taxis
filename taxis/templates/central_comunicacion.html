@@ -1665,16 +1665,30 @@
 
                 activeChatRecipientId = this.dataset.driverId;
                 
+                console.log('🗺️ Intentando centrar mapa en conductor:', activeChatRecipientId);
+                console.log('🗺️ window.markers existe:', !!window.markers);
+                console.log('🗺️ window.map existe:', !!window.map);
+                
+                if (window.markers) {
+                    console.log('🗺️ Marcadores disponibles:', Object.keys(window.markers));
+                    console.log('🗺️ Marcador para conductor:', activeChatRecipientId, '=', window.markers[activeChatRecipientId]);
+                }
+                
                 // Actualizar el atributo en el input de mensaje para que otros scripts (como adjuntar archivo) lo encuentren
                 const msgInput = document.getElementById('chat-message-input');
                 if (msgInput) {
                     msgInput.setAttribute('data-driver-id', activeChatRecipientId);
                 }
 
-                // ✅ NUEVO: Centrar mapa en la ubicación del conductor al hacer clic en la lista
+                // ✅ Centrar mapa en la ubicación del conductor al hacer clic en la lista
                 if (window.markers && window.markers[activeChatRecipientId] && window.map) {
+                    console.log('✅ Marcador encontrado, centrando mapa...');
                     const marker = window.markers[activeChatRecipientId];
-                    window.map.panTo(marker.getPosition());
+                    const position = marker.getPosition();
+                    
+                    console.log('📍 Posición del conductor:', position.lat(), position.lng());
+                    
+                    window.map.panTo(position);
                     window.map.setZoom(15);
                     
                     // Animación de rebote para resaltar
@@ -1686,6 +1700,17 @@
                     // Abrir infoWindow
                     if (marker.infoWindow) {
                         marker.infoWindow.open(window.map, marker);
+                    }
+                    
+                    console.log('✅ Mapa centrado en conductor');
+                } else {
+                    console.warn('⚠️ No se pudo centrar el mapa:');
+                    console.warn('  - window.markers existe:', !!window.markers);
+                    console.warn('  - Marcador existe:', !!window.markers?.[activeChatRecipientId]);
+                    console.warn('  - window.map existe:', !!window.map);
+                    
+                    if (!window.markers?.[activeChatRecipientId]) {
+                        console.warn('❌ El conductor aún no ha enviado su ubicación desde la app');
                     }
                 }
 
@@ -2343,8 +2368,8 @@ function fetchDriverLocations() {
         const position = { lat: latitude, lng: longitude };
 
         // Si el marcador ya existe, solo actualizar posición
-        if (markers[driverId]) {
-            markers[driverId].setPosition(position);
+        if (window.markers[driverId]) {
+            window.markers[driverId].setPosition(position);
             console.log(`📍 Marcador actualizado: ${driverId}`);
             return;
         }
@@ -2411,7 +2436,7 @@ function fetchDriverLocations() {
                 infoWindow.open(window.map, marker);
             });
 
-            markers[driverId] = marker;
+            window.markers[driverId] = marker; // ✅ Usar window.markers
 
         } catch (error) {
             console.error('Error al actualizar driver:', error);
@@ -2443,7 +2468,7 @@ function fetchDriverLocations() {
             infoWindow.open(window.map, marker);
         });
         
-        markers[driverId] = marker;
+        window.markers[driverId] = marker; // ✅ Usar window.markers
     }
 
 window.openDriverChatFromList = function(driverId, driverName) {
@@ -2869,7 +2894,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ==================== INICIALIZACIÓN DEL MAPA DE GOOGLE MAPS ====================
 // Variables globales para marcadores
-let markers = {};
+window.markers = {}; // ✅ Cambiar a window.markers para acceso global
 
 // Función global para inicializar el mapa
 window.initMap = function () {

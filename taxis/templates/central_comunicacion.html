@@ -178,7 +178,12 @@
     #map-container:-moz-full-screen {
         width: 100vw !important;
         height: 100vh !important;
-        background: #000;
+        background: #1a1a2e;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     #map-container:fullscreen #map,
@@ -186,6 +191,20 @@
     #map-container:-moz-full-screen #map {
         width: 100% !important;
         height: 100% !important;
+        flex: 1 !important;
+    }
+
+    /* Asegurar que los botones se mantengan visibles en fullscreen */
+    #map-container:fullscreen .map-fullscreen-btn,
+    #map-container:-webkit-full-screen .map-fullscreen-btn,
+    #map-container:-moz-full-screen .map-fullscreen-btn {
+        z-index: 10000 !important;
+    }
+
+    #map-container:fullscreen #traffic-toggle,
+    #map-container:-webkit-full-screen #traffic-toggle,
+    #map-container:-moz-full-screen #traffic-toggle {
+        z-index: 10000 !important;
     }
 
     .map-fullscreen-btn {

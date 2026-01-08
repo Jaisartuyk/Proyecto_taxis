@@ -96,9 +96,14 @@
     async defer></script>
 
 <script>
+    let map;
+    let driverMarker = null; // Marcador del conductor que se actualizará en tiempo real
+    let driverInfoWindow = null;
+    let locationSocket = null;
+
     function initMap() {
         // Inicializar el mapa
-        const map = new google.maps.Map(document.getElementById('map'), {
+        map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} },
             zoom: 14,
         });
@@ -109,6 +114,9 @@
             position: originLatLng,
             map: map,
             title: 'Origen',
+            icon: {
+                url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+            }
         });
 
         // Coordenadas del cliente (si aplica)
@@ -118,17 +126,16 @@
             position: customerLatLng,
             map: map,
             title: 'Cliente',
+            icon: {
+                url: 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png'
+            }
         });
         {% endif %}
 
-        // Coordenadas del conductor (si están disponibles)
+        // Coordenadas iniciales del conductor (si están disponibles)
         {% if driver_lat and driver_lng %}
         const driverLatLng = { lat: {{ driver_lat }}, lng: {{ driver_lng }} };
-        new google.maps.Marker({
-            position: driverLatLng,
-            map: map,
-            title: 'Conductor',
-        });
+        createDriverMarker(driverLatLng);
         {% endif %}
 
         // Coordenadas de los destinos
@@ -141,6 +148,9 @@
             position: destinationLatLng,
             map: map,
             title: 'Destino {{ forloop.counter }}',
+            icon: {
+                url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            }
         });
         {% endfor %}
 
@@ -160,22 +170,159 @@
         const waypoints = destinationMarkers.slice(0, -1).map(location => ({ location }));
 
         // Generar la ruta
-        directionsService.route(
-            {
-                origin: originLatLng,
-                destination: destinationMarkers[destinationMarkers.length - 1],
-                waypoints: waypoints,
-                travelMode: 'DRIVING',
-            },
-            (response, status) => {
-                if (status === 'OK') {
-                    directionsRenderer.setDirections(response);
-                } else {
-                    console.error('Error al calcular la ruta:', status);
+        if (destinationMarkers.length > 0) {
+            directionsService.route(
+                {
+                    origin: originLatLng,
+                    destination: destinationMarkers[destinationMarkers.length - 1],
+                    waypoints: waypoints,
+                    travelMode: 'DRIVING',
+                },
+                (response, status) => {
+                    if (status === 'OK') {
+                        directionsRenderer.setDirections(response);
+                    } else {
+                        console.error('Error al calcular la ruta:', status);
+                    }
+                }
+            );
+        } else {
+            // Si no hay destinos, al menos mostrar la ruta del conductor al origen
+            {% if driver_lat and driver_lng %}
+            directionsService.route(
+                {
+                    origin: { lat: {{ driver_lat }}, lng: {{ driver_lng }} },
+                    destination: originLatLng,
+                    travelMode: 'DRIVING',
+                },
+                (response, status) => {
+                    if (status === 'OK') {
+                        directionsRenderer.setDirections(response);
+                    }
+                }
+            );
+            {% endif %}
+        }
+
+        // Conectar al WebSocket para recibir ubicaciones en tiempo real
+        {% if ride.driver %}
+        setupLocationWebSocket();
+        {% endif %}
+    }
+
+    // Crear o actualizar el marcador del conductor
+    function createDriverMarker(position) {
+        if (driverMarker) {
+            // Si ya existe, solo actualizar posición
+            driverMarker.setPosition(position);
+            console.log('📍 Posición del conductor actualizada:', position);
+        } else {
+            // Crear nuevo marcador
+            driverMarker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: 'Conductor',
+                icon: {
+                    url: 'https://maps.google.com/mapfiles/kml/pal2/icon47.png', // Icono de taxi
+                    scaledSize: new google.maps.Size(32, 32)
+                },
+                animation: google.maps.Animation.DROP
+            });
+
+            // InfoWindow para el conductor
+            driverInfoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="padding: 10px;">
+                        <h4 style="margin: 0 0 5px 0; color: #333;">🚖 Conductor</h4>
+                        <p style="margin: 0; color: #666;"><strong>{{ ride.driver.get_full_name }}</strong></p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">
+                            Última actualización: <span id="driver-last-update">${new Date().toLocaleTimeString()}</span>
+                        </p>
+                    </div>
+                `
+            });
+
+            driverMarker.addListener('click', () => {
+                driverInfoWindow.open(map, driverMarker);
+            });
+
+            console.log('📍 Marcador del conductor creado:', position);
+        }
+        
+        // Actualizar timestamp en el InfoWindow si está abierto
+        const timestampElement = document.getElementById('driver-last-update');
+        if (timestampElement) {
+            timestampElement.textContent = new Date().toLocaleTimeString();
+        }
+    }
+
+    // Configurar WebSocket para recibir ubicaciones en tiempo real
+    function setupLocationWebSocket() {
+        // Verificar el estado de la carrera - no conectar si ya está completada o cancelada
+        const rideStatus = '{{ ride.status }}';
+        if (rideStatus === 'completed' || rideStatus === 'canceled') {
+            console.log('📋 Carrera finalizada. No se conectará al WebSocket para actualizaciones en tiempo real.');
+            console.log(`ℹ️ Estado de la carrera: ${rideStatus}`);
+            return; // No conectar WebSocket para carreras terminadas
+        }
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/comunicacion/`;
+        
+        console.log('🔌 Conectando al WebSocket:', wsUrl);
+        console.log(`📋 Estado de la carrera: ${rideStatus} (activa)`);
+        
+        locationSocket = new WebSocket(wsUrl);
+
+        locationSocket.onopen = function(e) {
+            console.log('✅ WebSocket conectado para recibir ubicaciones en tiempo real');
+        };
+
+        locationSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log('📥 Mensaje WebSocket recibido:', data);
+
+            // Procesar solo actualizaciones de ubicación del conductor de esta carrera
+            if (data.type === 'driver_location_update' || data.type === 'location_update' || data.type === 'location') {
+                const driverId = data.driverId;
+                const rideDriverId = '{{ ride.driver.username }}'; // Username del conductor de esta carrera
+                
+                // Solo actualizar si es el conductor de esta carrera
+                if (driverId === rideDriverId || driverId === '{{ ride.driver.id }}') {
+                    const lat = parseFloat(data.latitude);
+                    const lng = parseFloat(data.longitude);
+                    
+                    if (lat && lng) {
+                        const newPosition = { lat: lat, lng: lng };
+                        createDriverMarker(newPosition);
+                        console.log(`📍 Ubicación del conductor actualizada desde ${data.source || 'WebSocket'}`);
+                    }
                 }
             }
-        );
+        };
+
+        locationSocket.onerror = function(e) {
+            console.error('❌ Error en WebSocket:', e);
+        };
+
+        locationSocket.onclose = function(e) {
+            console.log('🔌 WebSocket cerrado. Intentando reconectar en 5 segundos...');
+            // Solo reconectar si la carrera sigue activa
+            const currentStatus = '{{ ride.status }}';
+            if (currentStatus !== 'completed' && currentStatus !== 'canceled') {
+                setTimeout(setupLocationWebSocket, 5000);
+            } else {
+                console.log('📋 Carrera finalizada. No se reconectará al WebSocket.');
+            }
+        };
     }
+
+    // Limpiar WebSocket al salir de la página
+    window.addEventListener('beforeunload', function() {
+        if (locationSocket) {
+            locationSocket.close();
+        }
+    });
 </script>
 
 {% endblock %}

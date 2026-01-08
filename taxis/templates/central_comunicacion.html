@@ -1553,6 +1553,12 @@
 
                 activeChatRecipientId = this.dataset.driverId;
                 
+                // Actualizar el atributo en el input de mensaje para que otros scripts (como adjuntar archivo) lo encuentren
+                const msgInput = document.getElementById('chat-message-input');
+                if (msgInput) {
+                    msgInput.setAttribute('data-driver-id', activeChatRecipientId);
+                }
+
                 // ✅ NUEVO: Centrar mapa en la ubicación del conductor al hacer clic en la lista
                 if (window.markers && window.markers[activeChatRecipientId] && window.map) {
                     const marker = window.markers[activeChatRecipientId];
@@ -2369,6 +2375,13 @@ window.openDriverChatFromList = function(driverId, driverName) {
     if (typeof originalOpenDriverChatFromList === 'function') {
         originalOpenDriverChatFromList(driverId, driverName);
     }
+
+    // Actualizar el atributo en el input de mensaje inmediatamente
+    const msgInput = document.getElementById('chat-message-input');
+    if (msgInput) {
+        msgInput.setAttribute('data-driver-id', driverId);
+        console.log('✅ data-driver-id actualizado en input:', driverId);
+    }
     
     // Luego cargar el historial desde data-initial-history
     setTimeout(() => {
@@ -2511,7 +2524,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Verificar que hay un conductor seleccionado
             const messageInput = document.getElementById('chat-message-input');
-            const driverId = messageInput ? messageInput.getAttribute('data-driver-id') : null;
+            // Intentar obtener driverId del input, o usar la variable global activeChatRecipientId
+            let driverId = messageInput ? messageInput.getAttribute('data-driver-id') : null;
+            
+            if (!driverId && typeof activeChatRecipientId !== 'undefined' && activeChatRecipientId) {
+                driverId = activeChatRecipientId;
+                console.log('📎 Usando activeChatRecipientId global:', driverId);
+            }
             
             if (!driverId) {
                 alert('Por favor selecciona un conductor primero');
@@ -2549,7 +2568,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Obtener ID del conductor actual
             const messageInput = document.getElementById('chat-message-input');
-            const driverId = messageInput ? messageInput.getAttribute('data-driver-id') : null;
+            let driverId = messageInput ? messageInput.getAttribute('data-driver-id') : null;
+            
+            if (!driverId && typeof activeChatRecipientId !== 'undefined' && activeChatRecipientId) {
+                driverId = activeChatRecipientId;
+            }
             
             if (!driverId) {
                 alert('Por favor selecciona un conductor primero');

@@ -1272,7 +1272,7 @@
                          data-driver-id="{{ driver.id }}" 
                          data-driver-name="{{ driver.get_full_name }}" 
                          data-chat-history-loaded="true"
-                         data-initial-history='{% if chat_history %}[{% for msg in chat_history %}{"sender_id": {{ msg.sender.id }}, "sender_name": "{{ msg.sender.get_full_name|default:msg.sender.username|escapejs }}", "message": "{{ msg.message|escapejs }}", "timestamp": "{{ msg.timestamp|date:"c" }}", "is_sent": {% if msg.sender == request.user %}true{% else %}false{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %}'>
+                         data-initial-history='{% if chat_history %}[{% for msg in chat_history %}{"sender_id": {{ msg.sender.id }}, "sender_name": "{{ msg.sender.get_full_name|default:msg.sender.username|escapejs }}", "message": "{{ msg.message|escapejs }}", "timestamp": "{{ msg.timestamp|date:"c" }}", "is_sent": {% if msg.sender == request.user %}true{% else %}false{% endif %}, "message_type": "{{ msg.message_type }}", "media_url": {% if msg.media_url %}"{{ msg.media_url }}"{% else %}null{% endif %}, "thumbnail_url": {% if msg.thumbnail_url %}"{{ msg.thumbnail_url }}"{% else %}null{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %}'>
                         {# En producción (Railway) normalmente no se sirve /media/. Evitar /media/default.jpg #}
                         <img src="{% if driver.profile_picture and driver.profile_picture.name and driver.profile_picture.name != 'default.jpg' %}{{ driver.profile_picture.url }}{% else %}{% static 'imagenes/logo1.png' %}{% endif %}"
                             onerror="this.onerror=null;this.src='{% static 'imagenes/logo1.png' %}';"
@@ -1707,7 +1707,12 @@
                         const historyData = JSON.parse(this.dataset.initialHistory || '[]');
                         if (historyData.length > 0) {
                             historyData.forEach((msg, index) => {
-                                appendMessage(msg.message, msg.sender_id, msg.sender_name, msg.is_sent);
+                                // Verificar si el mensaje tiene media (imagen o video)
+                                if (msg.media_url && (msg.message_type === 'image' || msg.message_type === 'video')) {
+                                    appendMediaMessage(msg.message, msg.sender_id, msg.sender_name, msg.message_type, msg.media_url, msg.thumbnail_url, msg.is_sent);
+                                } else {
+                                    appendMessage(msg.message, msg.sender_id, msg.sender_name, msg.is_sent);
+                                }
                             });
                             console.log(`✅ Historial precargado mostrado: ${historyData.length} mensajes`);
                         } else {
@@ -1747,7 +1752,12 @@
                                 console.log(`✅ Cargando ${data.messages.length} mensajes`);
                                 data.messages.forEach((msg, index) => {
                                     const isSent = msg.is_sent !== undefined ? msg.is_sent : (Number(msg.sender_id) === Number(currentUser.id));
-                                    appendMessage(msg.message, msg.sender_id, msg.sender_name, isSent);
+                                    // Verificar si el mensaje tiene media (imagen o video)
+                                    if (msg.media_url && (msg.message_type === 'image' || msg.message_type === 'video')) {
+                                        appendMediaMessage(msg.message, msg.sender_id, msg.sender_name, msg.message_type, msg.media_url, msg.thumbnail_url, isSent);
+                                    } else {
+                                        appendMessage(msg.message, msg.sender_id, msg.sender_name, isSent);
+                                    }
                                 });
                                 console.log(`✅ Historial cargado correctamente`);
                             } else {

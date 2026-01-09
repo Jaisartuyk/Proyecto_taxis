@@ -346,18 +346,18 @@
         <h2><i class="fas fa-link"></i> Accesos Rápidos</h2>
         <div class="row">
             <div class="col-md-4 mb-3">
-                <a href="/admin/taxis/organization/" class="btn btn-outline-warning btn-block btn-lg">
+                <a href="{% url 'admin_organizations' %}" class="btn btn-outline-warning btn-block btn-lg">
                     <i class="fas fa-building"></i> Gestionar Cooperativas
                 </a>
             </div>
             <div class="col-md-4 mb-3">
-                <a href="/admin/taxis/appuser/" class="btn btn-outline-info btn-block btn-lg">
+                <a href="{% url 'admin_users' %}" class="btn btn-outline-info btn-block btn-lg">
                     <i class="fas fa-users"></i> Gestionar Usuarios
                 </a>
             </div>
             <div class="col-md-4 mb-3">
                 <a href="/admin/taxis/ride/" class="btn btn-outline-success btn-block btn-lg">
-                    <i class="fas fa-route"></i> Ver Todas las Carreras
+                    <i class="fas fa-car"></i> Gestionar Carreras
                 </a>
             </div>
         </div>

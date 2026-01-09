@@ -251,7 +251,7 @@
                 <span>Cooperativas</span>
             </a>
             
-            <a href="{% url 'admin_drivers_pending' %}" class="{% if 'driver' in request.path %}active{% endif %}">
+            <a href="{% url 'dashboard_drivers_pending' %}" class="{% if 'driver' in request.path %}active{% endif %}">
                 <i class="fas fa-user-check"></i>
                 <span>Conductores</span>
                 {% if pending_drivers_count %}

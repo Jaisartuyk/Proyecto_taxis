@@ -191,10 +191,14 @@
 <section class="hero-section">
     <div class="hero-content">
         <div class="logo-container">
+            {% if user_organization.logo %}
+            <img src="{{ user_organization.logo.url }}" alt="{{ user_organization.name }} Logo">
+            {% else %}
             <img src="{% static 'imagenes/DE_AQU_PALL_Logo.jpg' %}" alt="De Aquí Pa'llá Logo">
+            {% endif %}
         </div>
         
-        <h1 class="hero-title">De Aquí Pa'llá</h1>
+        <h1 class="hero-title">{{ user_organization.name|default:"De Aquí Pa'llá" }}</h1>
         <p class="hero-subtitle">🚕 Tu taxi seguro y confiable en Guayaquil</p>
         
         <div class="cta-buttons">

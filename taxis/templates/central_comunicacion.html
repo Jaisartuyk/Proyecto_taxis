@@ -1239,7 +1239,7 @@
 
 <!-- HEADER DEL CENTRO DE COMANDO -->
 <div class="command-center-header">
-    <h1>Central de Control - De Aquí Pa'llá</h1>
+    <h1>Central de Control - {{ user_organization.name|default:"De Aquí Pa'llá" }}</h1>
     <div class="status-indicator">
         <div class="status-dot"></div>
         <span>Sistema Activo</span>

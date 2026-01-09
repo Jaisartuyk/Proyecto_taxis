@@ -99,6 +99,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'taxi_project.context_processors.webpush_settings', # <-- Añadido
+                'taxi_project.context_processors.organization_context', # <-- Añadido para branding
             ],
         },
     },

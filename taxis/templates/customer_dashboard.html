@@ -7,7 +7,11 @@
         background-color: #0f0f0f;
         background-image: 
             linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
-            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+            {% if user_organization.logo %}
+                url('{{ user_organization.logo.url }}');
+            {% else %}
+                url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+            {% endif %}
         background-size: 400px;
         background-position: center;
         background-repeat: no-repeat;

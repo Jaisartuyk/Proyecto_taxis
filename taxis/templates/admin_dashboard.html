@@ -8,7 +8,11 @@
         background-color: #0f0f0f;
         background-image: 
             linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
-            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+            {% if user_organization.logo %}
+                url('{{ user_organization.logo.url }}');
+            {% else %}
+                url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+            {% endif %}
         background-size: 600px;
         background-position: center;
         background-repeat: no-repeat;
@@ -561,7 +565,7 @@
     <!-- Header del Dashboard -->
     <div class="admin-header">
         <h1>🎯 Panel de Control del Administrador</h1>
-        <p>Gestión completa del sistema De Aquí Pa'llá - Monitoreo en tiempo real</p>
+        <p>Gestión completa del sistema {{ user_organization.name|default:"De Aquí Pa'llá" }} - Monitoreo en tiempo real</p>
     </div>
 
     <!-- Acciones Rápidas -->

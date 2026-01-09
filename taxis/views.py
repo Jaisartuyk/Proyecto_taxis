@@ -1625,10 +1625,21 @@ def active_rides(request):
     if not request.user.is_superuser and request.user.role != 'admin':
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
     
-    # Obtener carreras activas (aceptadas o en progreso)
-    rides = Ride.objects.filter(
-        status__in=['accepted', 'in_progress']
-    ).select_related('driver', 'customer').prefetch_related('destinations').order_by('-created_at')
+    # ✅ MULTI-TENANT: Filtrar por organización
+    if request.user.is_superuser:
+        # Super admin ve todas las carreras activas
+        rides = Ride.objects.filter(
+            status__in=['accepted', 'in_progress']
+        ).select_related('driver', 'customer').prefetch_related('destinations').order_by('-created_at')
+    elif request.user.organization:
+        # Admin ve solo carreras activas de su organización
+        rides = Ride.objects.filter(
+            status__in=['accepted', 'in_progress'],
+            organization=request.user.organization
+        ).select_related('driver', 'customer').prefetch_related('destinations').order_by('-created_at')
+    else:
+        # Usuario sin organización no ve nada
+        rides = Ride.objects.none()
     
     return render(request, 'active_rides.html', {'rides': rides})
 
@@ -2345,8 +2356,11 @@ def list_drivers(request):
     filter_status = request.GET.get('status', 'all')  # all, online, offline
     filter_vehicle = request.GET.get('vehicle', 'all')  # all, with_vehicle, without_vehicle
     
-    # Obtener conductores con información relacionada
-    drivers = AppUser.objects.filter(role='driver').select_related('taxi').prefetch_related('rides_as_driver')
+    # Obtener conductores con información relacionada - FILTRADO POR ORGANIZACIÓN
+    drivers = AppUser.objects.filter(
+        role='driver',
+        organization=request.user.organization
+    ).select_related('taxi').prefetch_related('rides_as_driver')
     
     # Aplicar búsqueda
     if search_query:
@@ -2372,12 +2386,20 @@ def list_drivers(request):
     elif filter_vehicle == 'without_vehicle':
         drivers = drivers.filter(taxi__isnull=True)
     
-    # Calcular estadísticas (antes de paginación)
-    total_drivers_all = AppUser.objects.filter(role='driver').count()
+    # Calcular estadísticas (antes de paginación) - FILTRADO POR ORGANIZACIÓN
+    total_drivers_all = AppUser.objects.filter(
+        role='driver',
+        organization=request.user.organization
+    ).count()
     total_drivers = drivers.count()
-    drivers_with_taxi = AppUser.objects.filter(role='driver', taxi__isnull=False).count()
+    drivers_with_taxi = AppUser.objects.filter(
+        role='driver',
+        organization=request.user.organization,
+        taxi__isnull=False
+    ).count()
     drivers_with_location = AppUser.objects.filter(
-        role='driver', 
+        role='driver',
+        organization=request.user.organization,
         taxi__latitude__isnull=False, 
         taxi__longitude__isnull=False
     ).count()
@@ -2504,6 +2526,11 @@ def delete_driver(request, user_id):
         return redirect('home')
 
     driver = get_object_or_404(AppUser, id=user_id, role='driver')
+    
+    # VALIDAR QUE EL CONDUCTOR SEA DE LA MISMA ORGANIZACIÓN
+    if request.user.organization and driver.organization != request.user.organization:
+        messages.error(request, "No tienes permiso para eliminar conductores de otras organizaciones.")
+        return redirect('list_drivers')
 
     # Eliminar el taxi asociado si existe
     Taxi.objects.filter(user=driver).delete()

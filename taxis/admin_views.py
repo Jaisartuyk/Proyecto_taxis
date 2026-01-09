@@ -296,16 +296,28 @@ class DriverApproveView(TemplateView):
     
     def post(self, request, pk):
         driver = get_object_or_404(AppUser, pk=pk, role='driver')
-        form = DriverApprovalForm(request.POST, instance=driver)
         
-        if form.is_valid():
-            driver = form.save(commit=False)
-            driver.driver_status = 'approved'
-            driver.approved_by = request.user
-            driver.approved_at = timezone.now()
-            driver.save()
-            
-            messages.success(request, f'Conductor {driver.get_full_name()} aprobado exitosamente.')
+        # Obtener datos del formulario
+        driver_number = request.POST.get('driver_number', '').strip()
+        approval_notes = request.POST.get('approval_notes', '').strip()
+        
+        # Validar que el número de unidad sea único
+        if driver_number:
+            if AppUser.objects.filter(driver_number=driver_number).exclude(pk=pk).exists():
+                messages.error(request, f'El número de unidad "{driver_number}" ya está asignado a otro conductor.')
+                return redirect('admin_drivers_pending')
+        else:
+            messages.error(request, 'El número de unidad es obligatorio.')
+            return redirect('admin_drivers_pending')
+        
+        # Aprobar conductor
+        driver.driver_status = 'approved'
+        driver.driver_number = driver_number
+        driver.approved_by = request.user
+        driver.approved_at = timezone.now()
+        driver.save()
+        
+        messages.success(request, f'✅ Conductor {driver.get_full_name()} aprobado exitosamente con unidad #{driver_number}')
         
         return redirect('admin_drivers_pending')
 
@@ -316,14 +328,18 @@ class DriverRejectView(TemplateView):
     
     def post(self, request, pk):
         driver = get_object_or_404(AppUser, pk=pk, role='driver')
-        reason = request.POST.get('reason', '')
+        reason = request.POST.get('reason', '').strip()
+        
+        if not reason:
+            messages.error(request, 'Debes especificar una razón para el rechazo.')
+            return redirect('admin_drivers_pending')
         
         driver.driver_status = 'rejected'
         driver.save()
         
-        # Aquí se podría enviar un email o notificación al conductor
+        # Aquí se podría enviar un email o notificación al conductor con la razón
         
-        messages.warning(request, f'Conductor {driver.get_full_name()} rechazado.')
+        messages.warning(request, f'❌ Conductor {driver.get_full_name()} rechazado. Razón: {reason}')
         return redirect('admin_drivers_pending')
 
 

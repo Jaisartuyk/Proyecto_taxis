@@ -680,10 +680,16 @@ def edit_profile(request):
             form = CustomerProfileForm(request.POST, request.FILES, instance=request.user)
             if form.is_valid():
                 form.save()
+                messages.success(request, '¡Perfil actualizado correctamente!')
                 return redirect('customer_dashboard')
         else:
             form = CustomerProfileForm(instance=request.user)
-        return render(request, 'edit_customer_profile.html', {'form': form})
+        
+        context = {
+            'form': form,
+            'user': request.user,
+        }
+        return render(request, 'edit_customer_profile.html', context)
 
     elif request.user.role == 'driver':  # Taxista
         # Verificar si el conductor tiene un taxi asignado; si no, crear uno

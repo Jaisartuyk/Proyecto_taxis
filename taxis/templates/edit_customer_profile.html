@@ -1,6 +1,357 @@
-<h2>Editar Perfil - Cliente</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar Cambios</button>
-</form>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #0f0f0f;
+        background-image: 
+            linear-gradient(rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.95)),
+            url('{% static "imagenes/DE_AQU_PALL_Logo.jpg" %}');
+        background-size: 600px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #ffffff;
+    }
+
+    .edit-profile-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .profile-card {
+        background: rgba(31, 31, 31, 0.95);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid #2d2d2d;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .profile-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #333;
+    }
+
+    .profile-header h1 {
+        color: #FFD700;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-header p {
+        color: #888;
+        font-size: 0.95rem;
+    }
+
+    .section-title {
+        color: #FFD700;
+        font-size: 1.3rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #333;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        color: #e0e0e0;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.95rem;
+    }
+
+    .form-label i {
+        color: #FFD700;
+        margin-right: 0.5rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .form-control {
+        background-color: #1f1f1f;
+        border: 1px solid #333;
+        color: #fff;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        width: 100%;
+        transition: all 0.3s;
+        font-size: 1rem;
+    }
+
+    .form-control:focus {
+        border-color: #FFD700;
+        box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
+        background-color: #2a2a2a;
+        color: #fff;
+        outline: none;
+    }
+
+    .form-control::placeholder {
+        color: #6c757d;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        border: none;
+        color: #000;
+        font-weight: 700;
+        padding: 1rem 2.5rem;
+        border-radius: 10px;
+        width: 100%;
+        margin-top: 1.5rem;
+        transition: all 0.3s;
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+    }
+
+    .btn-save i {
+        margin-right: 0.5rem;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        color: #FFD700;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
+
+    .back-button:hover {
+        color: #fff;
+        background: rgba(255, 215, 0, 0.1);
+        text-decoration: none;
+        transform: translateX(-5px);
+    }
+
+    .back-button i {
+        margin-right: 0.5rem;
+    }
+
+    .profile-picture-preview {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #FFD700;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+    }
+
+    .profile-picture-placeholder {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #333 0%, #1f1f1f 100%);
+        border: 4px solid #FFD700;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .file-input-label {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, #333, #1f1f1f);
+        color: #FFD700;
+        border: 1px solid #FFD700;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        width: 100%;
+        font-weight: 600;
+    }
+
+    .file-input-label:hover {
+        background: linear-gradient(135deg, #FFD700, #FFC107);
+        color: #000;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .file-input-label i {
+        margin-right: 0.5rem;
+    }
+
+    .form-text {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        display: block;
+    }
+
+    .alert-info {
+        background: rgba(23, 162, 184, 0.2);
+        border: 1px solid rgba(23, 162, 184, 0.4);
+        color: #17a2b8;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+    }
+
+    .alert-info i {
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-profile-container">
+    <a href="{% url 'customer_dashboard' %}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Volver al panel
+    </a>
+
+    <div class="profile-card">
+        <div class="profile-header">
+            <h1>
+                <i class="fas fa-user-edit"></i> Editar Mi Perfil
+            </h1>
+            <p>Actualiza tu información personal</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Sección de Foto de Perfil -->
+            <div class="text-center mb-4">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Foto de perfil" class="profile-picture-preview" id="profile-preview">
+                {% else %}
+                    <div class="profile-picture-placeholder" id="profile-preview">
+                        <i class="fas fa-user fa-4x" style="color: #FFD700;"></i>
+                    </div>
+                {% endif %}
+                <div class="file-input-wrapper">
+                    <label class="file-input-label">
+                        <i class="fas fa-camera"></i> Cambiar foto de perfil
+                        {{ form.profile_picture }}
+                    </label>
+                    <small class="form-text">Formatos: JPG, PNG, WEBP (Máx. 5MB)</small>
+                </div>
+            </div>
+
+            <!-- Información Personal -->
+            <h3 class="section-title">
+                <i class="fas fa-id-card"></i> Información Personal
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                            <i class="fas fa-user"></i> Nombre
+                        </label>
+                        {{ form.first_name }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                            <i class="fas fa-user"></i> Apellido
+                        </label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                            <i class="fas fa-phone"></i> Teléfono
+                        </label>
+                        {{ form.phone_number }}
+                        <small class="form-text">Incluye código de país (ej: +593)</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.national_id.id_for_label }}" class="form-label">
+                            <i class="fas fa-id-card"></i> Cédula de Identidad
+                        </label>
+                        {{ form.national_id }}
+                        <small class="form-text">Número de documento sin guiones</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Importante:</strong> Mantén tu información actualizada para un mejor servicio. Tu teléfono será usado para notificaciones de tus carreras.
+            </div>
+
+            <button type="submit" class="btn btn-save">
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Script para vista previa de la imagen -->
+<script>
+    // Vista previa de la imagen de perfil
+    const profileInput = document.querySelector('input[type="file"]');
+    if (profileInput) {
+        profileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('profile-preview');
+                    preview.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'profile-picture-preview';
+                    preview.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+</script>
+{% endblock %}

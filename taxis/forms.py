@@ -43,12 +43,28 @@ class CustomerProfileForm(forms.ModelForm):
         model = AppUser
         fields = ['first_name', 'last_name', 'phone_number', 'national_id', 'profile_picture']
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'national_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ingresa tu nombre'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ingresa tu apellido'
+            }),
+            'phone_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '+593 9XX XXX XXX'
+            }),
+            'national_id': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '1234567890'
+            }),
+            'profile_picture': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
         }
+
 
 class DriverProfileForm(forms.ModelForm):
     class Meta:

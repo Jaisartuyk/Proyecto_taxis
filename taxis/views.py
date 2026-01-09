@@ -674,6 +674,140 @@ def superadmin_dashboard(request):
 
 
 @login_required
+def dashboard_drivers_pending(request):
+    """
+    Vista de conductores pendientes - SOLO para admin de cooperativa.
+    Super admins deben usar el Django admin.
+    """
+    # Redirigir super admins al Django admin
+    if request.user.is_superuser:
+        messages.info(request, 'Los super administradores deben usar el panel de administración de Django.')
+        return redirect('/admin/taxis/appuser/?driver_status__exact=pending')
+    
+    # Verificar que sea admin de cooperativa
+    if request.user.role != 'admin':
+        messages.error(request, 'No tienes permisos para acceder a esta página.')
+        return redirect('admin_dashboard')
+    
+    # Verificar que tenga organización asignada
+    if not request.user.organization:
+        messages.error(request, 'No tienes una organización asignada. Contacta al super administrador.')
+        return redirect('admin_dashboard')
+    
+    # Filtrar SOLO por la organización del admin
+    organization = request.user.organization
+    status = request.GET.get('status', 'pending')
+    
+    drivers = AppUser.objects.filter(
+        role='driver',
+        organization=organization,  # Solo de su cooperativa
+    )
+    
+    if status:
+        drivers = drivers.filter(driver_status=status)
+    
+    drivers = drivers.select_related('organization').order_by('-date_joined')
+    
+    context = {
+        'drivers': drivers,
+        'organization': organization,
+        'current_status': status,
+    }
+    return render(request, 'dashboard_drivers_pending.html', context)
+
+
+@login_required
+def dashboard_driver_approve(request, pk):
+    """Aprobar conductor - SOLO admin de cooperativa"""
+    # Redirigir super admins
+    if request.user.is_superuser:
+        messages.info(request, 'Usa el panel de administración de Django.')
+        return redirect('/admin/taxis/appuser/')
+    
+    # Verificar permisos
+    if request.user.role != 'admin' or not request.user.organization:
+        messages.error(request, 'No tienes permisos.')
+        return redirect('admin_dashboard')
+    
+    if request.method != 'POST':
+        return redirect('dashboard_drivers_pending')
+    
+    # Obtener conductor
+    driver = get_object_or_404(AppUser, pk=pk, role='driver')
+    
+    # Validar que el conductor pertenece a la misma organización
+    if driver.organization != request.user.organization:
+        messages.error(request, 'No puedes aprobar conductores de otra cooperativa.')
+        return redirect('dashboard_drivers_pending')
+    
+    # Obtener datos del formulario
+    driver_number = request.POST.get('driver_number', '').strip()
+    approval_notes = request.POST.get('approval_notes', '').strip()
+    
+    # Validar que el número de unidad sea único en la cooperativa
+    if driver_number:
+        if AppUser.objects.filter(
+            driver_number=driver_number,
+            organization=request.user.organization
+        ).exclude(pk=pk).exists():
+            messages.error(request, f'El número de unidad "{driver_number}" ya está asignado a otro conductor de tu cooperativa.')
+            return redirect('dashboard_drivers_pending')
+    else:
+        messages.error(request, 'El número de unidad es obligatorio.')
+        return redirect('dashboard_drivers_pending')
+    
+    # Aprobar conductor
+    driver.driver_status = 'approved'
+    driver.driver_number = driver_number
+    driver.approved_by = request.user
+    driver.approved_at = timezone.now()
+    driver.save()
+    
+    messages.success(request, f'✅ Conductor {driver.get_full_name()} aprobado exitosamente con unidad #{driver_number}')
+    
+    return redirect('dashboard_drivers_pending')
+
+
+@login_required
+def dashboard_driver_reject(request, pk):
+    """Rechazar conductor - SOLO admin de cooperativa"""
+    # Redirigir super admins
+    if request.user.is_superuser:
+        messages.info(request, 'Usa el panel de administración de Django.')
+        return redirect('/admin/taxis/appuser/')
+    
+    # Verificar permisos
+    if request.user.role != 'admin' or not request.user.organization:
+        messages.error(request, 'No tienes permisos.')
+        return redirect('admin_dashboard')
+    
+    if request.method != 'POST':
+        return redirect('dashboard_drivers_pending')
+    
+    # Obtener conductor
+    driver = get_object_or_404(AppUser, pk=pk, role='driver')
+    
+    # Validar que el conductor pertenece a la misma organización
+    if driver.organization != request.user.organization:
+        messages.error(request, 'No puedes rechazar conductores de otra cooperativa.')
+        return redirect('dashboard_drivers_pending')
+    
+    # Obtener razón
+    reason = request.POST.get('reason', '').strip()
+    
+    if not reason:
+        messages.error(request, 'Debes especificar una razón para el rechazo.')
+        return redirect('dashboard_drivers_pending')
+    
+    # Rechazar conductor
+    driver.driver_status = 'rejected'
+    driver.save()
+    
+    messages.warning(request, f'❌ Conductor {driver.get_full_name()} rechazado. Razón: {reason}')
+    return redirect('dashboard_drivers_pending')
+
+
+@login_required
 def edit_profile(request):
     if request.user.role == 'customer':  # Cliente
         if request.method == 'POST':

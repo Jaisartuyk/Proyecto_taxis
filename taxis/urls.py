@@ -43,6 +43,12 @@ urlpatterns = [
     path('customer/rides/', views.customer_rides, name='customer_rides'),
     path('driver/in-progress/', views.driver_in_progress_rides, name='driver_in_progress_rides'),
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    
+    # Dashboard - Aprobación de conductores (solo admin de cooperativa)
+    path('dashboard/drivers/pending/', views.dashboard_drivers_pending, name='dashboard_drivers_pending'),
+    path('dashboard/drivers/<int:pk>/approve/', views.dashboard_driver_approve, name='dashboard_driver_approve'),
+    path('dashboard/drivers/<int:pk>/reject/', views.dashboard_driver_reject, name='dashboard_driver_reject'),
+    
     path('superadmin/dashboard/', views.superadmin_dashboard, name='superadmin_dashboard'),
     path('api/check_new_rides/', views.check_new_rides, name='check_new_rides'),
     path('admin_users/', views.admin_users, name='admin_users'),
@@ -146,19 +152,8 @@ urlpatterns = [
     path('manage/organizations/<int:pk>/', admin_views.OrganizationDetailView.as_view(), name='admin_organization_detail'),
     path('manage/organizations/<int:pk>/suspend/', admin_views.OrganizationSuspendView.as_view(), name='admin_organization_suspend'),
     
-    # Conductores
-    path('manage/drivers/pending/', admin_views.DriverApprovalListView.as_view(), name='admin_drivers_pending'),
-    path('manage/drivers/<int:pk>/approve/', admin_views.DriverApproveView.as_view(), name='admin_driver_approve'),
-    path('manage/drivers/<int:pk>/reject/', admin_views.DriverRejectView.as_view(), name='admin_driver_reject'),
-    
     # Clientes
     path('manage/customers/', admin_views.CustomerListView.as_view(), name='admin_customers'),
-    
-    # Códigos de Invitación
-    path('manage/invitations/', admin_views.InvitationCodeListView.as_view(), name='admin_invitation_codes'),
-    path('manage/invitations/create/', admin_views.InvitationCodeCreateView.as_view(), name='admin_invitation_create'),
-    path('manage/invitations/<int:pk>/', admin_views.InvitationCodeDetailView.as_view(), name='admin_invitation_detail'),
-    path('manage/invitations/<int:pk>/toggle/', admin_views.InvitationCodeToggleView.as_view(), name='admin_invitation_toggle'),
     
     # Reportes
     path('manage/reports/financial/', admin_views.FinancialReportsView.as_view(), name='admin_reports_financial'),

@@ -302,17 +302,17 @@
                                 <form method="post" action="{% url 'dashboard_driver_approve' driver.pk %}">
                                     {% csrf_token %}
                                     <div class="modal-body">
-                                        <p>¿Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor de <strong>{{ organization.name|escape }}</strong>?</p>
+                                        <p>Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor de <strong>{{ organization.name|escape }}</strong>?</p>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">Número de Unidad *</label>
+                                            <label class="form-label">Numero de Unidad *</label>
                                             <input type="text" name="driver_number" class="form-control" 
                                                    placeholder="Ej: 101, A-25, etc." required>
-                                            <small class="text-muted">Identificador único del vehículo en tu cooperativa</small>
+                                            <small class="text-muted">Identificador unico del vehiculo en tu cooperativa</small>
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">Notas de aprobación</label>
+                                            <label class="form-label">Notas de aprobacion</label>
                                             <textarea name="approval_notes" class="form-control" rows="3" 
                                                       placeholder="Observaciones opcionales..."></textarea>
                                         </div>
@@ -339,12 +339,12 @@
                                 <form method="post" action="{% url 'dashboard_driver_reject' driver.pk %}">
                                     {% csrf_token %}
                                     <div class="modal-body">
-                                        <p>¿Rechazar la solicitud de <strong>{{ driver.get_full_name }}</strong>?</p>
+                                        <p>Rechazar la solicitud de <strong>{{ driver.get_full_name }}</strong>?</p>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">Razón del rechazo *</label>
+                                            <label class="form-label">Razon del rechazo *</label>
                                             <textarea name="reason" class="form-control" rows="3" 
-                                                      placeholder="Explique por qué se rechaza..." required></textarea>
+                                                      placeholder="Explique por que se rechaza..." required></textarea>
                                         </div>
                                     </div>
                                     <div class="modal-footer">

@@ -133,6 +133,7 @@
     .modal-content {
         background: #1f1f1f;
         border: 1px solid #2d2d2d;
+        color: #fff;
     }
 
     .modal-header {
@@ -141,6 +142,18 @@
 
     .modal-footer {
         border-top-color: #333;
+    }
+
+    .modal-body {
+        color: #fff;
+    }
+
+    .modal {
+        z-index: 1055;
+    }
+
+    .modal-backdrop {
+        z-index: 1050;
     }
 
     .form-control, .form-select {
@@ -292,8 +305,8 @@
                     </tr>
                     
                     <!-- Modal Aprobar -->
-                    <div class="modal fade" id="approveModal{{ driver.pk }}" tabindex="-1">
-                        <div class="modal-dialog">
+                    <div class="modal fade" id="approveModal{{ driver.pk }}" tabindex="-1" aria-labelledby="approveModalLabel{{ driver.pk }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header bg-success text-white">
                                     <h5 class="modal-title">Aprobar Conductor</h5>
@@ -329,8 +342,8 @@
                     </div>
                     
                     <!-- Modal Rechazar -->
-                    <div class="modal fade" id="rejectModal{{ driver.pk }}" tabindex="-1">
-                        <div class="modal-dialog">
+                    <div class="modal fade" id="rejectModal{{ driver.pk }}" tabindex="-1" aria-labelledby="rejectModalLabel{{ driver.pk }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header bg-danger text-white">
                                     <h5 class="modal-title">Rechazar Conductor</h5>

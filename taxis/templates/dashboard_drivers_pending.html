@@ -306,7 +306,7 @@
                     
                     <!-- Modal Aprobar -->
                     <div class="modal fade" id="approveModal{{ driver.pk }}" tabindex="-1" aria-labelledby="approveModalLabel{{ driver.pk }}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header bg-success text-white">
                                     <h5 class="modal-title">Aprobar Conductor</h5>
@@ -315,7 +315,7 @@
                                 <form method="post" action="{% url 'dashboard_driver_approve' driver.pk %}">
                                     {% csrf_token %}
                                     <div class="modal-body">
-                                        <p>Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor de <strong>{{ organization.name|escape }}</strong>?</p>
+                                        <p>Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor?</p>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">Numero de Unidad *</label>
@@ -343,7 +343,7 @@
                     
                     <!-- Modal Rechazar -->
                     <div class="modal fade" id="rejectModal{{ driver.pk }}" tabindex="-1" aria-labelledby="rejectModalLabel{{ driver.pk }}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header bg-danger text-white">
                                     <h5 class="modal-title">Rechazar Conductor</h5>

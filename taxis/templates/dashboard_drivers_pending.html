@@ -193,8 +193,8 @@
                 <li class="breadcrumb-item active">Aprobar Conductores</li>
             </ol>
         </nav>
-        <h1><i class="fas fa-user-check me-2"></i>Aprobación de Conductores</h1>
-        <p>Gestiona las solicitudes de conductores de <strong>{{ organization.name }}</strong></p>
+        <h1><i class="fas fa-user-check me-2"></i>Aprobacion de Conductores</h1>
+        <p>Gestiona las solicitudes de conductores de <strong>{{ organization.name|safe }}</strong></p>
     </div>
 
     <!-- Filtros -->
@@ -219,7 +219,7 @@
         </form>
     </div>
 
-    <!-- Estadísticas Rápidas -->
+    <!-- Estadisticas Rapidas -->
     <div class="row g-4 mb-4">
         <div class="col-md-4">
             <div class="stat-card warning">

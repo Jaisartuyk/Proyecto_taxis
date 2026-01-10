@@ -134,18 +134,24 @@
         background: #1f1f1f;
         border: 1px solid #2d2d2d;
         color: #fff;
+        max-height: 90vh;
     }
 
     .modal-header {
         border-bottom-color: #333;
+        padding: 1.5rem;
     }
 
     .modal-footer {
         border-top-color: #333;
+        padding: 1.5rem;
     }
 
     .modal-body {
         color: #fff;
+        padding: 2rem;
+        overflow-y: auto;
+        max-height: calc(90vh - 180px);
     }
 
     .modal {
@@ -154,6 +160,11 @@
 
     .modal-backdrop {
         z-index: 1050;
+        opacity: 0.8 !important;
+    }
+
+    .modal-dialog {
+        margin: 1.75rem auto;
     }
 
     .form-control, .form-select {

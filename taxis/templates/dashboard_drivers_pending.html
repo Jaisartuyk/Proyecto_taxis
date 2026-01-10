@@ -239,7 +239,7 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 {% if driver.profile_picture %}
-                                    <img src="{{ driver.profile_picture.url }}" alt="{{ driver.get_full_name }}" 
+                                    <img src="{{ driver.profile_picture.url }}" alt="{{ driver.get_full_name|escape }}" 
                                          class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
                                 {% else %}
                                     <div class="rounded-circle me-2 d-flex align-items-center justify-content-center" 
@@ -277,11 +277,11 @@
                             {% if driver.driver_status == 'pending' %}
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-sm btn-success" 
-                                            data-bs-toggle="modal" data-bs-target="#approveModal{{ driver.pk }}" title="Aprobar">
+                                            data-bs-toggle="modal" data-bs-target="#approveModal{{ driver.pk }}">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-danger" 
-                                            data-bs-toggle="modal" data-bs-target="#rejectModal{{ driver.pk }}" title="Rechazar">
+                                            data-bs-toggle="modal" data-bs-target="#rejectModal{{ driver.pk }}">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -302,7 +302,7 @@
                                 <form method="post" action="{% url 'dashboard_driver_approve' driver.pk %}">
                                     {% csrf_token %}
                                     <div class="modal-body">
-                                        <p>¿Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor de <strong>{{ organization.name }}</strong>?</p>
+                                        <p>¿Aprobar a <strong>{{ driver.get_full_name }}</strong> como conductor de <strong>{{ organization.name|escape }}</strong>?</p>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">Número de Unidad *</label>

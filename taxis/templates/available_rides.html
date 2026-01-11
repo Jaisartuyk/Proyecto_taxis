@@ -85,7 +85,10 @@
 
   <script>
       document.addEventListener('DOMContentLoaded', function () {
-        // Manejar la actualización del precio
+        // Obtener CSRF token
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        
+        // Manejar la actualizacion del precio
         const priceForms = document.querySelectorAll('.price-form');
         priceForms.forEach(form => {
             form.addEventListener('submit', function (event) {
@@ -94,27 +97,31 @@
                 const formData = new FormData(form);
                 fetch(form.action, {
                     method: 'POST',
+                    headers: {
+                        "X-CSRFToken": csrfToken
+                    },
                     body: formData,
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Actualizar el precio en la tabla sin recargar la página
+                        // Actualizar el precio en la tabla sin recargar la pagina
                         const row = document.getElementById(`ride-${data.ride_id}`);
                         const priceCell = row.querySelector('td:nth-child(4)');
                         priceCell.innerHTML = '$' + data.new_price;
+                        alert('Precio actualizado exitosamente');
                     } else {
                         alert('Error al actualizar el precio.');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Ocurrió un error');
+                    alert('Ocurrio un error');
                 });
             });
         });
 
-        // Manejar la aceptación y cancelación de carreras
+        // Manejar la aceptacion y cancelacion de carreras
         const statusForms = document.querySelectorAll('.status-form');
         statusForms.forEach(form => {
             form.addEventListener('submit', function (event) {
@@ -123,6 +130,9 @@
                 const formData = new FormData(form);
                 fetch(form.action, {
                     method: 'POST',
+                    headers: {
+                        "X-CSRFToken": csrfToken
+                    },
                     body: formData,
                 })
                 .then(response => response.json())
@@ -135,21 +145,21 @@
                             if (row) row.remove();
                             alert('Carrera cancelada exitosamente');
                         } else if (data.redirect_url) {
-                            // Redirigir a la página de detalles si la carrera fue aceptada
+                            // Redirigir a la pagina de detalles si la carrera fue aceptada
                             window.location.href = data.redirect_url;
                         } else {
                             // Actualizar el estado en la tabla sin recargar
                             const statusCell = row.querySelector(`.status-${data.ride_id}`);
                             statusCell.innerHTML = `<span class="badge bg-primary">${data.new_status}</span>`;
-                            alert('Estado actualizado con éxito');
+                            alert('Estado actualizado con exito');
                         }
                     } else {
-                        alert(data.error || "Ocurrió un error");
+                        alert(data.error || "Ocurrio un error");
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Ocurrió un error al actualizar el estado.');
+                    alert('Ocurrio un error al actualizar el estado.');
                 });
             });
         });

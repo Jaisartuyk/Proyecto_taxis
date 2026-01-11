@@ -1578,13 +1578,15 @@ def available_rides(request):
         return JsonResponse({'error': 'Acceso no permitido'}, status=403)
 
     # ✅ MULTI-TENANT: Filtrar por organización
+    # Esta vista solo muestra carreras SOLICITADAS (requested)
+    # Las carreras en progreso se ven en /active-rides/
     if request.user.is_superuser:
-        # Super admin ve todas las carreras solicitadas y en progreso
-        rides = Ride.objects.filter(status__in=['requested', 'in_progress']).order_by('created_at')
+        # Super admin ve todas las carreras solicitadas
+        rides = Ride.objects.filter(status='requested').order_by('created_at')
     elif request.user.organization:
-        # Conductor ve solo carreras de su organización (solicitadas y en progreso)
+        # Conductor ve solo carreras solicitadas de su organización
         rides = Ride.objects.filter(
-            status__in=['requested', 'in_progress'],
+            status='requested',
             organization=request.user.organization
         ).order_by('created_at')
     else:

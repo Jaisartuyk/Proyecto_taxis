@@ -1220,8 +1220,10 @@ def telegram_webhook(request):
             distancia, duracion = get_distance_duration(origen["lat"], origen["lng"], lat, lng)
             mapa = get_map_url(origen["lat"], origen["lng"], lat, lng)
 
+            # ✅ MULTI-TENANT: Asignar organización del usuario
             ride = Ride.objects.create(
                 customer=usuario,
+                organization=usuario.organization,  # ✅ Agregar organización
                 origin=origen["direccion"],
                 origin_latitude=origen["lat"],
                 origin_longitude=origen["lng"],
@@ -1471,9 +1473,11 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
         Ride object creado
     """
     try:
+        # ✅ MULTI-TENANT: Asignar organización del usuario
         # Crear la solicitud de carrera
         ride = Ride.objects.create(
             customer=user,
+            organization=user.organization,  # ✅ MULTI-TENANT
             origin=origin,
             origin_latitude=origin_lat,
             origin_longitude=origin_lng,

@@ -1658,8 +1658,11 @@ def active_rides(request):
 def broadcast_ride_update(ride):
     """Send ride update via WebSocket to all users in the same organization"""
     from asgiref.sync import async_to_sync
+    import logging
+    logger = logging.getLogger(__name__)
     
     if not ride.organization:
+        logger.warning(f"⚠️ Carrera {ride.id} sin organizacion, no se puede hacer broadcast")
         return
     
     channel_layer = get_channel_layer()
@@ -1672,6 +1675,8 @@ def broadcast_ride_update(ride):
         'status_raw': ride.status,
     }
     
+    logger.info(f"📡 Broadcasting ride update: ID={ride.id}, Status={ride.status}, Group={group_name}")
+    
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
@@ -1679,6 +1684,8 @@ def broadcast_ride_update(ride):
             'ride': ride_data
         }
     )
+    
+    logger.info(f"✅ Broadcast enviado para carrera {ride.id}")
 
 
 @login_required

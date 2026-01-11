@@ -137,6 +137,22 @@ function updateRide(id, status){
     },
     body:`status=${status}`
   })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      console.log('Carrera actualizada:', id, status);
+      // Si acepto, redirigir a detalles
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      }
+    } else {
+      alert('Error: ' + (data.error || 'No se pudo actualizar'));
+    }
+  })
+  .catch(err => {
+    console.error('Error al actualizar carrera:', err);
+    alert('Error de conexion al actualizar carrera');
+  });
 }
 
 /* WEBSOCKET para actualizaciones en tiempo real */
@@ -158,16 +174,25 @@ function connectWebSocket() {
   
   ridesSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
+    console.log('WebSocket mensaje recibido:', data);
     
     if (data.type === 'ride_update') {
       const ride = data.ride;
+      console.log('Actualizacion de carrera:', ride.id, 'Estado:', ride.status_raw);
       
       // Si la carrera cambio a in_progress o canceled, removerla de la lista
       if (ride.status_raw === "in_progress" || ride.status_raw === "canceled" || ride.status_raw === "completed") {
+        console.log('Removiendo carrera de la lista:', ride.id);
         let row = document.getElementById("ride-" + ride.id);
         let card = document.getElementById("ride-mobile-" + ride.id);
-        if (row) row.remove();
-        if (card) card.remove();
+        if (row) {
+          row.remove();
+          console.log('Fila desktop removida');
+        }
+        if (card) {
+          card.remove();
+          console.log('Card mobile removida');
+        }
         return;
       }
       
@@ -176,6 +201,7 @@ function connectWebSocket() {
         let row = document.getElementById("ride-" + ride.id);
         if (!row) {
           // Nueva carrera, recargar pagina
+          console.log('Nueva carrera detectada, recargando pagina');
           location.reload();
           return;
         }

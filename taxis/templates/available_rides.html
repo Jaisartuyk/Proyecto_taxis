@@ -167,12 +167,12 @@
     </script>
 
     <script>
-        // Recargar la página automáticamente cada 5 segundos
+        // Recargar la pagina automaticamente cada 5 segundos
         setInterval(function() {
             location.reload();
         }, 5000);
 
-        // Función para actualizar estado y recargar la página al cancelar
+        // Funcion para actualizar estado y recargar la pagina al cancelar
         function updateRideStatus(event, url, newStatus) {
             event.preventDefault();
 
@@ -189,18 +189,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    location.reload(); // Recargar la página inmediatamente al actualizar el estado
+                    location.reload(); // Recargar la pagina inmediatamente al actualizar el estado
                 }
             })
             .catch(error => console.error("Error al actualizar:", error));
         }
     </script>
-
-
-
-
-
-
-
 
 {% endblock %}

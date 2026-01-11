@@ -1579,12 +1579,12 @@ def available_rides(request):
 
     # ✅ MULTI-TENANT: Filtrar por organización
     if request.user.is_superuser:
-        # Super admin ve todas las carreras
-        rides = Ride.objects.filter(status='requested').order_by('created_at')
+        # Super admin ve todas las carreras solicitadas y en progreso
+        rides = Ride.objects.filter(status__in=['requested', 'in_progress']).order_by('created_at')
     elif request.user.organization:
-        # Conductor ve solo carreras de su organización
+        # Conductor ve solo carreras de su organización (solicitadas y en progreso)
         rides = Ride.objects.filter(
-            status='requested',
+            status__in=['requested', 'in_progress'],
             organization=request.user.organization
         ).order_by('created_at')
     else:

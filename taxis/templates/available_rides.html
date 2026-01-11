@@ -56,12 +56,22 @@
 </td>
 <td class="price-{{ ride.id }}">${{ ride.price }}</td>
 <td class="status-{{ ride.id }}">
+{% if ride.status == "requested" %}
 <span class="badge bg-warning">{{ ride.get_status_display }}</span>
+{% elif ride.status == "in_progress" %}
+<span class="badge bg-info">{{ ride.get_status_display }}</span>
+{% else %}
+<span class="badge bg-secondary">{{ ride.get_status_display }}</span>
+{% endif %}
 </td>
 <td>
 {% if ride.status == "requested" %}
 <button class="btn btn-info btn-sm" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
 <button class="btn btn-success btn-sm" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
+<button class="btn btn-danger btn-sm" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
+{% elif ride.status == "in_progress" %}
+<button class="btn btn-primary btn-sm" onclick="window.location.href='/ride/{{ ride.id }}/'">Ver Detalles</button>
+<button class="btn btn-success btn-sm" onclick="updateRide({{ ride.id }},'completed')">Completar</button>
 <button class="btn btn-danger btn-sm" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
 {% endif %}
 </td>
@@ -86,6 +96,12 @@ Estado: <span class="status-{{ ride.id }}">{{ ride.get_status_display }}</span>
 <div class="mt-2">
 <button class="btn btn-info w-100 mb-1" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
 <button class="btn btn-success w-100 mb-1" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
+<button class="btn btn-danger w-100" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
+</div>
+{% elif ride.status == "in_progress" %}
+<div class="mt-2">
+<button class="btn btn-primary w-100 mb-1" onclick="window.location.href='/ride/{{ ride.id }}/'">Ver Detalles</button>
+<button class="btn btn-success w-100 mb-1" onclick="updateRide({{ ride.id }},'completed')">Completar</button>
 <button class="btn btn-danger w-100" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
 </div>
 {% endif %}

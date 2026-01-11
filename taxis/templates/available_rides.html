@@ -60,6 +60,7 @@
 </td>
 <td>
 {% if ride.status == "requested" %}
+<button class="btn btn-info btn-sm" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
 <button class="btn btn-success btn-sm" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
 <button class="btn btn-danger btn-sm" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
 {% endif %}
@@ -83,6 +84,7 @@ Estado: <span class="status-{{ ride.id }}">{{ ride.get_status_display }}</span>
 
 {% if ride.status == "requested" %}
 <div class="mt-2">
+<button class="btn btn-info w-100 mb-1" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
 <button class="btn btn-success w-100 mb-1" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
 <button class="btn btn-danger w-100" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
 </div>
@@ -96,9 +98,36 @@ Estado: <span class="status-{{ ride.id }}">{{ ride.get_status_display }}</span>
 <script>
 const csrf = document.querySelector("meta[name='csrf-token']").getAttribute("content");
 
+/* Cambiar precio de una carrera */
+function changePrice(id, currentPrice) {
+  const newPrice = prompt('Ingrese el nuevo precio:', currentPrice);
+  if (newPrice && !isNaN(newPrice) && newPrice > 0) {
+    fetch(`/update-ride-status/${id}/`, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrf,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: `price=${newPrice}`
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        alert('Precio actualizado correctamente');
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo actualizar'));
+      }
+    })
+    .catch(err => {
+      console.error('Error al actualizar precio:', err);
+      alert('Error de conexion al actualizar precio');
+    });
+  }
+}
+
 /* Enviar accion */
 function updateRide(id, status){
-  fetch(`/rides/update/${id}/`, {
+  fetch(`/update-ride-status/${id}/`, {
     method:"POST",
     headers:{
       "X-CSRFToken": csrf,
@@ -118,7 +147,7 @@ function connectWebSocket() {
   ridesSocket = new WebSocket(wsUrl);
   
   ridesSocket.onopen = function() {
-    console.log('✅ WebSocket conectado: actualizaciones en tiempo real activas');
+    console.log('WebSocket conectado: actualizaciones en tiempo real activas');
     if (reconnectInterval) {
       clearInterval(reconnectInterval);
       reconnectInterval = null;
@@ -150,14 +179,14 @@ function connectWebSocket() {
   };
   
   ridesSocket.onerror = function(error) {
-    console.error('❌ Error en WebSocket:', error);
+    console.error('Error en WebSocket:', error);
   };
   
   ridesSocket.onclose = function() {
-    console.log('⚠️ WebSocket desconectado. Intentando reconectar en 5s...');
+    console.log('WebSocket desconectado. Intentando reconectar en 5s...');
     if (!reconnectInterval) {
       reconnectInterval = setInterval(() => {
-        console.log('🔄 Intentando reconectar WebSocket...');
+        console.log('Intentando reconectar WebSocket...');
         connectWebSocket();
       }, 5000);
     }

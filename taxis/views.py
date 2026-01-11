@@ -1673,7 +1673,7 @@ def broadcast_ride_update(ride):
 @login_required
 def update_ride_status(request, ride_id):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         ride = get_object_or_404(Ride, id=ride_id)
@@ -1682,6 +1682,24 @@ def update_ride_status(request, ride_id):
             return JsonResponse({'error': 'Acceso no autorizado'}, status=403)
 
         new_status = request.POST.get('status')
+        new_price = request.POST.get('price')
+        
+        # Actualizar precio si se proporciona
+        if new_price:
+            try:
+                ride.price = float(new_price)
+                ride.save()
+                
+                # Broadcast WebSocket update
+                broadcast_ride_update(ride)
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Precio actualizado con exito',
+                    'new_price': str(ride.price)
+                })
+            except ValueError:
+                return JsonResponse({'error': 'Precio invalido'}, status=400)
 
         if new_status == 'in_progress' and not ride.driver:
             ride.driver = request.user
@@ -1706,7 +1724,7 @@ def update_ride_status(request, ride_id):
 
             return JsonResponse({
                 'success': True,
-                'message': 'Carrera completada con éxito',
+                'message': 'Carrera completada con exito',
                 'new_status': 'Completada',
                 'new_status_color': 'success'
             })
@@ -1720,13 +1738,13 @@ def update_ride_status(request, ride_id):
 
             return JsonResponse({
                 'success': True,
-                'message': 'Carrera cancelada con éxito',
+                'message': 'Carrera cancelada con exito',
                 'new_status': 'Cancelada',
                 'new_status_color': 'danger'
             })
 
         else:
-            return JsonResponse({'error': 'Estado inválido'}, status=400)
+            return JsonResponse({'error': 'Estado invalido'}, status=400)
 
     except Exception as e:
         return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)

@@ -156,20 +156,31 @@ function connectWebSocket() {
     if (data.type === 'ride_update') {
       const ride = data.ride;
       
-      // Actualizar precio
-      let priceEls = document.querySelectorAll(".price-" + ride.id);
-      priceEls.forEach(el => el.innerText = "$" + ride.price);
-      
-      // Actualizar estado
-      let statusEls = document.querySelectorAll(".status-" + ride.id);
-      statusEls.forEach(el => el.innerText = ride.status);
-      
-      // Si cancelada, remover de la lista
-      if (ride.status_raw === "canceled") {
+      // Si la carrera cambio a in_progress o canceled, removerla de la lista
+      if (ride.status_raw === "in_progress" || ride.status_raw === "canceled" || ride.status_raw === "completed") {
         let row = document.getElementById("ride-" + ride.id);
         let card = document.getElementById("ride-mobile-" + ride.id);
         if (row) row.remove();
         if (card) card.remove();
+        return;
+      }
+      
+      // Si es una carrera nueva (requested) y no existe en la pagina, recargar
+      if (ride.status_raw === "requested") {
+        let row = document.getElementById("ride-" + ride.id);
+        if (!row) {
+          // Nueva carrera, recargar pagina
+          location.reload();
+          return;
+        }
+        
+        // Actualizar precio si cambio
+        let priceEls = document.querySelectorAll(".price-" + ride.id);
+        priceEls.forEach(el => el.innerText = "$" + ride.price);
+        
+        // Actualizar estado
+        let statusEls = document.querySelectorAll(".status-" + ride.id);
+        statusEls.forEach(el => el.innerText = ride.status);
       }
     }
   };

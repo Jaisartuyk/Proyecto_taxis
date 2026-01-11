@@ -1235,6 +1235,9 @@ def telegram_webhook(request):
                 destination_longitude=lng,
                 order=0
             )
+            
+            # ✅ Broadcast WebSocket: Nueva carrera disponible
+            broadcast_ride_update(ride)
 
             botones = [[{"text": "✅ Aceptar carrera", "callback_data": f"aceptar_{ride.id}"}]]
 
@@ -1340,6 +1343,9 @@ def request_ride(request):
                     commission_rate = ride.organization.commission_rate / Decimal('100')
                     ride.commission_amount = ride.price * commission_rate
                     ride.save(update_fields=['commission_amount'])
+                
+                # ✅ Broadcast WebSocket: Nueva carrera disponible
+                broadcast_ride_update(ride)
 
                 # Crear destinos asociados
                 for i, destination in enumerate(destinations):
@@ -1483,6 +1489,9 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
             destination_longitude=dest_lng,
             order=0
         )
+        
+        # ✅ Broadcast WebSocket: Nueva carrera disponible
+        broadcast_ride_update(ride)
         
         # Obtener dirección legible para origen
         direccion_legible = obtener_direccion_google(origin_lat, origin_lng, settings.GOOGLE_API_KEY)

@@ -59,8 +59,11 @@
 <span class="badge bg-warning">{{ ride.get_status_display }}</span>
 </td>
 <td>
-<button class="btn btn-info btn-sm" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
-<button class="btn btn-success btn-sm" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
+<button class="btn btn-primary btn-sm me-1" onclick="window.location.href='/ride/{{ ride.id }}/'">
+  <i class="bi bi-eye"></i> Ver
+</button>
+<button class="btn btn-info btn-sm me-1" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
+<button class="btn btn-success btn-sm me-1" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
 <button class="btn btn-danger btn-sm" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>
 </td>
 </tr>
@@ -81,6 +84,9 @@ Precio: <span class="price-{{ ride.id }}">${{ ride.price }}</span><br>
 Estado: <span class="status-{{ ride.id }}">{{ ride.get_status_display }}</span>
 
 <div class="mt-2">
+<button class="btn btn-primary w-100 mb-1" onclick="window.location.href='/ride/{{ ride.id }}/'">
+  <i class="bi bi-eye"></i> Ver Detalles
+</button>
 <button class="btn btn-info w-100 mb-1" onclick="changePrice({{ ride.id }}, {{ ride.price }})">Cambiar Precio</button>
 <button class="btn btn-success w-100 mb-1" onclick="updateRide({{ ride.id }},'in_progress')">Aceptar</button>
 <button class="btn btn-danger w-100" onclick="updateRide({{ ride.id }},'canceled')">Cancelar</button>

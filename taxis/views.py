@@ -1644,6 +1644,31 @@ def active_rides(request):
     return render(request, 'active_rides.html', {'rides': rides})
 
 
+def broadcast_ride_update(ride):
+    """Send ride update via WebSocket to all users in the same organization"""
+    from asgiref.sync import async_to_sync
+    
+    if not ride.organization:
+        return
+    
+    channel_layer = get_channel_layer()
+    group_name = f'rides_org_{ride.organization.id}'
+    
+    ride_data = {
+        'id': ride.id,
+        'price': str(ride.price),
+        'status': ride.get_status_display(),
+        'status_raw': ride.status,
+    }
+    
+    async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            'type': 'ride_update',
+            'ride': ride_data
+        }
+    )
+
 
 @login_required
 def update_ride_status(request, ride_id):
@@ -1662,6 +1687,9 @@ def update_ride_status(request, ride_id):
             ride.driver = request.user
             ride.status = 'in_progress'
             ride.save()
+            
+            # Broadcast WebSocket update
+            broadcast_ride_update(ride)
 
             return JsonResponse({
                 'success': True,
@@ -1672,6 +1700,9 @@ def update_ride_status(request, ride_id):
             ride.status = 'completed'
             ride.end_time = now()
             ride.save()
+            
+            # Broadcast WebSocket update
+            broadcast_ride_update(ride)
 
             return JsonResponse({
                 'success': True,
@@ -1683,6 +1714,9 @@ def update_ride_status(request, ride_id):
         elif new_status == 'canceled':
             ride.status = 'canceled'
             ride.save()
+            
+            # Broadcast WebSocket update
+            broadcast_ride_update(ride)
 
             return JsonResponse({
                 'success': True,

@@ -789,3 +789,53 @@ class ChatConsumer(AsyncWebsocketConsumer):
             traceback.print_exc()
             return None
 
+
+class RidesConsumer(AsyncWebsocketConsumer):
+    """WebSocket para actualizaciones en tiempo real de carreras"""
+    
+    async def connect(self):
+        self.user = self.scope['user']
+        
+        if self.user.is_authenticated:
+            # Obtener organizacion del usuario
+            organization_id = await self.get_user_organization()
+            
+            if organization_id:
+                # Grupo por organizacion: rides_org_1, rides_org_2, etc.
+                self.room_group_name = f'rides_org_{organization_id}'
+                await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+                await self.accept()
+                print(f"✅ RidesConsumer conectado: {self.channel_name} -> Grupo: {self.room_group_name}")
+            else:
+                print(f"❌ Usuario {self.user.username} sin organizacion, rechazando conexion")
+                await self.close()
+        else:
+            print(f"❌ Usuario no autenticado, rechazando conexion")
+            await self.close()
+    
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+            print(f"❌ RidesConsumer desconectado: {self.channel_name}")
+    
+    async def receive(self, text_data):
+        """Recibir mensajes del cliente (opcional)"""
+        pass
+    
+    async def ride_update(self, event):
+        """Enviar actualizacion de carrera al cliente"""
+        await self.send(text_data=json.dumps({
+            'type': 'ride_update',
+            'ride': event['ride']
+        }))
+    
+    @database_sync_to_async
+    def get_user_organization(self):
+        """Obtener organization_id del usuario"""
+        try:
+            if hasattr(self.user, 'organization') and self.user.organization:
+                return self.user.organization.id
+            return None
+        except Exception as e:
+            print(f"Error obteniendo organizacion: {e}")
+            return None

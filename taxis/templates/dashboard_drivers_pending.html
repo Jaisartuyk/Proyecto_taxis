@@ -20,10 +20,85 @@ body {
     background:#1f1f1f;
     border-radius:20px;
     padding:2rem;
+    overflow-x:auto;
+}
+
+/* Tabla responsiva */
+@media (max-width: 768px) {
+    .table-card {
+        padding: 1rem;
+    }
+    .table {
+        font-size: 0.875rem;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
 }
 .modal-content{
     background:#1f1f1f;
     color:white;
+    border: 1px solid #2d2d2d;
+}
+.modal-header{
+    border-bottom: 1px solid #333;
+}
+.modal-footer{
+    border-top: 1px solid #333;
+}
+.form-control, .form-select{
+    background:#2a2a2a;
+    border-color:#333;
+    color:white;
+}
+.form-control:focus, .form-select:focus{
+    background:#2a2a2a;
+    border-color:#FFD700;
+    color:white;
+    box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
+}
+.form-label{
+    color:#e0e0e0;
+    font-weight:500;
+    margin-bottom:0.5rem;
+}
+
+/* Responsivo para modales */
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+    .modal-content {
+        max-height: 95vh;
+    }
+    .modal-body {
+        padding: 1rem;
+    }
+    .modal-header, .modal-footer {
+        padding: 1rem;
+    }
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+    .modal-dialog {
+        max-width: 90%;
+        margin: 1rem auto;
+    }
+}
+
+@media (min-width: 769px) {
+    .modal-dialog {
+        max-width: 600px;
+        margin: 1.75rem auto;
+    }
+}
+
+/* Asegurar que el contenido sea scrollable */
+.modal-body {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
 }
 </style>
 {% endblock %}

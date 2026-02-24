@@ -1011,10 +1011,11 @@ def get_distance_duration(lat1, lng1, lat2, lng2):
 
 
 # 🚕 Buscar el taxista más cercano a una ubicación
-def obtener_taxista_mas_cercano(lat, lng):
+def obtener_taxista_mas_cercano(lat, lng, organization=None):
     """
-    Busca el taxista más cercano a una ubicación
-    Ahora acepta conductores con Telegram O WhatsApp
+    Busca el taxista más cercano a una ubicación.
+    Si se pasa 'organization', solo busca conductores de esa cooperativa.
+    Acepta conductores con Telegram O WhatsApp.
     """
     origen = (lat, lng)
     taxistas = Taxi.objects.select_related('user').filter(
@@ -1023,12 +1024,17 @@ def obtener_taxista_mas_cercano(lat, lng):
         longitude__isnull=False
     ).filter(
         # Que tenga Telegram O WhatsApp
-        models.Q(user__telegram_chat_id__isnull=False) | 
+        models.Q(user__telegram_chat_id__isnull=False) |
         models.Q(user__phone_number__isnull=False)
     )
+
+    # ✅ FIX #2: Filtrar por organización (multi-tenant)
+    if organization is not None:
+        taxistas = taxistas.filter(user__organization=organization)
     
     if not taxistas.exists():
-        logger.warning(f"⚠️ No se encontraron taxistas disponibles cerca de ({lat}, {lng})")
+        logger.warning(f"⚠️ No se encontraron taxistas disponibles cerca de ({lat}, {lng})"
+                       + (f" en org {organization}" if organization else ""))
         return None
     
     taxista_cercano = min(
@@ -1303,6 +1309,11 @@ def clear_cache(request):
 
 @login_required
 def request_ride(request):
+    # ✅ FIX #3: Solo clientes pueden solicitar carreras
+    if not request.user.is_superuser and request.user.role != 'customer':
+        messages.error(request, 'Solo los clientes pueden solicitar carreras.')
+        return redirect('home')
+
     if request.method == 'POST':
         origin = request.POST.get('origin')
         price = request.POST.get('price')
@@ -1311,13 +1322,26 @@ def request_ride(request):
         destinations = request.POST.getlist('destinations[]')
         destination_coords = request.POST.getlist('destination_coords[]')
 
-        if all([origin, origin_lat, origin_lng, destinations, destination_coords]):
+        if all([origin_lat, origin_lng, destinations, destination_coords]):
             try:
                 from decimal import Decimal
-                
+
                 origin_lat = float(origin_lat)
                 origin_lng = float(origin_lng)
-                price = Decimal(str(price))  # Convertir a Decimal para evitar errores de tipo
+
+                # ✅ FIX #1: price por defecto 0.00 si viene vacío o inválido
+                try:
+                    price = Decimal(str(price)) if price and str(price).strip() else Decimal('0.00')
+                except Exception:
+                    price = Decimal('0.00')
+
+                # ✅ FIX #4: Validar que destinations y destination_coords tienen el mismo tamaño
+                if len(destinations) != len(destination_coords):
+                    messages.error(request, 'Error: número de destinos y coordenadas no coincide.')
+                    return render(request, 'request_ride.html', {
+                        'google_api_key': settings.GOOGLE_API_KEY,
+                        'direccion_legible': 'Aún no se ha seleccionado un origen'
+                    })
 
                 # ✅ Si el origen está vacío o es inválido, obtener dirección desde coordenadas
                 if not origin or origin.strip() == '' or 'undefined' in origin.lower():
@@ -1339,13 +1363,13 @@ def request_ride(request):
                     price=price,
                     status='requested',
                 )
-                
+
                 # ✅ Calcular comisión automáticamente
                 if ride.organization and ride.price:
                     commission_rate = ride.organization.commission_rate / Decimal('100')
                     ride.commission_amount = ride.price * commission_rate
                     ride.save(update_fields=['commission_amount'])
-                
+
                 # ✅ Broadcast WebSocket: Nueva carrera disponible
                 broadcast_ride_update(ride)
 
@@ -1384,8 +1408,11 @@ def request_ride(request):
                 # Enviar mensaje al grupo de conductores por Telegram
                 enviar_telegram(TELEGRAM_CHAT_ID_GRUPO_TAXISTAS, mensaje_grupo, botones)
 
-                # Notificar al taxista más cercano por WhatsApp
-                taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
+                # ✅ FIX #2: Notificar al taxista más cercano de la misma organización
+                taxista_cercano = obtener_taxista_mas_cercano(
+                    origin_lat, origin_lng,
+                    organization=request.user.organization
+                )
                 if taxista_cercano:
                     mensaje_taxista_whatsapp = (
                         f"🚕 *Nueva carrera cerca de ti!*\n\n"
@@ -1398,7 +1425,7 @@ def request_ride(request):
                         f"Para aceptar, responde:\n"
                         f"*ACEPTAR {ride.id}*"
                     )
-                    
+
                     # Enviar por Telegram si tiene chat_id
                     if taxista_cercano.user.telegram_chat_id:
                         try:
@@ -1410,7 +1437,7 @@ def request_ride(request):
                             enviar_telegram(taxista_cercano.user.telegram_chat_id, mensaje_telegram)
                         except Exception as e:
                             logger.warning(f"⚠️ No se pudo enviar Telegram: {e}")
-                    
+
                     # Enviar por WhatsApp si tiene número
                     if taxista_cercano.user.phone_number:
                         try:
@@ -1422,7 +1449,7 @@ def request_ride(request):
                             logger.info(f"✅ Notificación WhatsApp enviada a {taxista_cercano.user.get_full_name()}")
                         except Exception as e:
                             logger.warning(f"⚠️ No se pudo enviar WhatsApp: {e}")
-                    
+
                     # Enviar notificación PWA push
                     try:
                         enviar_notificacion_pwa_conductor(
@@ -1446,7 +1473,7 @@ def request_ride(request):
             except (ValueError, IndexError) as e:
                 messages.error(request, f'Error en los datos: {str(e)}')
         else:
-            messages.error(request, 'Completa todos los campos.')
+            messages.error(request, 'Completa todos los campos requeridos (origen y al menos un destino).')
 
     return render(request, 'request_ride.html', {
         'google_api_key': settings.GOOGLE_API_KEY,
@@ -1524,7 +1551,8 @@ def crear_carrera_desde_whatsapp(user, origin, origin_lat, origin_lng, destinati
             logger.warning(f"⚠️ No se pudo enviar a Telegram: {e}")
         
         # Notificar al taxista más cercano
-        taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng)
+        # ✅ FIX #2: Filtrar por organización del usuario (multi-tenant)
+        taxista_cercano = obtener_taxista_mas_cercano(origin_lat, origin_lng, organization=user.organization)
         if taxista_cercano:
             mensaje_taxista = (
                 f"🚕 *Nueva carrera cerca de ti!*\n\n"

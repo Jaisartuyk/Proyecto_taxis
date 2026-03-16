@@ -328,8 +328,15 @@
 
                 const distanceInKm = totalDistance / 1000; // Convertir a kilómetros
                 const threshold = 4.44; // Límite para tarifa base
-                const pricePerKm = 0.45; // Precio por kilómetro
-                const price = distanceInKm <= threshold ? 2 : distanceInKm * pricePerKm; // Calcular precio
+                const basePrice = 2.00; // Precio base
+                const pricePerKm = 0.25; // Precio por kilómetro adicional (bajado para viajes largos)
+                
+                let price = basePrice;
+                if (distanceInKm > threshold) {
+                    const extraDistance = distanceInKm - threshold;
+                    price += extraDistance * pricePerKm;
+                }
+
 
                 // Actualizar campos con la distancia y el precio
                 document.getElementById('distance').value = distanceInKm.toFixed(2);

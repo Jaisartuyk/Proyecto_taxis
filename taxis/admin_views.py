@@ -343,6 +343,108 @@ class DriverRejectView(TemplateView):
         return redirect('admin_drivers_pending')
 
 
+@method_decorator(organization_admin_required, name='dispatch')
+class DriverListView(ListView):
+    """Lista de todos los conductores de la organización"""
+    model = AppUser
+    template_name = 'admin/drivers/list.html'
+    context_object_name = 'drivers'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = AppUser.objects.filter(role='driver').select_related('organization')
+        
+        # Filtrar por organización si no es superadmin
+        if not self.request.user.is_superuser:
+            queryset = queryset.filter(organization=self.request.user.organization)
+        
+        # Filtros
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(driver_status=status)
+        
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(driver_number__icontains=search) |
+                Q(vehicle_plate__icontains=search)
+            )
+        
+        return queryset.order_by('-date_joined')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estadísticas
+        all_drivers = self.get_queryset()
+        context['total_drivers'] = all_drivers.count()
+        context['approved_drivers'] = all_drivers.filter(driver_status='approved').count()
+        context['pending_drivers'] = all_drivers.filter(driver_status='pending').count()
+        context['suspended_drivers'] = all_drivers.filter(driver_status='suspended').count()
+        
+        return context
+
+
+@method_decorator(organization_admin_required, name='dispatch')
+class DriverDetailView(DetailView):
+    """Ver detalles completos de un conductor incluyendo fotos del vehículo"""
+    model = AppUser
+    template_name = 'admin/drivers/detail.html'
+    context_object_name = 'driver'
+    
+    def get_queryset(self):
+        queryset = AppUser.objects.filter(role='driver').select_related('organization')
+        
+        # Filtrar por organización si no es superadmin
+        if not self.request.user.is_superuser:
+            queryset = queryset.filter(organization=self.request.user.organization)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        driver = self.object
+        
+        # Estadísticas del conductor
+        rides = Ride.objects.filter(driver=driver)
+        context['total_rides'] = rides.count()
+        context['completed_rides'] = rides.filter(status='completed').count()
+        context['canceled_rides'] = rides.filter(status='canceled').count()
+        context['in_progress_rides'] = rides.filter(status='in_progress').count()
+        
+        # Ingresos
+        completed_rides = rides.filter(status='completed')
+        revenue_data = completed_rides.aggregate(
+            total_revenue=Sum('price'),
+            total_commission=Sum('commission_amount')
+        )
+        context['total_revenue'] = revenue_data['total_revenue'] or Decimal('0.00')
+        context['total_commission'] = revenue_data['total_commission'] or Decimal('0.00')
+        context['driver_earnings'] = context['total_revenue'] - context['total_commission']
+        
+        # Carreras recientes
+        context['recent_rides'] = rides.order_by('-created_at')[:10]
+        
+        # Calificación promedio
+        ratings = completed_rides.exclude(rating__isnull=True).aggregate(
+            avg_rating=Avg('rating')
+        )
+        context['avg_rating'] = ratings['avg_rating'] or 0
+        
+        # Fotos del vehículo
+        context['has_vehicle_photos'] = any([
+            driver.vehicle_photo_front,
+            driver.vehicle_photo_side,
+            driver.vehicle_photo_rear,
+            driver.vehicle_photo_interior
+        ])
+        
+        return context
+
+
 # ============================================
 # GESTIÓN DE CLIENTES
 # ============================================

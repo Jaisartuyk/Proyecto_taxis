@@ -331,29 +331,69 @@
     </div>
 
     <!-- Información del Vehículo -->
-    {% if taxi %}
+    {% if taxi or driver.vehicle_brand or driver.vehicle_plate %}
     <div class="section">
         <h2><i class="fas fa-car"></i> Información del Vehículo</h2>
         <div class="info-grid">
+            {% if driver.vehicle_plate %}
+            <div class="info-item">
+                <label>Placa del Vehículo</label>
+                <div class="value" style="color: #FFD700; font-weight: 600;">{{ driver.vehicle_plate }}</div>
+            </div>
+            {% elif taxi %}
             <div class="info-item">
                 <label>Placa</label>
                 <div class="value">{{ taxi.plate_number|default:"No especificado" }}</div>
             </div>
+            {% endif %}
+            
+            {% if driver.vehicle_brand %}
             <div class="info-item">
-                <label>Descripción del Vehículo</label>
-                <div class="value">{{ taxi.vehicle_description|default:"No especificado" }}</div>
+                <label>Marca</label>
+                <div class="value">{{ driver.vehicle_brand }}</div>
             </div>
+            {% endif %}
+            
+            {% if driver.vehicle_model %}
+            <div class="info-item">
+                <label>Modelo</label>
+                <div class="value">{{ driver.vehicle_model }}</div>
+            </div>
+            {% elif taxi %}
             <div class="info-item">
                 <label>Modelo</label>
                 <div class="value">{{ taxi.car_model|default:"No especificado" }}</div>
             </div>
+            {% endif %}
+            
+            {% if driver.vehicle_year %}
+            <div class="info-item">
+                <label>Año</label>
+                <div class="value">{{ driver.vehicle_year }}</div>
+            </div>
+            {% elif taxi %}
+            <div class="info-item">
+                <label>Año</label>
+                <div class="value">{{ taxi.car_year|default:"No especificado" }}</div>
+            </div>
+            {% endif %}
+            
+            {% if driver.vehicle_color %}
+            <div class="info-item">
+                <label>Color</label>
+                <div class="value">{{ driver.vehicle_color }}</div>
+            </div>
+            {% elif taxi %}
             <div class="info-item">
                 <label>Color</label>
                 <div class="value">{{ taxi.car_color|default:"No especificado" }}</div>
             </div>
+            {% endif %}
+            
+            {% if taxi %}
             <div class="info-item">
-                <label>Año</label>
-                <div class="value">{{ taxi.car_year|default:"No especificado" }}</div>
+                <label>Descripción del Vehículo</label>
+                <div class="value">{{ taxi.vehicle_description|default:"No especificado" }}</div>
             </div>
             <div class="info-item">
                 <label>Estado del Taxi</label>
@@ -391,6 +431,7 @@
                 <label>Última Actualización</label>
                 <div class="value">{{ taxi.updated_at|date:"d/m/Y H:i" }}</div>
             </div>
+            {% endif %}
         </div>
     </div>
     {% else %}
@@ -399,6 +440,61 @@
         <p style="color: #b0b0b0; text-align: center; padding: 2rem;">
             <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
             Este conductor no tiene un vehículo asignado
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Fotos del Vehículo -->
+    {% if driver.vehicle_photo_front or driver.vehicle_photo_side or driver.vehicle_photo_rear or driver.vehicle_photo_interior %}
+    <div class="section">
+        <h2><i class="fas fa-camera"></i> Fotos del Vehículo</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            {% if driver.vehicle_photo_front %}
+            <div style="position: relative; border-radius: 15px; overflow: hidden; border: 2px solid #FFD700; background: rgba(31, 31, 31, 0.5);">
+                <img src="{{ driver.vehicle_photo_front.url }}" alt="Foto frontal del vehículo" 
+                     style="width: 100%; height: 250px; object-fit: cover; cursor: pointer;"
+                     onclick="window.open('{{ driver.vehicle_photo_front.url }}', '_blank')">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 1rem; color: white; font-weight: 600;">
+                    <i class="fas fa-car-side"></i> Vista Frontal
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if driver.vehicle_photo_side %}
+            <div style="position: relative; border-radius: 15px; overflow: hidden; border: 2px solid #FFD700; background: rgba(31, 31, 31, 0.5);">
+                <img src="{{ driver.vehicle_photo_side.url }}" alt="Foto lateral del vehículo" 
+                     style="width: 100%; height: 250px; object-fit: cover; cursor: pointer;"
+                     onclick="window.open('{{ driver.vehicle_photo_side.url }}', '_blank')">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 1rem; color: white; font-weight: 600;">
+                    <i class="fas fa-car"></i> Vista Lateral
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if driver.vehicle_photo_rear %}
+            <div style="position: relative; border-radius: 15px; overflow: hidden; border: 2px solid #FFD700; background: rgba(31, 31, 31, 0.5);">
+                <img src="{{ driver.vehicle_photo_rear.url }}" alt="Foto trasera del vehículo" 
+                     style="width: 100%; height: 250px; object-fit: cover; cursor: pointer;"
+                     onclick="window.open('{{ driver.vehicle_photo_rear.url }}', '_blank')">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 1rem; color: white; font-weight: 600;">
+                    <i class="fas fa-car-rear"></i> Vista Trasera
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if driver.vehicle_photo_interior %}
+            <div style="position: relative; border-radius: 15px; overflow: hidden; border: 2px solid #FFD700; background: rgba(31, 31, 31, 0.5);">
+                <img src="{{ driver.vehicle_photo_interior.url }}" alt="Foto interior del vehículo" 
+                     style="width: 100%; height: 250px; object-fit: cover; cursor: pointer;"
+                     onclick="window.open('{{ driver.vehicle_photo_interior.url }}', '_blank')">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 1rem; color: white; font-weight: 600;">
+                    <i class="fas fa-chair"></i> Vista Interior
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <p style="color: #b0b0b0; margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+            <i class="fas fa-info-circle"></i> Haz clic en cualquier foto para verla en tamaño completo
         </p>
     </div>
     {% endif %}

@@ -436,13 +436,58 @@
                         <div class="detail-item">
                             <span class="detail-label">🚙 Vehículo</span>
                             <span class="detail-value">
-                                {% if taxi %}
+                                {% if driver.vehicle_brand and driver.vehicle_model %}
+                                    {{ driver.vehicle_brand }} {{ driver.vehicle_model }}
+                                    {% if driver.vehicle_year %}({{ driver.vehicle_year }}){% endif %}
+                                {% elif taxi %}
                                     {{ taxi.vehicle_description|truncatewords:5|default:"N/A" }}
                                 {% else %}
                                     <span style="color: #9E9E9E;">No especificado</span>
                                 {% endif %}
                             </span>
                         </div>
+
+                        {% if driver.vehicle_plate %}
+                        <div class="detail-item">
+                            <span class="detail-label">🔖 Placa Vehículo</span>
+                            <span class="detail-value">
+                                <strong style="color: #FFD700;">{{ driver.vehicle_plate }}</strong>
+                            </span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Fotos del Vehículo -->
+                        {% if driver.vehicle_photo_front or driver.vehicle_photo_side or driver.vehicle_photo_rear or driver.vehicle_photo_interior %}
+                        <div class="detail-item" style="grid-column: 1 / -1;">
+                            <span class="detail-label">📸 Fotos del Vehículo</span>
+                            <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                                {% if driver.vehicle_photo_front %}
+                                <img src="{{ driver.vehicle_photo_front.url }}" alt="Frontal" 
+                                     style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #FFD700;"
+                                     onclick="window.open('{{ driver.vehicle_photo_front.url }}', '_blank')"
+                                     title="Foto frontal">
+                                {% endif %}
+                                {% if driver.vehicle_photo_side %}
+                                <img src="{{ driver.vehicle_photo_side.url }}" alt="Lateral" 
+                                     style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #FFD700;"
+                                     onclick="window.open('{{ driver.vehicle_photo_side.url }}', '_blank')"
+                                     title="Foto lateral">
+                                {% endif %}
+                                {% if driver.vehicle_photo_rear %}
+                                <img src="{{ driver.vehicle_photo_rear.url }}" alt="Trasera" 
+                                     style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #FFD700;"
+                                     onclick="window.open('{{ driver.vehicle_photo_rear.url }}', '_blank')"
+                                     title="Foto trasera">
+                                {% endif %}
+                                {% if driver.vehicle_photo_interior %}
+                                <img src="{{ driver.vehicle_photo_interior.url }}" alt="Interior" 
+                                     style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #FFD700;"
+                                     onclick="window.open('{{ driver.vehicle_photo_interior.url }}', '_blank')"
+                                     title="Foto interior">
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="detail-item">
                             <span class="detail-label">📍 Estado</span>

@@ -612,16 +612,103 @@
                 <strong>Teléfono:</strong>
                 <span>{{ ride.driver.phone_number|default:"No disponible" }}</span>
             </div>
-            {% if ride.driver.taxi %}
+            
+            <!-- Información del Vehículo -->
+            {% if ride.driver.vehicle_brand or ride.driver.vehicle_model or ride.driver.taxi %}
             <div class="info-item">
                 <strong>Vehículo:</strong>
-                <span>{{ ride.driver.taxi.vehicle_description }}</span>
-            </div>
-            <div class="info-item">
-                <strong>Placa:</strong>
-                <span>{{ ride.driver.taxi.plate_number }}</span>
+                <span>
+                    {% if ride.driver.vehicle_brand and ride.driver.vehicle_model %}
+                        {{ ride.driver.vehicle_brand }} {{ ride.driver.vehicle_model }}
+                        {% if ride.driver.vehicle_year %}({{ ride.driver.vehicle_year }}){% endif %}
+                    {% elif ride.driver.taxi %}
+                        {{ ride.driver.taxi.vehicle_description }}
+                    {% else %}
+                        No especificado
+                    {% endif %}
+                </span>
             </div>
             {% endif %}
+            
+            {% if ride.driver.vehicle_plate or ride.driver.taxi %}
+            <div class="info-item">
+                <strong>Placa:</strong>
+                <span style="color: #FFD700; font-weight: 600;">
+                    {% if ride.driver.vehicle_plate %}
+                        {{ ride.driver.vehicle_plate }}
+                    {% elif ride.driver.taxi %}
+                        {{ ride.driver.taxi.plate_number }}
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if ride.driver.vehicle_color %}
+            <div class="info-item">
+                <strong>Color:</strong>
+                <span>{{ ride.driver.vehicle_color }}</span>
+            </div>
+            {% endif %}
+            
+            <!-- Fotos del Vehículo para Identificación -->
+            {% if ride.driver.vehicle_photo_front or ride.driver.vehicle_photo_side or ride.driver.vehicle_photo_rear or ride.driver.vehicle_photo_interior %}
+            <div class="info-item" style="flex-direction: column; align-items: flex-start; margin-top: 1rem;">
+                <strong style="margin-bottom: 0.75rem;">📸 Fotos del Vehículo:</strong>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; width: 100%;">
+                    {% if ride.driver.vehicle_photo_front %}
+                    <div style="position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #FFD700;">
+                        <img src="{{ ride.driver.vehicle_photo_front.url }}" alt="Vista frontal" 
+                             style="width: 100%; height: 100px; object-fit: cover; cursor: pointer;"
+                             onclick="window.open('{{ ride.driver.vehicle_photo_front.url }}', '_blank')"
+                             title="Click para ampliar">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 5px; font-size: 0.7rem; text-align: center; color: white;">
+                            Frontal
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ride.driver.vehicle_photo_side %}
+                    <div style="position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #FFD700;">
+                        <img src="{{ ride.driver.vehicle_photo_side.url }}" alt="Vista lateral" 
+                             style="width: 100%; height: 100px; object-fit: cover; cursor: pointer;"
+                             onclick="window.open('{{ ride.driver.vehicle_photo_side.url }}', '_blank')"
+                             title="Click para ampliar">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 5px; font-size: 0.7rem; text-align: center; color: white;">
+                            Lateral
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ride.driver.vehicle_photo_rear %}
+                    <div style="position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #FFD700;">
+                        <img src="{{ ride.driver.vehicle_photo_rear.url }}" alt="Vista trasera" 
+                             style="width: 100%; height: 100px; object-fit: cover; cursor: pointer;"
+                             onclick="window.open('{{ ride.driver.vehicle_photo_rear.url }}', '_blank')"
+                             title="Click para ampliar">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 5px; font-size: 0.7rem; text-align: center; color: white;">
+                            Trasera
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ride.driver.vehicle_photo_interior %}
+                    <div style="position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #FFD700;">
+                        <img src="{{ ride.driver.vehicle_photo_interior.url }}" alt="Vista interior" 
+                             style="width: 100%; height: 100px; object-fit: cover; cursor: pointer;"
+                             onclick="window.open('{{ ride.driver.vehicle_photo_interior.url }}', '_blank')"
+                             title="Click para ampliar">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 5px; font-size: 0.7rem; text-align: center; color: white;">
+                            Interior
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <small style="color: #9ca3af; margin-top: 0.5rem; font-size: 0.85rem;">
+                    <i class="fas fa-info-circle"></i> Haz clic en las fotos para verlas en tamaño completo
+                </small>
+            </div>
+            {% endif %}
+            
             {% else %}
             <p style="color: #9ca3af;">Aún no se ha asignado un conductor</p>
             {% endif %}

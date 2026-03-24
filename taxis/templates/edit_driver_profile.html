@@ -223,9 +223,123 @@
                 </div>
             </div>
 
-            <!-- Información del Taxi -->
+            <!-- Información del Vehículo -->
             <h3 class="section-title mt-5">
                 <i class="fas fa-car"></i> Información del Vehículo
+            </h3>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_plate.id_for_label }}" class="form-label">Placa del Vehículo *</label>
+                        {{ user_form.vehicle_plate }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_brand.id_for_label }}" class="form-label">Marca *</label>
+                        {{ user_form.vehicle_brand }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_model.id_for_label }}" class="form-label">Modelo *</label>
+                        {{ user_form.vehicle_model }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_year.id_for_label }}" class="form-label">Año</label>
+                        {{ user_form.vehicle_year }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ user_form.vehicle_color.id_for_label }}" class="form-label">Color</label>
+                {{ user_form.vehicle_color }}
+            </div>
+
+            <!-- Fotos del Vehículo -->
+            <h3 class="section-title mt-5">
+                <i class="fas fa-camera"></i> Fotos del Vehículo
+            </h3>
+            <p style="color: #b0b0b0; margin-bottom: 1.5rem;">
+                Sube fotos claras de tu vehículo desde diferentes ángulos. Las fotos ayudarán a los clientes a identificar tu taxi.
+            </p>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_photo_front.id_for_label }}" class="form-label">
+                            <i class="fas fa-car-side"></i> Foto Frontal
+                        </label>
+                        {% if user.vehicle_photo_front %}
+                            <div style="margin-bottom: 10px;">
+                                <img src="{{ user.vehicle_photo_front.url }}" alt="Foto frontal" 
+                                     style="width: 100%; max-width: 300px; height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid #FFD700;">
+                            </div>
+                        {% endif %}
+                        {{ user_form.vehicle_photo_front }}
+                        <small class="form-text">Vista frontal del vehículo</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_photo_side.id_for_label }}" class="form-label">
+                            <i class="fas fa-car"></i> Foto Lateral
+                        </label>
+                        {% if user.vehicle_photo_side %}
+                            <div style="margin-bottom: 10px;">
+                                <img src="{{ user.vehicle_photo_side.url }}" alt="Foto lateral" 
+                                     style="width: 100%; max-width: 300px; height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid #FFD700;">
+                            </div>
+                        {% endif %}
+                        {{ user_form.vehicle_photo_side }}
+                        <small class="form-text">Vista lateral del vehículo</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_photo_rear.id_for_label }}" class="form-label">
+                            <i class="fas fa-car-rear"></i> Foto Trasera
+                        </label>
+                        {% if user.vehicle_photo_rear %}
+                            <div style="margin-bottom: 10px;">
+                                <img src="{{ user.vehicle_photo_rear.url }}" alt="Foto trasera" 
+                                     style="width: 100%; max-width: 300px; height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid #FFD700;">
+                            </div>
+                        {% endif %}
+                        {{ user_form.vehicle_photo_rear }}
+                        <small class="form-text">Vista trasera del vehículo</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ user_form.vehicle_photo_interior.id_for_label }}" class="form-label">
+                            <i class="fas fa-chair"></i> Foto Interior
+                        </label>
+                        {% if user.vehicle_photo_interior %}
+                            <div style="margin-bottom: 10px;">
+                                <img src="{{ user.vehicle_photo_interior.url }}" alt="Foto interior" 
+                                     style="width: 100%; max-width: 300px; height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid #FFD700;">
+                            </div>
+                        {% endif %}
+                        {{ user_form.vehicle_photo_interior }}
+                        <small class="form-text">Vista interior del vehículo</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Taxi (Sistema Antiguo) -->
+            <h3 class="section-title mt-5">
+                <i class="fas fa-taxi"></i> Información del Taxi (Sistema Antiguo)
             </h3>
 
             <div class="row">

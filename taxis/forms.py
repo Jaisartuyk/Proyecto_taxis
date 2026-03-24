@@ -69,13 +69,30 @@ class CustomerProfileForm(forms.ModelForm):
 class DriverProfileForm(forms.ModelForm):
     class Meta:
         model = AppUser
-        fields = ['first_name', 'last_name', 'phone_number', 'national_id', 'profile_picture']
+        fields = [
+            'first_name', 'last_name', 'phone_number', 'national_id', 'profile_picture',
+            # Información del vehículo
+            'vehicle_plate', 'vehicle_brand', 'vehicle_model', 'vehicle_year', 'vehicle_color',
+            # Fotos del vehículo
+            'vehicle_photo_front', 'vehicle_photo_side', 'vehicle_photo_rear', 'vehicle_photo_interior'
+        ]
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'national_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellido'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+593 9XX XXX XXX'}),
+            'national_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Cédula'}),
+            'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            # Información del vehículo
+            'vehicle_plate': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: ABC-1234'}),
+            'vehicle_brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Toyota'}),
+            'vehicle_model': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Corolla'}),
+            'vehicle_year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 2020', 'min': '1990', 'max': '2030'}),
+            'vehicle_color': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Blanco'}),
+            # Fotos del vehículo
+            'vehicle_photo_front': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'vehicle_photo_side': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'vehicle_photo_rear': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'vehicle_photo_interior': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
 

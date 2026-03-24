@@ -162,11 +162,5 @@ urlpatterns = [
     # path('admin/invoices/', admin_views.InvoiceListView.as_view(), name='admin_invoices'),
     # path('admin/invoices/create/', admin_views.InvoiceCreateView.as_view(), name='admin_invoice_create'),
     # path('admin/invoices/<int:pk>/mark-paid/', admin_views.InvoiceMarkPaidView.as_view(), name='admin_invoice_mark_paid'),
-    
-    # ============================================
-    # FOTOS DEL VEHÍCULO
-    # ============================================
-    path('driver/vehicle-photos/', views.upload_vehicle_photos, name='upload_vehicle_photos'),
-    path('api/vehicle-photos/<str:photo_type>/delete/', views.delete_vehicle_photo, name='delete_vehicle_photo'),
 ]
 

@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fotos del Vehículo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .vehicle-photos-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .page-header h1 {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+
+    .page-header p {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+
+    .vehicle-info-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+
+    .vehicle-info-card h2 {
+        color: #34495e;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #34495e;
+        font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    .photos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-top: 30px;
+    }
+
+    .photo-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .photo-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+
+    .photo-card h3 {
+        color: #34495e;
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .photo-card h3 i {
+        color: #3498db;
+    }
+
+    .photo-preview {
+        width: 100%;
+        height: 200px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .photo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .photo-preview .placeholder {
+        color: #bdc3c7;
+        font-size: 3rem;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+
+    .file-input-label {
+        display: block;
+        padding: 12px 20px;
+        background: #3498db;
+        color: white;
+        text-align: center;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s;
+        font-weight: 600;
+    }
+
+    .file-input-label:hover {
+        background: #2980b9;
+    }
+
+    .file-input-label i {
+        margin-right: 8px;
+    }
+
+    .delete-photo-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s;
+        z-index: 10;
+    }
+
+    .delete-photo-btn:hover {
+        background: #c0392b;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 40px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.3s, box-shadow 0.3s;
+        display: block;
+        margin: 30px auto 0;
+        min-width: 250px;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-btn:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .alert {
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 20px;
+        transition: color 0.3s;
+    }
+
+    .back-btn:hover {
+        color: #2980b9;
+    }
+
+    @media (max-width: 768px) {
+        .vehicle-photos-container {
+            padding: 15px;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+        }
+
+        .photos-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="vehicle-photos-container">
+    <a href="{% url 'driver_dashboard' %}" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+        Volver al Dashboard
+    </a>
+
+    <div class="page-header">
+        <h1><i class="fas fa-car"></i> Fotos del Vehículo</h1>
+        <p>Sube fotos de tu vehículo para que los clientes puedan identificarlo fácilmente</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not cloudinary_available %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            Cloudinary no está disponible. Por favor, contacta al administrador.
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="vehiclePhotosForm">
+        {% csrf_token %}
+
+        <!-- Información del Vehículo -->
+        <div class="vehicle-info-card">
+            <h2><i class="fas fa-info-circle"></i> Información del Vehículo</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="vehicle_plate">Placa *</label>
+                    <input type="text" id="vehicle_plate" name="vehicle_plate" 
+                           value="{{ user.vehicle_plate|default:'' }}" 
+                           placeholder="Ej: ABC-1234" required>
+                </div>
+                <div class="form-group">
+                    <label for="vehicle_brand">Marca *</label>
+                    <input type="text" id="vehicle_brand" name="vehicle_brand" 
+                           value="{{ user.vehicle_brand|default:'' }}" 
+                           placeholder="Ej: Toyota" required>
+                </div>
+                <div class="form-group">
+                    <label for="vehicle_model">Modelo *</label>
+                    <input type="text" id="vehicle_model" name="vehicle_model" 
+                           value="{{ user.vehicle_model|default:'' }}" 
+                           placeholder="Ej: Corolla" required>
+                </div>
+                <div class="form-group">
+                    <label for="vehicle_year">Año</label>
+                    <input type="number" id="vehicle_year" name="vehicle_year" 
+                           value="{{ user.vehicle_year|default:'' }}" 
+                           placeholder="Ej: 2020" min="1990" max="2030">
+                </div>
+                <div class="form-group">
+                    <label for="vehicle_color">Color</label>
+                    <input type="text" id="vehicle_color" name="vehicle_color" 
+                           value="{{ user.vehicle_color|default:'' }}" 
+                           placeholder="Ej: Blanco">
+                </div>
+            </div>
+        </div>
+
+        <!-- Fotos del Vehículo -->
+        <div class="vehicle-info-card">
+            <h2><i class="fas fa-camera"></i> Fotos del Vehículo</h2>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">
+                Sube fotos claras de tu vehículo desde diferentes ángulos. Las fotos ayudarán a los clientes a identificar tu taxi.
+            </p>
+
+            <div class="photos-grid">
+                <!-- Foto Frontal -->
+                <div class="photo-card">
+                    <h3><i class="fas fa-car-side"></i> Foto Frontal</h3>
+                    <div class="photo-preview" id="preview-front">
+                        {% if user.vehicle_photo_front %}
+                            <img src="{{ user.vehicle_photo_front.url }}" alt="Foto frontal">
+                            <button type="button" class="delete-photo-btn" onclick="deletePhoto('front')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        {% else %}
+                            <i class="fas fa-car placeholder"></i>
+                        {% endif %}
+                    </div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="vehicle_photo_front" name="vehicle_photo_front" 
+                               accept="image/*" onchange="previewImage(this, 'preview-front')">
+                        <label for="vehicle_photo_front" class="file-input-label">
+                            <i class="fas fa-upload"></i> Seleccionar Foto
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Foto Lateral -->
+                <div class="photo-card">
+                    <h3><i class="fas fa-car"></i> Foto Lateral</h3>
+                    <div class="photo-preview" id="preview-side">
+                        {% if user.vehicle_photo_side %}
+                            <img src="{{ user.vehicle_photo_side.url }}" alt="Foto lateral">
+                            <button type="button" class="delete-photo-btn" onclick="deletePhoto('side')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        {% else %}
+                            <i class="fas fa-car placeholder"></i>
+                        {% endif %}
+                    </div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="vehicle_photo_side" name="vehicle_photo_side" 
+                               accept="image/*" onchange="previewImage(this, 'preview-side')">
+                        <label for="vehicle_photo_side" class="file-input-label">
+                            <i class="fas fa-upload"></i> Seleccionar Foto
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Foto Trasera -->
+                <div class="photo-card">
+                    <h3><i class="fas fa-car-rear"></i> Foto Trasera</h3>
+                    <div class="photo-preview" id="preview-rear">
+                        {% if user.vehicle_photo_rear %}
+                            <img src="{{ user.vehicle_photo_rear.url }}" alt="Foto trasera">
+                            <button type="button" class="delete-photo-btn" onclick="deletePhoto('rear')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        {% else %}
+                            <i class="fas fa-car placeholder"></i>
+                        {% endif %}
+                    </div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="vehicle_photo_rear" name="vehicle_photo_rear" 
+                               accept="image/*" onchange="previewImage(this, 'preview-rear')">
+                        <label for="vehicle_photo_rear" class="file-input-label">
+                            <i class="fas fa-upload"></i> Seleccionar Foto
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Foto Interior -->
+                <div class="photo-card">
+                    <h3><i class="fas fa-chair"></i> Foto Interior</h3>
+                    <div class="photo-preview" id="preview-interior">
+                        {% if user.vehicle_photo_interior %}
+                            <img src="{{ user.vehicle_photo_interior.url }}" alt="Foto interior">
+                            <button type="button" class="delete-photo-btn" onclick="deletePhoto('interior')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        {% else %}
+                            <i class="fas fa-chair placeholder"></i>
+                        {% endif %}
+                    </div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="vehicle_photo_interior" name="vehicle_photo_interior" 
+                               accept="image/*" onchange="previewImage(this, 'preview-interior')">
+                        <label for="vehicle_photo_interior" class="file-input-label">
+                            <i class="fas fa-upload"></i> Seleccionar Foto
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn" {% if not cloudinary_available %}disabled{% endif %}>
+            <i class="fas fa-save"></i> Guardar Cambios
+        </button>
+    </form>
+</div>
+
+<script>
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function deletePhoto(photoType) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta foto?')) {
+        return;
+    }
+    
+    fetch(`/api/vehicle-photos/${photoType}/delete/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Recargar la página para mostrar los cambios
+            location.reload();
+        } else {
+            alert('Error al eliminar la foto: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al eliminar la foto');
+    });
+}
+
+// Validación del formulario
+document.getElementById('vehiclePhotosForm').addEventListener('submit', function(e) {
+    const plate = document.getElementById('vehicle_plate').value.trim();
+    const brand = document.getElementById('vehicle_brand').value.trim();
+    const model = document.getElementById('vehicle_model').value.trim();
+    
+    if (!plate || !brand || !model) {
+        e.preventDefault();
+        alert('Por favor, completa los campos obligatorios: Placa, Marca y Modelo');
+        return false;
+    }
+});
+</script>
+{% endblock %}

@@ -285,6 +285,86 @@ class AppUser(AbstractUser):
         help_text="Estado de aprobación del conductor"
     )
     
+    # ============================================
+    # FOTOS DEL VEHÍCULO
+    # ============================================
+    
+    # Foto frontal del vehículo
+    vehicle_photo_front = CloudinaryField(
+        'image',
+        folder='vehicle_photos',
+        blank=True,
+        null=True,
+        transformation={'quality': 'auto', 'fetch_format': 'auto', 'width': 1200, 'height': 900, 'crop': 'limit'},
+        help_text="Foto frontal del vehículo"
+    )
+    
+    # Foto lateral del vehículo
+    vehicle_photo_side = CloudinaryField(
+        'image',
+        folder='vehicle_photos',
+        blank=True,
+        null=True,
+        transformation={'quality': 'auto', 'fetch_format': 'auto', 'width': 1200, 'height': 900, 'crop': 'limit'},
+        help_text="Foto lateral del vehículo"
+    )
+    
+    # Foto trasera del vehículo
+    vehicle_photo_rear = CloudinaryField(
+        'image',
+        folder='vehicle_photos',
+        blank=True,
+        null=True,
+        transformation={'quality': 'auto', 'fetch_format': 'auto', 'width': 1200, 'height': 900, 'crop': 'limit'},
+        help_text="Foto trasera del vehículo"
+    )
+    
+    # Foto interior del vehículo
+    vehicle_photo_interior = CloudinaryField(
+        'image',
+        folder='vehicle_photos',
+        blank=True,
+        null=True,
+        transformation={'quality': 'auto', 'fetch_format': 'auto', 'width': 1200, 'height': 900, 'crop': 'limit'},
+        help_text="Foto interior del vehículo"
+    )
+    
+    # Placa del vehículo
+    vehicle_plate = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Placa del vehículo (ej: ABC-1234)"
+    )
+    
+    # Marca y modelo del vehículo
+    vehicle_brand = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Marca del vehículo (ej: Toyota, Chevrolet)"
+    )
+    
+    vehicle_model = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Modelo del vehículo (ej: Corolla, Aveo)"
+    )
+    
+    vehicle_year = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Año del vehículo"
+    )
+    
+    vehicle_color = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True,
+        help_text="Color del vehículo"
+    )
+    
     # Fecha de aprobación
     approved_at = models.DateTimeField(
         null=True,

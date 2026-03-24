@@ -3409,3 +3409,191 @@ def register_fcm_token_view(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# ============================================
+# SUBIR FOTOS DEL VEHÍCULO
+# ============================================
+
+@login_required
+def upload_vehicle_photos(request):
+    """
+    Vista para que los conductores suban fotos de sus vehículos.
+    Las fotos se guardan en Cloudinary.
+    """
+    if request.user.role != 'driver':
+        messages.error(request, 'Solo los conductores pueden subir fotos de vehículos.')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            vehicle_plate = request.POST.get('vehicle_plate', '').strip()
+            vehicle_brand = request.POST.get('vehicle_brand', '').strip()
+            vehicle_model = request.POST.get('vehicle_model', '').strip()
+            vehicle_year = request.POST.get('vehicle_year', '').strip()
+            vehicle_color = request.POST.get('vehicle_color', '').strip()
+            
+            # Actualizar información del vehículo
+            if vehicle_plate:
+                request.user.vehicle_plate = vehicle_plate
+            if vehicle_brand:
+                request.user.vehicle_brand = vehicle_brand
+            if vehicle_model:
+                request.user.vehicle_model = vehicle_model
+            if vehicle_year:
+                try:
+                    request.user.vehicle_year = int(vehicle_year)
+                except ValueError:
+                    pass
+            if vehicle_color:
+                request.user.vehicle_color = vehicle_color
+            
+            # Procesar fotos
+            photos_uploaded = []
+            
+            # Foto frontal
+            if 'vehicle_photo_front' in request.FILES:
+                photo = request.FILES['vehicle_photo_front']
+                if CLOUDINARY_AVAILABLE:
+                    result = cloudinary.uploader.upload(
+                        photo,
+                        folder='vehicle_photos',
+                        transformation=[
+                            {'quality': 'auto', 'fetch_format': 'auto'},
+                            {'width': 1200, 'height': 900, 'crop': 'limit'}
+                        ]
+                    )
+                    request.user.vehicle_photo_front = result['public_id']
+                    photos_uploaded.append('frontal')
+            
+            # Foto lateral
+            if 'vehicle_photo_side' in request.FILES:
+                photo = request.FILES['vehicle_photo_side']
+                if CLOUDINARY_AVAILABLE:
+                    result = cloudinary.uploader.upload(
+                        photo,
+                        folder='vehicle_photos',
+                        transformation=[
+                            {'quality': 'auto', 'fetch_format': 'auto'},
+                            {'width': 1200, 'height': 900, 'crop': 'limit'}
+                        ]
+                    )
+                    request.user.vehicle_photo_side = result['public_id']
+                    photos_uploaded.append('lateral')
+            
+            # Foto trasera
+            if 'vehicle_photo_rear' in request.FILES:
+                photo = request.FILES['vehicle_photo_rear']
+                if CLOUDINARY_AVAILABLE:
+                    result = cloudinary.uploader.upload(
+                        photo,
+                        folder='vehicle_photos',
+                        transformation=[
+                            {'quality': 'auto', 'fetch_format': 'auto'},
+                            {'width': 1200, 'height': 900, 'crop': 'limit'}
+                        ]
+                    )
+                    request.user.vehicle_photo_rear = result['public_id']
+                    photos_uploaded.append('trasera')
+            
+            # Foto interior
+            if 'vehicle_photo_interior' in request.FILES:
+                photo = request.FILES['vehicle_photo_interior']
+                if CLOUDINARY_AVAILABLE:
+                    result = cloudinary.uploader.upload(
+                        photo,
+                        folder='vehicle_photos',
+                        transformation=[
+                            {'quality': 'auto', 'fetch_format': 'auto'},
+                            {'width': 1200, 'height': 900, 'crop': 'limit'}
+                        ]
+                    )
+                    request.user.vehicle_photo_interior = result['public_id']
+                    photos_uploaded.append('interior')
+            
+            # Guardar cambios
+            request.user.save()
+            
+            if photos_uploaded:
+                messages.success(
+                    request,
+                    f'✅ Fotos subidas correctamente: {", ".join(photos_uploaded)}. '
+                    f'Las fotos están siendo procesadas y estarán disponibles en breve.'
+                )
+            else:
+                messages.info(request, 'No se seleccionaron fotos para subir.')
+            
+            return redirect('upload_vehicle_photos')
+            
+        except Exception as e:
+            logger.error(f"Error subiendo fotos del vehículo: {e}")
+            messages.error(request, f'Error al subir las fotos: {str(e)}')
+            return redirect('upload_vehicle_photos')
+    
+    # GET request - mostrar formulario
+    context = {
+        'user': request.user,
+        'cloudinary_available': CLOUDINARY_AVAILABLE,
+    }
+    return render(request, 'upload_vehicle_photos.html', context)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_vehicle_photo(request, photo_type):
+    """
+    Vista para eliminar una foto específica del vehículo.
+    """
+    if request.user.role != 'driver':
+        return JsonResponse({
+            'success': False,
+            'error': 'Solo los conductores pueden eliminar fotos de vehículos.'
+        }, status=403)
+    
+    try:
+        # Mapear tipo de foto al campo del modelo
+        photo_fields = {
+            'front': 'vehicle_photo_front',
+            'side': 'vehicle_photo_side',
+            'rear': 'vehicle_photo_rear',
+            'interior': 'vehicle_photo_interior',
+        }
+        
+        if photo_type not in photo_fields:
+            return JsonResponse({
+                'success': False,
+                'error': 'Tipo de foto inválido.'
+            }, status=400)
+        
+        field_name = photo_fields[photo_type]
+        photo_field = getattr(request.user, field_name)
+        
+        if photo_field:
+            # Eliminar de Cloudinary
+            if CLOUDINARY_AVAILABLE:
+                try:
+                    cloudinary.uploader.destroy(photo_field.public_id)
+                except Exception as e:
+                    logger.warning(f"Error eliminando foto de Cloudinary: {e}")
+            
+            # Limpiar campo en la base de datos
+            setattr(request.user, field_name, None)
+            request.user.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Foto {photo_type} eliminada correctamente.'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'No hay foto para eliminar.'
+            }, status=404)
+            
+    except Exception as e:
+        logger.error(f"Error eliminando foto del vehículo: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

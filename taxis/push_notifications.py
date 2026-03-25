@@ -111,8 +111,17 @@ def send_push_notification(user, title, body, data=None, icon=None, badge=None):
             
         except WebPushException as e:
             # If subscription is expired or invalid, mark for deletion
-            if e.response and e.response.status_code in [404, 410]:
-                logger.warning(f"⚠️ Suscripción expirada para {user.username} - será eliminada")
+            error_message = str(e).lower()
+            is_expired = (
+                (e.response and e.response.status_code in [404, 410]) or
+                'unsubscribed' in error_message or
+                'expired' in error_message or
+                'invalid' in error_message
+            )
+            
+            if is_expired:
+                logger.warning(f"⚠️ Suscripción expirada/inválida para {user.username} - será eliminada")
+                logger.warning(f"   Razón: {e}")
                 expired_subscriptions.append(subscription.id)
             else:
                 logger.error(f"❌ Error al enviar notificación push: {e}")

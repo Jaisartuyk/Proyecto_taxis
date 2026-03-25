@@ -70,11 +70,17 @@
 
                 <!-- Destinos Container -->
                 <div id="destinations">
-                    <div class="destination-group mb-3 position-relative form-floating">
-                        <input type="text" class="form-control has-icon destination" id="destination-0" name="destinations[]" placeholder="Destino" required>
-                        <label for="destination-0"><i class="bi bi-geo-fill text-success me-2"></i>Destino (Elige en el mapa o busca)</label>
-                        <i class="bi bi-search floating-icon"></i>
-                        <input type="hidden" class="destination-coords" name="destination_coords[]">
+                    <div class="destination-group mb-3 position-relative">
+                        <div class="form-floating position-relative">
+                            <input type="text" class="form-control has-icon destination" id="destination-0" name="destinations[]" placeholder="Destino" required>
+                            <label for="destination-0"><i class="bi bi-geo-fill text-success me-2"></i>Destino (Elige en el mapa o busca)</label>
+                            <i class="bi bi-search floating-icon"></i>
+                            <input type="hidden" class="destination-coords" name="destination_coords[]">
+                        </div>
+                        <!-- Botón eliminar (solo visible si hay más de 1 destino) -->
+                        <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute delete-destination-btn" style="top: 50%; right: -45px; transform: translateY(-50%); width: 35px; height: 35px; display: none;" title="Eliminar destino">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -427,15 +433,54 @@
         }
     }
 
+    // Función para actualizar visibilidad de botones eliminar
+    function updateDeleteButtons() {
+        const destinationGroups = document.querySelectorAll('.destination-group');
+        const deleteButtons = document.querySelectorAll('.delete-destination-btn');
+        
+        // Mostrar botones solo si hay más de 1 destino
+        deleteButtons.forEach(btn => {
+            btn.style.display = destinationGroups.length > 1 ? 'block' : 'none';
+        });
+    }
+
+    // Función para eliminar un destino
+    function deleteDestination(button) {
+        const destinationGroup = button.closest('.destination-group');
+        const index = Array.from(document.querySelectorAll('.destination-group')).indexOf(destinationGroup);
+        
+        // Eliminar marcador del mapa
+        if (destinationMarkers[index]) {
+            destinationMarkers[index].setMap(null);
+            destinationMarkers.splice(index, 1);
+        }
+        
+        // Eliminar del DOM
+        destinationGroup.remove();
+        
+        // Recalcular precio
+        calculateTotalDistanceAndPrice();
+        
+        // Actualizar botones
+        updateDeleteButtons();
+        
+        console.log(`🗑️ Destino ${index + 1} eliminado`);
+    }
+
     document.getElementById('add-destination').addEventListener('click', () => {
         const destinationGroup = document.createElement('div');
-        const newId = `destination-${destinationMarkers.length + 1}`;
-        destinationGroup.classList.add('destination-group', 'mb-3', 'position-relative', 'form-floating');
+        const newId = `destination-${Date.now()}`;
+        destinationGroup.classList.add('destination-group', 'mb-3', 'position-relative');
         destinationGroup.innerHTML = `
-                <input type="text" class="form-control has-icon destination" id="${newId}" name="destinations[]" placeholder="Destino" required>
-                <label for="${newId}"><i class="bi bi-geo-fill text-success me-2"></i>Destino (Elige en el mapa o busca)</label>
-                <i class="bi bi-search floating-icon"></i>
-                <input type="hidden" class="destination-coords" name="destination_coords[]">
+                <div class="form-floating position-relative">
+                    <input type="text" class="form-control has-icon destination" id="${newId}" name="destinations[]" placeholder="Destino" required>
+                    <label for="${newId}"><i class="bi bi-geo-fill text-success me-2"></i>Destino (Elige en el mapa o busca)</label>
+                    <i class="bi bi-search floating-icon"></i>
+                    <input type="hidden" class="destination-coords" name="destination_coords[]">
+                </div>
+                <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute delete-destination-btn" style="top: 50%; right: -45px; transform: translateY(-50%); width: 35px; height: 35px;" title="Eliminar destino" onclick="deleteDestination(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
             `;
         document.getElementById('destinations').appendChild(destinationGroup);
         
@@ -448,6 +493,9 @@
         // Actualizar activeIndex y enfocar
         activeDestinationIndex = newIndex;
         newInputs[newIndex].focus();
+        
+        // Actualizar botones eliminar
+        updateDeleteButtons();
     });
 
     // ============================================
@@ -531,6 +579,20 @@
             console.error('Error al enviar propuesta:', error);
             alert('❌ Error de conexión. Por favor intenta de nuevo.');
         }
+    });
+    
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
+    
+    // Agregar onclick al botón de eliminar del primer destino
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstDeleteBtn = document.querySelector('.delete-destination-btn');
+        if (firstDeleteBtn) {
+            firstDeleteBtn.onclick = function() { deleteDestination(this); };
+        }
+        // Actualizar visibilidad inicial
+        updateDeleteButtons();
     });
 </script>
 

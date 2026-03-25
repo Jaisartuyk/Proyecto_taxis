@@ -2014,23 +2014,28 @@
         
         if (isTransmitting) {
             // Alguien empezó a transmitir
-            console.log(`� ${senderName} (${senderRole}) empezó a transmitir`);
+            console.log(`🎤 ${senderName} (${senderRole}) empezó a transmitir`);
             
-            isSomeoneTransmitting = true;
-            
-            // Mostrar banner
-            if (banner && speakerNameSpan && roleBadge) {
-                speakerNameSpan.textContent = senderName;
-                roleBadge.textContent = senderRole === 'central' ? '📢 Central' : '🚖 Conductor';
-                banner.style.display = 'block';
-            }
-            
-            // Deshabilitar botón de micrófono para otros
-            if (senderId !== currentUser.id && recordBtn) {
-                recordBtn.disabled = true;
-                recordBtn.style.opacity = '0.5';
-                recordBtn.style.cursor = 'not-allowed';
-                recordBtn.title = `${senderName} está transmitiendo, espera...`;
+            // Solo bloquear si NO soy yo
+            if (String(senderId) !== String(currentUser.id)) {
+                isSomeoneTransmitting = true;
+                
+                // Mostrar banner
+                if (banner && speakerNameSpan && roleBadge) {
+                    speakerNameSpan.textContent = senderName;
+                    roleBadge.textContent = senderRole === 'central' ? '📢 Central' : '🚖 Conductor';
+                    banner.style.display = 'block';
+                }
+                
+                // Deshabilitar botón de micrófono
+                if (recordBtn) {
+                    recordBtn.disabled = true;
+                    recordBtn.style.opacity = '0.5';
+                    recordBtn.style.cursor = 'not-allowed';
+                    recordBtn.title = `${senderName} está transmitiendo, espera...`;
+                }
+            } else {
+                console.log('✅ Soy yo quien está transmitiendo, no me bloqueo');
             }
             
         } else {

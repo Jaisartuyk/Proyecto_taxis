@@ -1883,8 +1883,9 @@
                 return;
             }
             
-            // ✅ NUEVO: MANEJO DE ESTADO DE TRANSMISIÓN
-            if (data.type === 'audio_transmission_status') {
+            // ✅ MANEJO DE ESTADO DE TRANSMISIÓN
+            if (data.type === 'transmission_status' || data.type === 'audio_transmission_status') {
+                console.log('🚦 Estado de transmisión recibido:', data);
                 handleTransmissionStatus(data);
                 return;
             }
@@ -1957,17 +1958,20 @@
     
     // ✅ NUEVO: Manejar el estado de transmisión (alguien hablando)
     function handleTransmissionStatus(data) {
-        const status = data.status;
-        const senderName = data.sender_name || 'Usuario';
+        // Soportar ambos formatos: status (legacy) e isTransmitting (nuevo)
+        const isTransmitting = data.isTransmitting !== undefined ? data.isTransmitting : (data.status === 'started');
+        const senderName = data.speakerName || data.sender_name || 'Usuario';
         const senderRole = data.sender_role || 'conductor';
-        const senderId = data.sender_id;
+        const senderId = data.speakerId || data.sender_id;
         
         const banner = document.getElementById('audio-transmission-banner');
         const speakerNameSpan = document.getElementById('current-speaker-name');
         const roleBadge = document.getElementById('speaker-role-badge');
         const recordBtn = document.getElementById('record-audio-btn');
         
-        if (status === 'started') {
+        console.log('🔍 handleTransmissionStatus:', { isTransmitting, senderName, senderId, myId: currentUser.id });
+        
+        if (isTransmitting) {
             // Alguien empezó a transmitir
             console.log(`� ${senderName} (${senderRole}) empezó a transmitir`);
             
@@ -1988,7 +1992,7 @@
                 recordBtn.title = `${senderName} está transmitiendo, espera...`;
             }
             
-        } else if (status === 'stopped' || status === 'force_stopped') {
+        } else {
             // Alguien terminó de transmitir
             console.log(`✅ ${senderName} terminó de transmitir`);
             
@@ -2005,10 +2009,6 @@
                 recordBtn.style.opacity = '1';
                 recordBtn.style.cursor = 'pointer';
                 recordBtn.title = 'Mantén presionado para hablar';
-            }
-            
-            if (status === 'force_stopped') {
-                showNotification('🚨 Transmisión interrumpida por la central', 'warning');
             }
         }
     }

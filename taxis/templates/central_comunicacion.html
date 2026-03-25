@@ -1698,6 +1698,8 @@
                     
                     chatSocket.send(JSON.stringify({
                         'message': description,
+                        'sender_id': currentUser.id,
+                        'sender_name': 'Central',
                         'recipient_id': driverId,
                         'image_data': base64Data, // El backend espera 'image_data'
                         'filename': file.name, // El backend espera 'filename'

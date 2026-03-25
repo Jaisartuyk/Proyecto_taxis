@@ -567,16 +567,39 @@
             </div>
             <div class="info-item" style="align-items: flex-start;">
                 <strong>🎯 Destinos:</strong>
-                <ul class="destination-list">
+                <ul class="destination-list" id="destinations-list">
                     {% for dest in destinations %}
-                    <li class="destination-item">
+                    <li class="destination-item" data-destination-id="{{ dest.id }}" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                         <div class="destination-marker">{{ forloop.counter }}</div>
-                        <span>{{ dest.destination }}</span>
+                        <span class="destination-text" style="flex: 1;">{{ dest.destination }}</span>
+                        
+                        {% if request.user == ride.customer and ride.status in 'requested,accepted' %}
+                        <div class="destination-actions" style="display: flex; gap: 5px;">
+                            <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
+                                    onclick="editDestination({{ dest.id }}, '{{ dest.destination }}', {{ dest.destination_latitude }}, {{ dest.destination_longitude }})" 
+                                    title="Editar destino">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            {% if destinations|length > 1 %}
+                            <button type="button" class="btn btn-sm btn-danger rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
+                                    onclick="deleteDestinationFromRide({{ dest.id }})" 
+                                    title="Eliminar destino">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </li>
                     {% empty %}
                     <li>Sin destino especificado</li>
                     {% endfor %}
                 </ul>
+                
+                {% if request.user == ride.customer and ride.status in 'requested,accepted' %}
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="showAddDestinationModal()">
+                    <i class="bi bi-plus-circle me-1"></i> Agregar destino
+                </button>
+                {% endif %}
             </div>
         </div>
 
@@ -1026,6 +1049,132 @@
         setupChatWebSocket();
         scrollToBottom();
     });
+</script>
+{% endif %}
+
+{% if request.user == ride.customer and ride.status in 'requested,accepted' %}
+<script>
+    // ============================================
+    // GESTIÓN DE DESTINOS
+    // ============================================
+    
+    const RIDE_ID = {{ ride.id }};
+    
+    // Eliminar destino
+    async function deleteDestinationFromRide(destinationId) {
+        if (!confirm('¿Estás seguro de eliminar este destino? El precio se recalculará automáticamente.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/rides/${RIDE_ID}/destinations/${destinationId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(`✅ Destino eliminado. Nuevo precio: $${data.new_price.toFixed(2)}`);
+                location.reload(); // Recargar para mostrar cambios
+            } else {
+                alert('❌ Error: ' + (data.error || 'No se pudo eliminar el destino'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+    
+    // Editar destino
+    function editDestination(destinationId, currentAddress, currentLat, currentLng) {
+        const newAddress = prompt('Nueva dirección:', currentAddress);
+        if (!newAddress || newAddress === currentAddress) {
+            return;
+        }
+        
+        // Geocodificar nueva dirección
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: newAddress }, async (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const location = results[0].geometry.location;
+                
+                try {
+                    const response = await fetch(`/api/rides/${RIDE_ID}/destinations/${destinationId}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            destination: newAddress,
+                            latitude: location.lat(),
+                            longitude: location.lng()
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert(`✅ Destino actualizado. Nuevo precio: $${data.new_price.toFixed(2)}`);
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + (data.error || 'No se pudo actualizar'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ Error de conexión');
+                }
+            } else {
+                alert('❌ No se pudo encontrar la dirección. Intenta con otra dirección.');
+            }
+        });
+    }
+    
+    // Agregar destino
+    function showAddDestinationModal() {
+        const newAddress = prompt('Dirección del nuevo destino:');
+        if (!newAddress) {
+            return;
+        }
+        
+        // Geocodificar dirección
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: newAddress }, async (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const location = results[0].geometry.location();
+                
+                try {
+                    const response = await fetch(`/api/rides/${RIDE_ID}/destinations/add/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            destination: newAddress,
+                            latitude: location.lat(),
+                            longitude: location.lng()
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert(`✅ Destino agregado. Nuevo precio: $${data.new_price.toFixed(2)}`);
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + (data.error || 'No se pudo agregar'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ Error de conexión');
+                }
+            } else {
+                alert('❌ No se pudo encontrar la dirección. Intenta con otra dirección.');
+            }
+        });
+    }
 </script>
 {% endif %}
 

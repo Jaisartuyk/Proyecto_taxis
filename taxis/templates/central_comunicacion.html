@@ -1555,17 +1555,22 @@
         chatSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
             console.log('📥 [CHAT] Mensaje recibido:', data);
-            console.log('📥 [CHAT] sender_id:', data.sender_id, 'activeChatRecipientId:', activeChatRecipientId);
+            console.log('📥 [CHAT] sender_id:', data.sender_id, 'recipient_id:', data.recipient_id, 'activeChatRecipientId:', activeChatRecipientId);
             
             const { message, sender_id, sender_name, type, message_type, media_url, thumbnail_url, recipient_id } = data;
 
-            // ✅ FIX: Mostrar mensajes del conductor activo O mensajes dirigidos al admin
+            // ✅ FIX: Mostrar mensajes que son parte de la conversación activa
+            // Mostrar si:
+            // 1. El mensaje es DEL conductor activo (conductor → admin)
+            // 2. El mensaje es PARA el conductor activo (admin → conductor)
             const isFromActiveDriver = String(sender_id) === String(activeChatRecipientId);
-            const isForMe = String(recipient_id) === String(currentUser.id) || String(recipient_id) === String(adminUserId);
+            const isToActiveDriver = String(recipient_id) === String(activeChatRecipientId);
+            const isMyMessage = String(sender_id) === String(currentUser.id);
             
-            console.log('📥 [CHAT] isFromActiveDriver:', isFromActiveDriver, 'isForMe:', isForMe);
+            console.log('📥 [CHAT] isFromActiveDriver:', isFromActiveDriver, 'isToActiveDriver:', isToActiveDriver, 'isMyMessage:', isMyMessage);
             
-            if (isFromActiveDriver || (isForMe && activeChatRecipientId)) {
+            // Mostrar si el mensaje es parte de la conversación con el conductor activo
+            if (activeChatRecipientId && (isFromActiveDriver || isToActiveDriver || isMyMessage)) {
                 // Si hay media_url, mostrar imagen/video
                 if (media_url && (message_type === 'image' || message_type === 'video')) {
                     appendMediaMessage(message, sender_id, sender_name, message_type, media_url, thumbnail_url);
@@ -1573,7 +1578,7 @@
                     appendMessage(message, sender_id, sender_name);
                 }
             } else {
-                console.log('📥 [CHAT] Mensaje ignorado - no es del conductor activo ni para mí');
+                console.log('📥 [CHAT] Mensaje ignorado - no es parte de la conversación activa');
             }
         };
     }

@@ -97,5 +97,14 @@ urlpatterns = [
     # =====================================================
     path('push/', include('taxis.api_push_urls')),
     
+    # =====================================================
+    # GESTIÓN DE DESTINOS DE CARRERAS
+    # =====================================================
+    # - GET /api/rides/{id}/destinations/ - Listar destinos
+    # - POST /api/rides/{id}/destinations/add/ - Agregar destino
+    # - PUT /api/rides/{id}/destinations/{dest_id}/ - Editar destino
+    # - DELETE /api/rides/{id}/destinations/{dest_id}/delete/ - Eliminar destino
+    path('rides/<int:ride_id>/destinations/', include('taxis.api_destinations_urls')),
+    
     path('', include(router.urls)),
 ]

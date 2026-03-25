@@ -123,6 +123,30 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     
                     print(f'📍 Ubicación (type=location) recibida: lat={lat}, lng={lng}, driver_id={driver_id}')
                     
+                    # ✅ Guardar ubicación en la base de datos para que la API pueda consultarla
+                    if lat and lng and driver_id:
+                        from channels.db import database_sync_to_async
+                        from .models import Taxi, AppUser
+                        
+                        @database_sync_to_async
+                        def save_driver_location():
+                            try:
+                                # Buscar el conductor
+                                driver = AppUser.objects.get(id=driver_id, role='driver')
+                                # Buscar o crear el taxi del conductor
+                                taxi, created = Taxi.objects.get_or_create(user=driver)
+                                # Actualizar ubicación
+                                taxi.latitude = float(lat)
+                                taxi.longitude = float(lng)
+                                taxi.save(update_fields=['latitude', 'longitude', 'updated_at'])
+                                print(f'💾 Ubicación guardada en BD para conductor {driver_id}')
+                            except AppUser.DoesNotExist:
+                                print(f'⚠️ Conductor {driver_id} no encontrado')
+                            except Exception as e:
+                                print(f'❌ Error guardando ubicación: {e}')
+                        
+                        await save_driver_location()
+                    
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
@@ -149,14 +173,40 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 
                 # UBICACIÓN SIN TYPE (legacy)
                 elif "lat" in data and "lng" in data:
-                    print(f'📍 Ubicación recibida: lat={data["lat"]}, lng={data["lng"]}, driver_id={data.get("driver_id", self.driver_id)}')
+                    lat = data["lat"]
+                    lng = data["lng"]
+                    driver_id = data.get("driver_id", self.driver_id)
+                    
+                    print(f'📍 Ubicación recibida: lat={lat}, lng={lng}, driver_id={driver_id}')
+                    
+                    # ✅ Guardar ubicación en BD
+                    if lat and lng and driver_id:
+                        from channels.db import database_sync_to_async
+                        from .models import Taxi, AppUser
+                        
+                        @database_sync_to_async
+                        def save_driver_location():
+                            try:
+                                driver = AppUser.objects.get(id=driver_id, role='driver')
+                                taxi, created = Taxi.objects.get_or_create(user=driver)
+                                taxi.latitude = float(lat)
+                                taxi.longitude = float(lng)
+                                taxi.save(update_fields=['latitude', 'longitude', 'updated_at'])
+                                print(f'💾 Ubicación guardada en BD para conductor {driver_id}')
+                            except AppUser.DoesNotExist:
+                                print(f'⚠️ Conductor {driver_id} no encontrado')
+                            except Exception as e:
+                                print(f'❌ Error guardando ubicación: {e}')
+                        
+                        await save_driver_location()
+                    
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
                             'type': 'send_location',
-                            'lat': data["lat"],
-                            'lng': data["lng"],
-                            'driver_id': data.get('driver_id', self.driver_id)
+                            'lat': lat,
+                            'lng': lng,
+                            'driver_id': driver_id
                         }
                     )
                 

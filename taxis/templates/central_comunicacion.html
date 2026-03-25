@@ -2604,10 +2604,12 @@ function fetchDriverLocations() {
     // Función para actualizar marcador de un conductor específico desde WebSocket
     async function updateDriverMarker(data) {
         console.log('🔍 updateDriverMarker recibió datos:', data);
+        console.log('🔍 Data completo:', JSON.stringify(data));
         
         // ✅ PRIORIZAR el ID numérico: primero intentar con 'id' o 'senderId', luego 'driverId'
         // Si driverId es un string como "carlos", intentar extraer el ID numérico de otras propiedades
         let driverId = data.id || data.senderId || data.user_id || data.driver_id;
+        console.log('🔍 driverId inicial:', driverId, 'tipo:', typeof driverId);
         
         // Si no encontramos un ID numérico, intentar con driverId
         if (!driverId) {

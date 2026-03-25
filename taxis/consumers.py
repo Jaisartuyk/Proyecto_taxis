@@ -298,7 +298,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 from datetime import datetime
                 
                 # Decodificar base64
-                image_data = base64.b64decode(data.get('image_data'))
+                image_data_raw = data.get('image_data')
+                
+                # ✅ FIX: Remover prefijo data:image/...;base64, si existe
+                if image_data_raw.startswith('data:'):
+                    # Formato: data:image/png;base64,XXXXX
+                    image_data_raw = image_data_raw.split(',', 1)[1]
+                    print(f'🔧 Prefijo data URI removido')
+                
+                image_data = base64.b64decode(image_data_raw)
                 filename = data.get('filename')
                 
                 # Generar nombre único

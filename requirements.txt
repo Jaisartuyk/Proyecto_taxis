@@ -52,5 +52,6 @@ firebase_admin==7.1.0
 cloudinary==1.41.0
 django-cloudinary-storage==0.3.0
 qrcode[pil]==8.0
+googlemaps==4.10.0
 
 

@@ -253,22 +253,48 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def receive(self, text_data):
         data = json.loads(text_data)
+        msg_type = data.get('type', 'chat_message')
         
-        # Broadcast mensaje a todos en el grupo
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': data.get('message', ''),
-                'sender': data.get('sender', 'unknown')
-            }
-        )
+        # Ignorar pings
+        if msg_type in ('ping', 'pong'):
+            return
+
+        message = data.get('message', '')
+        sender_id = str(data.get('sender_id', self.user_id))
+        recipient_id = str(data.get('recipient_id', ''))
+        
+        print(f'💬 Mensaje de {sender_id} para {recipient_id}: {message[:50]}')
+
+        payload = {
+            'type': 'chat_message',
+            'message': message,
+            'sender_id': sender_id,
+            'sender_name': data.get('sender_name', f'Conductor {sender_id}'),
+            'recipient_id': recipient_id,
+            'message_type': data.get('message_type', 'text'),
+            'media_url': data.get('media_url', ''),
+            'thumbnail_url': data.get('thumbnail_url', ''),
+        }
+
+        # 1. Enviar al grupo del remitente (para confirmar en su propia pantalla)
+        await self.channel_layer.group_send(self.room_group_name, payload)
+
+        # 2. Enviar al grupo del destinatario (para que lo reciba en su chat)
+        if recipient_id and recipient_id != self.user_id:
+            recipient_group = f'chat_{recipient_id}'
+            await self.channel_layer.group_send(recipient_group, payload)
+            print(f'📨 Mensaje reenviado al grupo del destinatario: {recipient_group}')
     
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'chat_message',
-            'message': event['message'],
-            'sender': event['sender']
+            'message': event.get('message', ''),
+            'sender_id': event.get('sender_id', ''),
+            'sender_name': event.get('sender_name', ''),
+            'recipient_id': event.get('recipient_id', ''),
+            'message_type': event.get('message_type', 'text'),
+            'media_url': event.get('media_url', ''),
+            'thumbnail_url': event.get('thumbnail_url', ''),
         }))
 
 

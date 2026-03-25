@@ -1531,13 +1531,15 @@
 
     function setupWebSocket() {
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-        const wsPath = wsProtocol + window.location.host + '/ws/chat/';
+        // ✅ FIX: Conectar con el ID del admin para recibir mensajes dirigidos a él
+        const wsPath = wsProtocol + window.location.host + '/ws/chat/' + (adminUserId || currentUser.id) + '/';
 
         console.log('[CHAT WS] Intentando conectar a:', wsPath);
+        console.log('[CHAT WS] Admin User ID:', adminUserId || currentUser.id);
         chatSocket = new WebSocket(wsPath);
 
         chatSocket.onopen = function (e) {
-            console.log('[CHAT WS] ✅ Conectado exitosamente');
+            console.log('[CHAT WS] ✅ Conectado exitosamente al grupo del admin');
         };
 
         chatSocket.onerror = function (e) {
@@ -1553,17 +1555,25 @@
         chatSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
             console.log('📥 [CHAT] Mensaje recibido:', data);
+            console.log('📥 [CHAT] sender_id:', data.sender_id, 'activeChatRecipientId:', activeChatRecipientId);
             
-            const { message, sender_id, sender_name, type, message_type, media_url, thumbnail_url } = data;
+            const { message, sender_id, sender_name, type, message_type, media_url, thumbnail_url, recipient_id } = data;
 
-            // Solo mostrar mensajes recibidos (mis mensajes ya se agregaron al enviar)
-            if (sender_id == activeChatRecipientId) {
+            // ✅ FIX: Mostrar mensajes del conductor activo O mensajes dirigidos al admin
+            const isFromActiveDriver = String(sender_id) === String(activeChatRecipientId);
+            const isForMe = String(recipient_id) === String(currentUser.id) || String(recipient_id) === String(adminUserId);
+            
+            console.log('📥 [CHAT] isFromActiveDriver:', isFromActiveDriver, 'isForMe:', isForMe);
+            
+            if (isFromActiveDriver || (isForMe && activeChatRecipientId)) {
                 // Si hay media_url, mostrar imagen/video
                 if (media_url && (message_type === 'image' || message_type === 'video')) {
                     appendMediaMessage(message, sender_id, sender_name, message_type, media_url, thumbnail_url);
                 } else {
                     appendMessage(message, sender_id, sender_name);
                 }
+            } else {
+                console.log('📥 [CHAT] Mensaje ignorado - no es del conductor activo ni para mí');
             }
         };
     }
@@ -1624,10 +1634,13 @@
             // Agregar el mensaje inmediatamente a la vista
             appendMessage(message, currentUser.id, 'Tú');
 
-            // Enviar por WebSocket
+            // ✅ FIX: Incluir sender_id y sender_name en el mensaje
             chatSocket.send(JSON.stringify({
                 'message': message,
-                'recipient_id': activeChatRecipientId
+                'sender_id': currentUser.id,
+                'sender_name': 'Central',
+                'recipient_id': activeChatRecipientId,
+                'message_type': 'text'
             }));
             messageInput.value = '';
         }

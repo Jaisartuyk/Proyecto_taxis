@@ -240,7 +240,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
     """Consumer para chat en tiempo real"""
     
     async def connect(self):
-        self.user_id = self.scope['url_route']['kwargs'].get('user_id', 'web')
+        # Intentar obtener user_id de la URL primero
+        url_user_id = self.scope['url_route']['kwargs'].get('user_id')
+        
+        # Si no hay user_id en URL, obtener del usuario autenticado
+        if not url_user_id or url_user_id == 'web':
+            user = self.scope.get('user')
+            if user and user.is_authenticated:
+                self.user_id = str(user.id)
+                print(f'✅ Usuario autenticado: {user.username} (ID: {self.user_id})')
+            else:
+                self.user_id = 'web'
+                print(f'⚠️ Usuario no autenticado, usando ID: web')
+        else:
+            self.user_id = str(url_user_id)
+        
         self.room_group_name = f'chat_{self.user_id}'
         
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)

@@ -1554,23 +1554,36 @@
 
         chatSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
-            console.log('📥 [CHAT] Mensaje recibido:', data);
-            console.log('📥 [CHAT] sender_id:', data.sender_id, 'recipient_id:', data.recipient_id, 'activeChatRecipientId:', activeChatRecipientId);
+            console.log('📥 [CHAT] Mensaje recibido completo:', data);
             
             const { message, sender_id, sender_name, type, message_type, media_url, thumbnail_url, recipient_id } = data;
 
-            // ✅ FIX: Mostrar mensajes que son parte de la conversación activa
-            // Mostrar si:
-            // 1. El mensaje es DEL conductor activo (conductor → admin)
-            // 2. El mensaje es PARA el conductor activo (admin → conductor)
+            // Si no hay conductor activo seleccionado, no mostrar nada
+            if (!activeChatRecipientId) {
+                console.log('📥 [CHAT] Ignorado - no hay conductor activo seleccionado');
+                return;
+            }
+
+            // ✅ SIMPLIFICADO: Mostrar si el mensaje involucra al conductor activo
+            // Casos válidos:
+            // 1. Conductor activo → Admin (isFromActiveDriver)
+            // 2. Admin → Conductor activo (isToActiveDriver)
             const isFromActiveDriver = String(sender_id) === String(activeChatRecipientId);
             const isToActiveDriver = String(recipient_id) === String(activeChatRecipientId);
-            const isMyMessage = String(sender_id) === String(currentUser.id);
             
-            console.log('📥 [CHAT] isFromActiveDriver:', isFromActiveDriver, 'isToActiveDriver:', isToActiveDriver, 'isMyMessage:', isMyMessage);
+            console.log('📥 [CHAT] Análisis:', {
+                sender_id: sender_id,
+                recipient_id: recipient_id,
+                activeChatRecipientId: activeChatRecipientId,
+                isFromActiveDriver: isFromActiveDriver,
+                isToActiveDriver: isToActiveDriver,
+                shouldShow: isFromActiveDriver || isToActiveDriver
+            });
             
             // Mostrar si el mensaje es parte de la conversación con el conductor activo
-            if (activeChatRecipientId && (isFromActiveDriver || isToActiveDriver || isMyMessage)) {
+            if (isFromActiveDriver || isToActiveDriver) {
+                console.log('✅ [CHAT] Mostrando mensaje en la interfaz');
+                
                 // Si hay media_url, mostrar imagen/video
                 if (media_url && (message_type === 'image' || message_type === 'video')) {
                     appendMediaMessage(message, sender_id, sender_name, message_type, media_url, thumbnail_url);
@@ -1578,7 +1591,7 @@
                     appendMessage(message, sender_id, sender_name);
                 }
             } else {
-                console.log('📥 [CHAT] Mensaje ignorado - no es parte de la conversación activa');
+                console.log('❌ [CHAT] Mensaje ignorado - no involucra al conductor activo');
             }
         };
     }
@@ -1636,10 +1649,13 @@
     function sendMessage() {
         const message = messageInput.value.trim();
         if (message && activeChatRecipientId && chatSocket.readyState === WebSocket.OPEN) {
-            // Agregar el mensaje inmediatamente a la vista
-            appendMessage(message, currentUser.id, 'Tú');
+            console.log('📤 [CHAT] Enviando mensaje:', {
+                message: message,
+                sender_id: currentUser.id,
+                recipient_id: activeChatRecipientId
+            });
 
-            // ✅ FIX: Incluir sender_id y sender_name en el mensaje
+            // ✅ Enviar por WebSocket - el mensaje se mostrará cuando llegue de vuelta
             chatSocket.send(JSON.stringify({
                 'message': message,
                 'sender_id': currentUser.id,
@@ -1647,7 +1663,9 @@
                 'recipient_id': activeChatRecipientId,
                 'message_type': 'text'
             }));
+            
             messageInput.value = '';
+            console.log('✅ [CHAT] Mensaje enviado, esperando confirmación por WebSocket');
         }
     }
 

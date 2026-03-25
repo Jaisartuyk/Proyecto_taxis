@@ -127,65 +127,24 @@ if RAILWAY_ENVIRONMENT:
         VAPID_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'admin@deaquipalla.com')
         
         if VAPID_PUBLIC and VAPID_PRIVATE:
-            # Las claves en Railway están en formato base64 URL-safe, convertir a PEM
-            import base64
+            # ✅ Las claves VAPID deben estar en formato base64 URL-safe (NO PEM)
+            # pywebpush espera las claves en formato raw base64 URL-safe
             
-            # Función helper para convertir base64 URL-safe a PEM
-            def base64_to_pem(key_data, key_type):
-                try:
-                    # Agregar padding si es necesario
-                    missing_padding = len(key_data) % 4
-                    if missing_padding:
-                        key_data += '=' * (4 - missing_padding)
-                    
-                    # Reemplazar caracteres URL-safe
-                    key_data = key_data.replace('-', '+').replace('_', '/')
-                    
-                    # Decodificar base64
-                    decoded = base64.b64decode(key_data)
-                    
-                    # Crear formato PEM
-                    b64_encoded = base64.b64encode(decoded).decode('ascii')
-                    
-                    # Dividir en líneas de 64 caracteres
-                    lines = [b64_encoded[i:i+64] for i in range(0, len(b64_encoded), 64)]
-                    
-                    return f"-----BEGIN {key_type} KEY-----\n" + '\n'.join(lines) + f"\n-----END {key_type} KEY-----"
-                except Exception as e:
-                    print(f"⚠️ Error convirtiendo clave {key_type}: {e}")
-                    return None
+            # Usar las claves directamente como están (base64 URL-safe)
+            WEBPUSH_SETTINGS = {
+                "VAPID_PUBLIC_KEY": VAPID_PUBLIC,
+                "VAPID_PRIVATE_KEY": VAPID_PRIVATE,
+                "VAPID_ADMIN_EMAIL": VAPID_EMAIL
+            }
             
-            # Convertir claves
-            public_pem = base64_to_pem(VAPID_PUBLIC, 'PUBLIC')
-            private_pem = base64_to_pem(VAPID_PRIVATE, 'PRIVATE')
+            # También agregar como variables directas para compatibilidad
+            globals()['VAPID_PUBLIC_KEY'] = VAPID_PUBLIC
+            globals()['VAPID_PRIVATE_KEY'] = VAPID_PRIVATE
+            globals()['VAPID_ADMIN_EMAIL'] = VAPID_EMAIL
             
-            if public_pem and private_pem:
-                WEBPUSH_SETTINGS = {
-                    "VAPID_PUBLIC_KEY": public_pem,
-                    "VAPID_PRIVATE_KEY": private_pem,
-                    "VAPID_ADMIN_EMAIL": VAPID_EMAIL
-                }
-                
-                # También agregar como variables directas para compatibilidad
-                globals()['VAPID_PUBLIC_KEY'] = public_pem
-                globals()['VAPID_PRIVATE_KEY'] = private_pem
-                globals()['VAPID_ADMIN_EMAIL'] = VAPID_EMAIL
-                
-                print(f"🔔 [RAILWAY] Push notifications configuradas con VAPID convertidas")
-            else:
-                # Fallback: usar claves como están
-                WEBPUSH_SETTINGS = {
-                    "VAPID_PUBLIC_KEY": VAPID_PUBLIC,
-                    "VAPID_PRIVATE_KEY": VAPID_PRIVATE,
-                    "VAPID_ADMIN_EMAIL": VAPID_EMAIL
-                }
-                
-                # También agregar como variables directas para compatibilidad
-                globals()['VAPID_PUBLIC_KEY'] = VAPID_PUBLIC
-                globals()['VAPID_PRIVATE_KEY'] = VAPID_PRIVATE
-                globals()['VAPID_ADMIN_EMAIL'] = VAPID_EMAIL
-                
-                print(f"🔔 [RAILWAY] Push notifications configuradas con VAPID raw")
+            print(f"🔔 [RAILWAY] Push notifications configuradas con VAPID (base64 URL-safe)")
+            print(f"🔑 [RAILWAY] VAPID Public Key length: {len(VAPID_PUBLIC)}")
+            print(f"🔑 [RAILWAY] VAPID Private Key length: {len(VAPID_PRIVATE)}")
         else:
             # Configuración por defecto (no afecta funcionamiento)
             WEBPUSH_SETTINGS = {

@@ -2571,13 +2571,16 @@ function fetchDriverLocations() {
             }
         }
         
-        const latitude = parseFloat(data.latitude);
-        const longitude = parseFloat(data.longitude);
+        // Soportar ambos formatos: lat/lng (desde app) y latitude/longitude (desde web)
+        const latitude = parseFloat(data.latitude || data.lat);
+        const longitude = parseFloat(data.longitude || data.lng);
         
         console.log('🔍 driverId final:', driverId, 'tipo:', typeof driverId);
+        console.log('📍 Coordenadas:', { latitude, longitude });
         
-        if (!driverId || !latitude || !longitude) {
+        if (!driverId || !latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
             console.warn('⚠️ Datos de ubicación incompletos:', data);
+            console.warn('⚠️ driverId:', driverId, 'lat:', latitude, 'lng:', longitude);
             return;
         }
 

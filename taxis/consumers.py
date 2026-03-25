@@ -115,6 +115,24 @@ class AudioConsumer(AsyncWebsocketConsumer):
                     )
                     print(f'⏹️ {driver_name} terminó transmisión en {self.room_name}')
                 
+                # UBICACIÓN CON TYPE='location' (desde app Flutter)
+                elif msg_type == 'location':
+                    lat = data.get('latitude') or data.get('lat')
+                    lng = data.get('longitude') or data.get('lng')
+                    driver_id = data.get('driver_id', self.driver_id)
+                    
+                    print(f'📍 Ubicación (type=location) recibida: lat={lat}, lng={lng}, driver_id={driver_id}')
+                    
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'send_location',
+                            'lat': lat,
+                            'lng': lng,
+                            'driver_id': driver_id
+                        }
+                    )
+                
                 # AUDIO
                 elif "audio" in data:
                     driver_id = data.get('driver_id', self.driver_id)
@@ -128,7 +146,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
                         }
                     )
                 
-                # UBICACIÓN
+                # UBICACIÓN SIN TYPE (legacy)
                 elif "lat" in data and "lng" in data:
                     print(f'📍 Ubicación recibida: lat={data["lat"]}, lng={data["lng"]}, driver_id={data.get("driver_id", self.driver_id)}')
                     await self.channel_layer.group_send(

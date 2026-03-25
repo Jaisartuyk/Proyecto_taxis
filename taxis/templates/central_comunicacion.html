@@ -1932,7 +1932,18 @@
                 // Agregar al registro
                 const senderName = data.senderName || data.sender_name || `Conductor ${data.senderId || data.sender_id}`;
                 addAudioLogEntry(`📥 ${senderName}`, 'received');
+                return;
             }
+            
+            // 📍 UBICACIÓN SIN TYPE (formato legacy desde app móvil)
+            if ((data.lat || data.latitude) && (data.lng || data.longitude)) {
+                console.log('📍 Ubicación sin type detectada:', data);
+                updateDriverMarker(data);
+                return;
+            }
+            
+            // Si llegamos aquí, es un mensaje no reconocido
+            console.warn('⚠️ Mensaje WebSocket no reconocido:', data);
         };
     }
     

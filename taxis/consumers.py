@@ -298,6 +298,44 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 import traceback
                 traceback.print_exc()
 
+        # ✅ Guardar mensaje en la base de datos para historial persistente
+        try:
+            from channels.db import database_sync_to_async
+            from taxis.models import ChatMessage, AppUser
+            
+            @database_sync_to_async
+            def save_message_to_db():
+                try:
+                    sender = AppUser.objects.get(id=sender_id)
+                    recipient = AppUser.objects.get(id=recipient_id)
+                    
+                    chat_message = ChatMessage.objects.create(
+                        sender=sender,
+                        recipient=recipient,
+                        message=message,
+                        message_type=data.get('message_type', 'text'),
+                        media_url=media_url if media_url else None,
+                        thumbnail_url=thumbnail_url if thumbnail_url else None,
+                        metadata=data.get('metadata', {})
+                    )
+                    
+                    print(f'💾 Mensaje guardado en BD: ID={chat_message.id}')
+                    return chat_message.id
+                    
+                except AppUser.DoesNotExist as e:
+                    print(f'❌ Error: Usuario no encontrado - {e}')
+                    return None
+                except Exception as e:
+                    print(f'❌ Error guardando mensaje en BD: {e}')
+                    import traceback
+                    traceback.print_exc()
+                    return None
+            
+            await save_message_to_db()
+            
+        except Exception as e:
+            print(f'❌ Error en proceso de guardado de mensaje: {e}')
+
         payload = {
             'type': 'chat_message',
             'message': message,

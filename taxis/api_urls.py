@@ -91,5 +91,11 @@ urlpatterns = [
     # - GET /api/ratings/{id}/ - Detalle de calificación
     # - GET /api/ratings/received/ - Calificaciones recibidas
     # - GET /api/ratings/given/ - Calificaciones dadas
+    
+    # =====================================================
+    # PUSH NOTIFICATIONS
+    # =====================================================
+    path('push/', include('taxis.api_push_urls')),
+    
     path('', include(router.urls)),
 ]

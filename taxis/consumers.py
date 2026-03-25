@@ -265,6 +265,39 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         print(f'💬 Mensaje de {sender_id} para {recipient_id}: {message[:50]}')
 
+        # ✅ Procesar image_data si viene (desde central web)
+        media_url = data.get('media_url', '')
+        thumbnail_url = data.get('thumbnail_url', '')
+        
+        if data.get('image_data') and data.get('filename'):
+            print(f'📸 Procesando imagen desde central: {data.get("filename")}')
+            try:
+                import base64
+                from django.core.files.base import ContentFile
+                from django.core.files.storage import default_storage
+                import os
+                from datetime import datetime
+                
+                # Decodificar base64
+                image_data = base64.b64decode(data.get('image_data'))
+                filename = data.get('filename')
+                
+                # Generar nombre único
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                name, ext = os.path.splitext(filename)
+                unique_filename = f'chat_media/{timestamp}_{name}{ext}'
+                
+                # Guardar archivo
+                file_path = default_storage.save(unique_filename, ContentFile(image_data))
+                media_url = default_storage.url(file_path)
+                
+                print(f'✅ Imagen guardada: {media_url}')
+                
+            except Exception as e:
+                print(f'❌ Error procesando imagen: {e}')
+                import traceback
+                traceback.print_exc()
+
         payload = {
             'type': 'chat_message',
             'message': message,
@@ -272,8 +305,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_name': data.get('sender_name', f'Conductor {sender_id}'),
             'recipient_id': recipient_id,
             'message_type': data.get('message_type', 'text'),
-            'media_url': data.get('media_url', ''),
-            'thumbnail_url': data.get('thumbnail_url', ''),
+            'media_url': media_url,
+            'thumbnail_url': thumbnail_url,
         }
 
         # 1. Enviar al grupo del remitente (para confirmar en su propia pantalla)

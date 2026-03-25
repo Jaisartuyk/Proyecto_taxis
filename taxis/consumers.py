@@ -142,7 +142,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
                             'type': 'send_audio',
                             'audio': data["audio"],
                             'driver_id': driver_id,
-                            'senderId': data.get("senderId", driver_id)
+                            'senderId': data.get("senderId", driver_id),
+                            'sender_channel': self.channel_name,
                         }
                     )
                 
@@ -182,7 +183,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
                                 'type': 'send_audio',
                                 'audio': data["audio"],
                                 'driver_id': driver_id,
-                                'senderId': data.get("senderId", driver_id)
+                                'senderId': data.get("senderId", driver_id),
+                                'sender_channel': self.channel_name,
                             }
                         )
                     
@@ -211,6 +213,9 @@ class AudioConsumer(AsyncWebsocketConsumer):
         }))
     
     async def send_audio(self, event):
+        # No reenviar el audio al mismo canal que lo envió (evitar eco)
+        if event.get('sender_channel') == self.channel_name:
+            return
         await self.send(text_data=json.dumps({
             "type": "audio_broadcast",
             "audio": event["audio"],

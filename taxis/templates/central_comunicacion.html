@@ -51,6 +51,28 @@
         }
     }
 
+    @keyframes slideInDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.6;
+            transform: scale(1.1);
+        }
+    }
+
     /* === DISEÑO PROFESIONAL CENTRO DE COMANDO === */
     body {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
@@ -1323,6 +1345,25 @@
                 </div>
                 
                 <div class="broadcast-controls">
+                    <!-- ✅ BANNER DE ALERTA DE TRANSMISIÓN -->
+                    <div id="audio-transmission-banner" style="display: none; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); animation: slideInDown 0.3s ease;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;"></div>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 16px;">
+                                        <span id="speaker-role-badge">🚖</span>
+                                        <span id="current-speaker-name">Alguien</span> está transmitiendo
+                                    </div>
+                                    <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">
+                                        Espera a que termine para hablar
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 24px;">🔴</div>
+                        </div>
+                    </div>
+                    
                     <!-- SECCIÓN DE MICRÓFONO PRINCIPAL -->
                     <div class="central-mic-section">
                         <button id="record-audio-btn">🎤</button>

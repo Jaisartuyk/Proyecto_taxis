@@ -137,38 +137,109 @@ class UpdateLocationAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        
         user = request.user
+        
+        # Log detallado de la petición
+        logger.info(f"📍 [UPDATE_LOCATION] Petición de {user.username} (ID: {user.id}, Role: {user.role})")
+        logger.info(f"📍 [UPDATE_LOCATION] Headers: {dict(request.headers)}")
+        logger.info(f"📍 [UPDATE_LOCATION] Body: {request.data}")
+        
+        # Validar rol
         if user.role != 'driver':
+            logger.warning(f"⚠️ [UPDATE_LOCATION] Usuario {user.username} no es conductor (rol: {user.role})")
             return Response(
                 {'error': 'Solo los conductores pueden actualizar su ubicación.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        # Obtener coordenadas
         latitude = request.data.get('latitude')
         longitude = request.data.get('longitude')
+        
+        logger.info(f"📍 [UPDATE_LOCATION] Coordenadas recibidas: lat={latitude}, lng={longitude}")
 
+        # Validar que existan
         if latitude is None or longitude is None:
+            logger.error(f"❌ [UPDATE_LOCATION] Coordenadas faltantes: lat={latitude}, lng={longitude}")
             return Response(
-                {'error': 'Latitud y longitud son requeridas.'},
+                {
+                    'error': 'Latitud y longitud son requeridas.',
+                    'received': {
+                        'latitude': latitude,
+                        'longitude': longitude
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que sean numéricos
+        try:
+            lat = float(latitude)
+            lng = float(longitude)
+            
+            # Validar rangos válidos
+            if not (-90 <= lat <= 90):
+                raise ValueError(f"Latitud fuera de rango: {lat}")
+            if not (-180 <= lng <= 180):
+                raise ValueError(f"Longitud fuera de rango: {lng}")
+                
+        except (ValueError, TypeError) as e:
+            logger.error(f"❌ [UPDATE_LOCATION] Coordenadas inválidas: {e}")
+            return Response(
+                {
+                    'error': f'Coordenadas inválidas: {str(e)}',
+                    'latitude': latitude,
+                    'longitude': longitude
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            taxi = user.taxi # Get the taxi associated with the driver
-            taxi.latitude = latitude
-            taxi.longitude = longitude
+            # Actualizar Taxi
+            taxi = user.taxi
+            taxi.latitude = lat
+            taxi.longitude = lng
             taxi.save()
+            logger.info(f"✅ [UPDATE_LOCATION] Taxi actualizado: {taxi.id} → ({lat}, {lng})")
+            
+            # También actualizar AppUser para tener ubicación en ambos modelos
+            user.last_latitude = lat
+            user.last_longitude = lng
+            user.save(update_fields=['last_latitude', 'last_longitude'])
+            logger.info(f"✅ [UPDATE_LOCATION] Usuario actualizado: {user.username} → ({lat}, {lng})")
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Ubicación actualizada correctamente.',
+                    'data': {
+                        'latitude': lat,
+                        'longitude': lng,
+                        'taxi_id': taxi.id,
+                        'driver_id': user.id,
+                        'driver_name': user.get_full_name() or user.username
+                    }
+                },
+                status=status.HTTP_200_OK
+            )
+            
         except Taxi.DoesNotExist:
-             return Response(
+            logger.error(f"❌ [UPDATE_LOCATION] Taxi no encontrado para {user.username}")
+            return Response(
                 {'error': 'No hay un taxi asociado a este conductor.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-
-        return Response(
-            {'message': 'Ubicación actualizada correctamente.'},
-            status=status.HTTP_200_OK
-        )
+        except Exception as e:
+            logger.error(f"❌ [UPDATE_LOCATION] Error inesperado: {str(e)}", exc_info=True)
+            return Response(
+                {
+                    'error': f'Error al actualizar ubicación: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # 🧪 Función de prueba para notificaciones push
 @api_view(['POST'])

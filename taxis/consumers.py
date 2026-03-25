@@ -166,3 +166,76 @@ class AudioConsumer(AsyncWebsocketConsumer):
             "lng": event["lng"],
             "driver_id": event.get("driver_id")
         }))
+
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    """Consumer para chat en tiempo real"""
+    
+    async def connect(self):
+        self.user_id = self.scope['url_route']['kwargs'].get('user_id', 'web')
+        self.room_group_name = f'chat_{self.user_id}'
+        
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+        print(f'✅ Chat conectado: {self.user_id}')
+    
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        print(f'🔴 Chat desconectado: {self.user_id}')
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        
+        # Broadcast mensaje a todos en el grupo
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': data.get('message', ''),
+                'sender': data.get('sender', 'unknown')
+            }
+        )
+    
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'chat_message',
+            'message': event['message'],
+            'sender': event['sender']
+        }))
+
+
+class RidesConsumer(AsyncWebsocketConsumer):
+    """Consumer para actualizaciones de carreras en tiempo real"""
+    
+    async def connect(self):
+        self.room_group_name = 'rides_updates'
+        
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+        print(f'✅ Rides conectado')
+    
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        print(f'🔴 Rides desconectado')
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        
+        # Broadcast actualización de carrera
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'ride_update',
+                'ride_id': data.get('ride_id'),
+                'status': data.get('status'),
+                'data': data.get('data', {})
+            }
+        )
+    
+    async def ride_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'ride_update',
+            'ride_id': event.get('ride_id'),
+            'status': event.get('status'),
+            'data': event.get('data', {})
+        }))

@@ -130,6 +130,7 @@ class AudioConsumer(AsyncWebsocketConsumer):
                 
                 # UBICACIÓN
                 elif "lat" in data and "lng" in data:
+                    print(f'📍 Ubicación recibida: lat={data["lat"]}, lng={data["lng"]}, driver_id={data.get("driver_id", self.driver_id)}')
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
@@ -139,9 +140,48 @@ class AudioConsumer(AsyncWebsocketConsumer):
                             'driver_id': data.get('driver_id', self.driver_id)
                         }
                     )
+                
+                # MENSAJE SIN TYPE (legacy o formato antiguo)
+                else:
+                    # Si no tiene type pero tiene lat/lng, es ubicación
+                    if "lat" in data and "lng" in data:
+                        print(f'📍 Ubicación (sin type) recibida: lat={data["lat"]}, lng={data["lng"]}')
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {
+                                'type': 'send_location',
+                                'lat': data["lat"],
+                                'lng': data["lng"],
+                                'driver_id': data.get('driver_id', self.driver_id)
+                            }
+                        )
+                    # Si tiene audio, procesarlo
+                    elif "audio" in data:
+                        driver_id = data.get('driver_id', self.driver_id)
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            {
+                                'type': 'send_audio',
+                                'audio': data["audio"],
+                                'driver_id': driver_id,
+                                'senderId': data.get("senderId", driver_id)
+                            }
+                        )
                     
             except json.JSONDecodeError:
                 print('❌ Error al decodificar JSON')
+        
+        # Manejar datos binarios (si la app envía ubicación como bytes)
+        elif bytes_data:
+            print(f'📦 Bytes recibidos: {len(bytes_data)} bytes')
+            # Si son bytes de audio, reenviar
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send_audio_bytes',
+                    'audio_bytes': bytes_data
+                }
+            )
 
     async def transmission_status(self, event):
         """Enviar estado de transmisión a todos los clientes"""
@@ -167,6 +207,10 @@ class AudioConsumer(AsyncWebsocketConsumer):
             "lng": event["lng"],
             "driver_id": event.get("driver_id")
         }))
+    
+    async def send_audio_bytes(self, event):
+        """Enviar audio como bytes binarios"""
+        await self.send(bytes_data=event['audio_bytes'])
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

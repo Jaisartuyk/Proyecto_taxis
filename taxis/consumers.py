@@ -318,59 +318,50 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(recipient_group, payload)
             print(f'📨 Mensaje reenviado al grupo del destinatario: {recipient_group}')
             
-            # 3. Enviar notificación push al destinatario
+            # 3. Enviar notificación FCM al destinatario (para apps móviles Android/iOS)
             try:
                 from channels.db import database_sync_to_async
                 from taxis.models import AppUser
-                from taxis.push_notifications import send_push_notification
+                from taxis.fcm_notifications import send_chat_message_notification_fcm
                 
                 @database_sync_to_async
-                def send_notification():
+                def send_fcm_notification():
                     try:
                         recipient = AppUser.objects.get(id=recipient_id)
-                        sender_name = payload.get('sender_name', 'Central')
+                        sender = AppUser.objects.get(id=sender_id)
                         
-                        # Determinar el título y cuerpo según el tipo de mensaje
+                        # Determinar el mensaje según el tipo
                         if payload.get('message_type') == 'image':
-                            title = f"📸 Imagen de {sender_name}"
-                            body = message if message else "Te ha enviado una imagen"
+                            notification_message = message if message else "📸 Te ha enviado una imagen"
                         elif payload.get('message_type') == 'video':
-                            title = f"🎥 Video de {sender_name}"
-                            body = message if message else "Te ha enviado un video"
+                            notification_message = message if message else "🎥 Te ha enviado un video"
                         else:
-                            title = f"💬 Mensaje de {sender_name}"
-                            body = message[:100] if message else "Nuevo mensaje"
+                            notification_message = message[:100] if message else "Nuevo mensaje"
                         
-                        # Datos adicionales para la notificación
-                        notification_data = {
-                            'type': 'chat_message',
-                            'sender_id': sender_id,
-                            'sender_name': sender_name,
-                            'message_type': payload.get('message_type', 'text'),
-                            'url': '/chat/'  # URL para abrir cuando se toca la notificación
-                        }
-                        
-                        result = send_push_notification(
-                            user=recipient,
-                            title=title,
-                            body=body,
-                            data=notification_data
+                        # Enviar notificación FCM (funciona con apps Android/iOS)
+                        result = send_chat_message_notification_fcm(
+                            sender=sender,
+                            recipient=recipient,
+                            message=notification_message
                         )
                         
-                        if result > 0:
-                            print(f'✅ Notificación push enviada a {recipient.username}')
+                        if result.get('sent', 0) > 0:
+                            print(f'✅ Notificación FCM enviada a {recipient.username}')
                         else:
-                            print(f'⚠️ No se pudo enviar notificación push a {recipient.username}')
+                            print(f'⚠️ No se pudo enviar notificación FCM a {recipient.username}')
+                            print(f'   Razón: {result.get("error", "Desconocido")}')
                             
                     except AppUser.DoesNotExist:
                         print(f'❌ Usuario destinatario {recipient_id} no encontrado')
                     except Exception as e:
-                        print(f'❌ Error enviando notificación push: {e}')
+                        print(f'❌ Error enviando notificación FCM: {e}')
+                        import traceback
+                        traceback.print_exc()
                 
-                await send_notification()
+                await send_fcm_notification()
                 
             except Exception as e:
-                print(f'❌ Error en proceso de notificación push: {e}')
+                print(f'❌ Error en proceso de notificación FCM: {e}')
     
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({

@@ -36,6 +36,28 @@ if RAILWAY_ENVIRONMENT:
         '127.0.0.1',
     ]
     
+    # Configuración de archivos estáticos para Railway
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    
+    # Directorios adicionales de archivos estáticos
+    STATICFILES_DIRS = [
+        os.path.join(BASE_DIR, 'static'),
+    ]
+    
+    # WhiteNoise para servir archivos estáticos
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Middleware de WhiteNoise (ya debería estar en MIDDLEWARE desde settings.py)
+    if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
+        # Insertar después de SecurityMiddleware
+        security_index = MIDDLEWARE.index('django.middleware.security.SecurityMiddleware')
+        MIDDLEWARE.insert(security_index + 1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    
+    print(f"📁 STATIC_ROOT: {STATIC_ROOT}")
+    print(f"📁 STATIC_URL: {STATIC_URL}")
+    print(f"📁 STATICFILES_DIRS: {STATICFILES_DIRS}")
+    
     # Base de datos PostgreSQL en Railway
     DATABASES = {
         'default': dj_database_url.config(

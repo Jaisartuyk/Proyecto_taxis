@@ -263,6 +263,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         sender_id = str(data.get('sender_id', self.user_id))
         recipient_id = str(data.get('recipient_id', ''))
         
+        # ✅ FIX: Si sender_id es 'web', usar el ID del usuario autenticado
+        if sender_id == 'web' or not sender_id.isdigit():
+            sender_id = str(self.user_id)
+            print(f'🔄 Sender corregido de "web" a ID: {sender_id}')
+        
         print(f'💬 Mensaje de {sender_id} para {recipient_id}: {message[:50]}')
 
         # ✅ Procesar image_data si viene (desde central web)

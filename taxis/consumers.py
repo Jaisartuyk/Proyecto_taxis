@@ -9,7 +9,8 @@ class AudioConsumer(AsyncWebsocketConsumer):
     user_info = {}
     
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        # La URL /ws/audio/conductores/ no tiene parámetros, usar valor fijo
+        self.room_name = self.scope['url_route']['kwargs'].get('room_name', 'conductores')
         self.room_group_name = f'audio_{self.room_name}'
         
         # Obtener información del usuario de la sesión

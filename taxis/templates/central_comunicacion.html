@@ -2058,12 +2058,12 @@
     function notifyTransmissionStarted() {
         if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
             audioSocket.send(JSON.stringify({
-                type: 'audio_transmission_started',
-                sender_id: currentUser.id,
-                sender_name: currentUser.username || 'Central',
+                type: 'transmission_start',
+                driver_id: String(currentUser.id),
+                driver_name: currentUser.username || 'Central',
                 sender_role: 'central'
             }));
-            console.log('📡 Notificado: transmisión iniciada');
+            console.log('📡 Notificado: transmisión iniciada (transmission_start)');
             
             // Timeout de seguridad (30 segundos)
             transmissionTimeout = setTimeout(() => {
@@ -2088,11 +2088,11 @@
         
         if (audioSocket && audioSocket.readyState === WebSocket.OPEN) {
             audioSocket.send(JSON.stringify({
-                type: 'audio_transmission_stopped',
-                sender_id: currentUser.id,
-                sender_name: currentUser.username || 'Central'
+                type: 'transmission_stop',
+                driver_id: String(currentUser.id),
+                driver_name: currentUser.username || 'Central'
             }));
-            console.log('📡 Notificado: transmisión detenida');
+            console.log('📡 Notificado: transmisión detenida (transmission_stop)');
         }
     }
     

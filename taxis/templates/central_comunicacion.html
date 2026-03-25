@@ -1531,11 +1531,11 @@
 
     function setupWebSocket() {
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-        // ✅ FIX: Conectar con el ID del admin para recibir mensajes dirigidos a él
-        const wsPath = wsProtocol + window.location.host + '/ws/chat/' + (adminUserId || currentUser.id) + '/';
+        // ✅ FIX: Conectar con el ID del usuario actual (admin o superadmin)
+        const wsPath = wsProtocol + window.location.host + '/ws/chat/' + currentUser.id + '/';
 
         console.log('[CHAT WS] Intentando conectar a:', wsPath);
-        console.log('[CHAT WS] Admin User ID:', adminUserId || currentUser.id);
+        console.log('[CHAT WS] Usuario actual ID:', currentUser.id);
         chatSocket = new WebSocket(wsPath);
 
         chatSocket.onopen = function (e) {

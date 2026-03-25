@@ -366,42 +366,65 @@
     function calculateTotalDistanceAndPrice() {
         if (!originLat || !originLon) return;
 
-        const service = new google.maps.DistanceMatrixService();
-        const destinations = destinationMarkers.map(marker => marker.position); // Usar directamente la propiedad position
-
+        const destinations = destinationMarkers.map(marker => marker.position);
         if (destinations.length === 0) return;
 
-        service.getDistanceMatrix({
-            origins: [{ lat: originLat, lng: originLon }],
-            destinations: destinations,
-            travelMode: 'DRIVING',
-        }, (response, status) => {
-            if (status === 'OK') {
-                let totalDistance = 0;
+        // ✅ CÁLCULO SECUENCIAL: Origen → D1 → D2 → D3 (como Uber/DiDi)
+        // Crear array de puntos: [Origen, Destino1, Destino2, ...]
+        const waypoints = [{ lat: originLat, lng: originLon }, ...destinations];
+        
+        // Calcular distancias entre puntos consecutivos
+        let totalDistance = 0;
+        let completedRequests = 0;
+        const totalRequests = waypoints.length - 1;
 
-                response.rows[0].elements.forEach((element) => {
-                    totalDistance += element.distance.value; // Sumar distancias en metros
-                });
+        console.log(`📏 Calculando ${totalRequests} segmentos de ruta...`);
 
-                const distanceInKm = totalDistance / 1000; // Convertir a kilómetros
-                const threshold = 4.44; // Límite para tarifa base
-                const basePrice = 2.00; // Precio base
-                const pricePerKm = 0.25; // Precio por kilómetro adicional (bajado para viajes largos)
-                
-                let price = basePrice;
-                if (distanceInKm > threshold) {
-                    const extraDistance = distanceInKm - threshold;
-                    price += extraDistance * pricePerKm;
+        // Calcular cada segmento: punto[i] → punto[i+1]
+        for (let i = 0; i < waypoints.length - 1; i++) {
+            const service = new google.maps.DistanceMatrixService();
+            
+            service.getDistanceMatrix({
+                origins: [waypoints[i]],      // Punto actual
+                destinations: [waypoints[i + 1]], // Siguiente punto
+                travelMode: 'DRIVING',
+            }, (response, status) => {
+                if (status === 'OK') {
+                    const distance = response.rows[0].elements[0].distance.value;
+                    totalDistance += distance;
+                    
+                    console.log(`  Segmento ${i + 1}: ${(distance / 1000).toFixed(2)} km`);
+                    
+                    completedRequests++;
+                    
+                    // Cuando se completen todas las solicitudes, calcular precio
+                    if (completedRequests === totalRequests) {
+                        const distanceInKm = totalDistance / 1000;
+                        
+                        console.log(`✅ Distancia total: ${distanceInKm.toFixed(2)} km`);
+                        
+                        // Cálculo de precio
+                        const threshold = 4.44;
+                        const basePrice = 2.00;
+                        const pricePerKm = 0.25;
+                        
+                        let price = basePrice;
+                        if (distanceInKm > threshold) {
+                            const extraDistance = distanceInKm - threshold;
+                            price += extraDistance * pricePerKm;
+                        }
+                        
+                        console.log(`💰 Precio calculado: $${price.toFixed(2)}`);
+                        
+                        // Actualizar campos
+                        document.getElementById('distance').value = distanceInKm.toFixed(2);
+                        document.getElementById('price').value = price.toFixed(2);
+                    }
+                } else {
+                    console.error(`❌ Error calculando segmento ${i + 1}:`, status);
                 }
-
-
-                // Actualizar campos con la distancia y el precio
-                document.getElementById('distance').value = distanceInKm.toFixed(2);
-                document.getElementById('price').value = price.toFixed(2);
-            } else {
-                console.error('Error al calcular la distancia:', status);
-            }
-        });
+            });
+        }
     }
 
     document.getElementById('add-destination').addEventListener('click', () => {

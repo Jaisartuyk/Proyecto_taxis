@@ -567,27 +567,41 @@
             </div>
             <div class="info-item" style="align-items: flex-start;">
                 <strong>🎯 Destinos:</strong>
+                
+                <!-- DEBUG INFO (remover después) -->
+                {% comment %}
+                <div style="background: #333; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+                    <div>👤 Usuario actual: {{ request.user.username }} (ID: {{ request.user.id }})</div>
+                    <div>👤 Cliente de la carrera: {{ ride.customer.username }} (ID: {{ ride.customer.id }})</div>
+                    <div>📊 Status: {{ ride.status }}</div>
+                    <div>✅ Es cliente: {% if request.user == ride.customer %}SÍ{% else %}NO{% endif %}</div>
+                    <div>✅ Status válido: {% if ride.status == 'requested' or ride.status == 'accepted' %}SÍ{% else %}NO{% endif %}</div>
+                </div>
+                {% endcomment %}
+                
                 <ul class="destination-list" id="destinations-list">
                     {% for dest in destinations %}
                     <li class="destination-item" data-destination-id="{{ dest.id }}" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                         <div class="destination-marker">{{ forloop.counter }}</div>
                         <span class="destination-text" style="flex: 1;">{{ dest.destination }}</span>
                         
-                        {% if request.user == ride.customer and ride.status in 'requested,accepted' %}
-                        <div class="destination-actions" style="display: flex; gap: 5px;">
-                            <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
-                                    onclick="editDestination({{ dest.id }}, '{{ dest.destination }}', {{ dest.destination_latitude }}, {{ dest.destination_longitude }})" 
-                                    title="Editar destino">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            {% if destinations|length > 1 %}
-                            <button type="button" class="btn btn-sm btn-danger rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
-                                    onclick="deleteDestinationFromRide({{ dest.id }})" 
-                                    title="Eliminar destino">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                        {% if request.user == ride.customer %}
+                            {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
+                            <div class="destination-actions" style="display: flex; gap: 5px;">
+                                <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
+                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude }}, {{ dest.destination_longitude }})" 
+                                        title="Editar destino">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                {% if destinations|length > 1 %}
+                                <button type="button" class="btn btn-sm btn-danger rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
+                                        onclick="deleteDestinationFromRide({{ dest.id }})" 
+                                        title="Eliminar destino">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                             {% endif %}
-                        </div>
                         {% endif %}
                     </li>
                     {% empty %}
@@ -595,10 +609,16 @@
                     {% endfor %}
                 </ul>
                 
-                {% if request.user == ride.customer and ride.status in 'requested,accepted' %}
-                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="showAddDestinationModal()">
-                    <i class="bi bi-plus-circle me-1"></i> Agregar destino
-                </button>
+                {% if request.user == ride.customer %}
+                    {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="showAddDestinationModal()">
+                        <i class="bi bi-plus-circle me-1"></i> Agregar destino
+                    </button>
+                    {% else %}
+                    <small class="text-muted">⚠️ No puedes modificar destinos en estado: {{ ride.status }}</small>
+                    {% endif %}
+                {% else %}
+                    <small class="text-muted">ℹ️ Solo el cliente puede modificar destinos</small>
                 {% endif %}
             </div>
         </div>
@@ -1052,7 +1072,8 @@
 </script>
 {% endif %}
 
-{% if request.user == ride.customer and ride.status in 'requested,accepted' %}
+{% if request.user == ride.customer %}
+{% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
 <script>
     // ============================================
     // GESTIÓN DE DESTINOS
@@ -1176,6 +1197,7 @@
         });
     }
 </script>
+{% endif %}
 {% endif %}
 
 <script>

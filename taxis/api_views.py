@@ -2037,3 +2037,174 @@ def driver_info(request, driver_id):
         return Response({
             'error': f'Error al obtener información del conductor: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================
+# GESTIÓN DE DESTINOS EN CARRERAS ACTIVAS
+# ============================================
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_ride_destination(request, ride_id, destination_id):
+    """
+    Elimina un destino de una carrera activa.
+    Solo el cliente dueño de la carrera puede hacerlo.
+    La carrera debe tener al menos 2 destinos para poder eliminar uno.
+
+    Returns:
+        { "success": true, "new_price": 5.50, "remaining": 1 }
+    """
+    from decimal import Decimal
+    from django.shortcuts import get_object_or_404
+
+    ride = get_object_or_404(Ride, id=ride_id)
+
+    # Solo el cliente o superadmin pueden eliminar destinos
+    if not request.user.is_superuser and request.user != ride.customer:
+        return Response({'error': 'No tienes permiso para modificar esta carrera.'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Solo en estados activos
+    if ride.status not in ('requested', 'accepted', 'in_progress'):
+        return Response({'error': f'No se pueden modificar destinos en estado: {ride.status}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Obtener destino a eliminar
+    destination = get_object_or_404(RideDestination, id=destination_id, ride=ride)
+
+    # Asegurar que haya más de un destino
+    total_destinations = ride.destinations.count()
+    if total_destinations <= 1:
+        return Response({'error': 'No se puede eliminar el único destino de la carrera.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    destination.delete()
+
+    # Reordenar los destinos restantes
+    remaining = ride.destinations.all().order_by('order')
+    for idx, dest in enumerate(remaining):
+        dest.order = idx
+        dest.save(update_fields=['order'])
+
+    # Recalcular precio estimado usando la misma lógica de request_ride
+    try:
+        remaining_count = remaining.count()
+        last_dest = remaining.last()
+        if last_dest and ride.origin_latitude and ride.origin_longitude:
+            from math import radians, sin, cos, sqrt, atan2
+            def haversine(lat1, lon1, lat2, lon2):
+                R = 6371  # km
+                phi1, phi2 = radians(lat1), radians(lat2)
+                dphi = radians(lat2 - lat1)
+                dlambda = radians(lon2 - lon1)
+                a = sin(dphi/2)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2)**2
+                return 2 * R * atan2(sqrt(a), sqrt(1-a))
+
+            total_km = haversine(
+                ride.origin_latitude, ride.origin_longitude,
+                last_dest.destination_latitude, last_dest.destination_longitude
+            )
+            threshold = 4.44
+            base_price = Decimal('2.00')
+            if total_km <= threshold:
+                new_price = float(base_price)
+            else:
+                extra = total_km - threshold
+                new_price = float(base_price) + extra * 0.25
+        else:
+            new_price = float(ride.price) if ride.price else 0.0
+    except Exception:
+        new_price = float(ride.price) if ride.price else 0.0
+
+    # Guardar el nuevo precio
+    ride.price = Decimal(str(round(new_price, 2)))
+    ride.save(update_fields=['price'])
+
+    return Response({
+        'success': True,
+        'new_price': round(new_price, 2),
+        'remaining': ride.destinations.count()
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_ride_destination(request, ride_id):
+    """
+    Agrega un nuevo destino a una carrera activa.
+    Solo el cliente dueño de la carrera puede hacerlo.
+
+    Body (JSON):
+        {
+            "destination": "Av. Principal 123",
+            "latitude": -2.123456,
+            "longitude": -79.123456
+        }
+
+    Returns:
+        { "success": true, "destination_id": 42, "new_price": 7.25 }
+    """
+    import json as _json
+    from decimal import Decimal
+    from django.shortcuts import get_object_or_404
+
+    ride = get_object_or_404(Ride, id=ride_id)
+
+    # Permisos
+    if not request.user.is_superuser and request.user != ride.customer:
+        return Response({'error': 'No tienes permiso para modificar esta carrera.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if ride.status not in ('requested', 'accepted', 'in_progress'):
+        return Response({'error': f'No se pueden agregar destinos en estado: {ride.status}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Leer datos
+    destination_address = request.data.get('destination', '').strip()
+    try:
+        lat = float(request.data.get('latitude'))
+        lng = float(request.data.get('longitude'))
+    except (TypeError, ValueError):
+        return Response({'error': 'Latitud y longitud inválidas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not destination_address:
+        return Response({'error': 'La dirección del destino es requerida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Determinar el siguiente orden
+    max_order = ride.destinations.count()
+
+    new_dest = RideDestination.objects.create(
+        ride=ride,
+        destination=destination_address,
+        destination_latitude=lat,
+        destination_longitude=lng,
+        order=max_order
+    )
+
+    # Recalcular precio
+    try:
+        from math import radians, sin, cos, sqrt, atan2
+        def haversine(lat1, lon1, lat2, lon2):
+            R = 6371
+            phi1, phi2 = radians(lat1), radians(lat2)
+            dphi = radians(lat2 - lat1)
+            dlambda = radians(lon2 - lon1)
+            a = sin(dphi/2)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2)**2
+            return 2 * R * atan2(sqrt(a), sqrt(1-a))
+
+        if ride.origin_latitude and ride.origin_longitude:
+            total_km = haversine(ride.origin_latitude, ride.origin_longitude, lat, lng)
+            threshold = 4.44
+            base_price = 2.00
+            if total_km <= threshold:
+                new_price = base_price
+            else:
+                new_price = base_price + (total_km - threshold) * 0.25
+        else:
+            new_price = float(ride.price) if ride.price else 0.0
+    except Exception:
+        new_price = float(ride.price) if ride.price else 0.0
+
+    ride.price = Decimal(str(round(new_price, 2)))
+    ride.save(update_fields=['price'])
+
+    return Response({
+        'success': True,
+        'destination_id': new_dest.id,
+        'new_price': round(new_price, 2)
+    }, status=status.HTTP_201_CREATED)

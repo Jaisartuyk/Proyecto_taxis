@@ -540,14 +540,14 @@
                                 
                                 console.log('🗺️ Google Maps cargado, obteniendo dirección de origen...');
                                 const geocoder = new google.maps.Geocoder();
-                                const latlng = { lat: {{ ride.origin_latitude }}, lng: {{ ride.origin_longitude }} };
+                                const latlng = { lat: {{ ride.origin_latitude|default:'null' }}, lng: {{ ride.origin_longitude|default:'null' }} };
                                 geocoder.geocode({ location: latlng }, (results, status) => {
                                     const displayElement = document.getElementById('origin-address-display');
                                     if (status === 'OK' && results[0]) {
                                         displayElement.textContent = results[0].formatted_address;
                                         console.log('✅ Dirección obtenida:', results[0].formatted_address);
                                     } else {
-                                        displayElement.textContent = `Lat: {{ ride.origin_latitude }}, Lng: {{ ride.origin_longitude }}`;
+                                        displayElement.textContent = `Lat: {{ ride.origin_latitude|default:'N/A' }}, Lng: {{ ride.origin_longitude|default:'N/A' }}`;
                                         console.warn('⚠️ No se pudo obtener dirección, mostrando coordenadas');
                                     }
                                 });
@@ -625,26 +625,6 @@ async function deleteDestinationFromRide(destinationId) {
         alert('❌ Error de conexión');
     }
 }
-
-// Editar destino
-function editDestination(destinationId, currentAddress, currentLat, currentLng) {
-    if (!RIDE_ID) {
-        alert('⚠️ No tienes permisos para editar destinos');
-        return;
-    }
-    // La función completa se cargará después con el modal
-    console.log('editDestination called:', destinationId, currentAddress);
-}
-
-// Agregar destino
-function showAddDestinationModal() {
-    if (!RIDE_ID) {
-        alert('⚠️ No tienes permisos para agregar destinos');
-        return;
-    }
-    // La función completa se cargará después con el modal
-    console.log('showAddDestinationModal called');
-}
 </script>
                 
                 <ul class="destination-list" id="destinations-list">
@@ -656,8 +636,8 @@ function showAddDestinationModal() {
                         {% if request.user == ride.customer %}
                             {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
                             <div class="destination-actions" style="display: flex; gap: 5px;">
-                                <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;" 
-                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude }}, {{ dest.destination_longitude }})" 
+                                <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;"
+                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude|default:'null' }}, {{ dest.destination_longitude|default:'null' }})"
                                         title="Editar destino">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -1360,53 +1340,7 @@ function showAddDestinationModal() {
 
 <script>
 // ============================================
-// GESTIÓN DE DESTINOS
-// ============================================
-
-{% if request.user == ride.customer %}
-{% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
-const RIDE_ID = {{ ride.id }};
-{% else %}
-const RIDE_ID = null;
-{% endif %}
-{% else %}
-const RIDE_ID = null;
-{% endif %}
-
-// Eliminar destino
-async function deleteDestinationFromRide(destinationId) {
-    if (!RIDE_ID) {
-        alert('⚠️ No tienes permisos para modificar destinos');
-        return;
-    }
-        if (!confirm('¿Estás seguro de eliminar este destino? El precio se recalculará automáticamente.')) {
-            return;
-        }
-        
-        try {
-            const response = await fetch(`/api/rides/${RIDE_ID}/destinations/${destinationId}/delete/`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                alert(`✅ Destino eliminado. Nuevo precio: $${data.new_price.toFixed(2)}`);
-                location.reload(); // Recargar para mostrar cambios
-            } else {
-                alert('❌ Error: ' + (data.error || 'No se pudo eliminar el destino'));
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('❌ Error de conexión');
-        }
-    }
-
-// ============================================
-// MODAL DE DESTINOS
+// MODAL DE DESTINOS - Implementación Completa
 // ============================================
 
 let destinationMap;
@@ -1415,232 +1349,242 @@ let destinationAutocomplete;
 
 // Abrir modal para agregar destino
 function showAddDestinationModal() {
-    if (!RIDE_ID) {
+    const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
+    if (!RIDE_ID_VAL) {
         alert('⚠️ No tienes permisos para agregar destinos');
         return;
     }
-        document.getElementById('modalTitle').textContent = '📍 Agregar Destino';
-        document.getElementById('editingDestinationId').value = '';
-        document.getElementById('destinationSearch').value = '';
-        document.getElementById('destinationLat').value = '';
-        document.getElementById('destinationLng').value = '';
-        document.getElementById('destinationAddress').value = '';
-        document.getElementById('selectedAddress').style.display = 'none';
-        
-        openDestinationModal();
-    }
-    
+    document.getElementById('modalTitle').textContent = '📍 Agregar Destino';
+    document.getElementById('editingDestinationId').value = '';
+    document.getElementById('destinationSearch').value = '';
+    document.getElementById('destinationLat').value = '';
+    document.getElementById('destinationLng').value = '';
+    document.getElementById('destinationAddress').value = '';
+    document.getElementById('selectedAddress').style.display = 'none';
+
+    openDestinationModal();
+}
+
 // Editar destino
 function editDestination(destinationId, currentAddress, currentLat, currentLng) {
-    if (!RIDE_ID) {
+    const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
+    if (!RIDE_ID_VAL) {
         alert('⚠️ No tienes permisos para editar destinos');
         return;
     }
+
+    // Validar que las coordenadas no sean null
+    if (currentLat === null || currentLng === null) {
+        alert('⚠️ Este destino no tiene coordenadas válidas');
+        return;
+    }
+
     document.getElementById('modalTitle').textContent = '✏️ Editar Destino';
-        document.getElementById('editingDestinationId').value = destinationId;
-        document.getElementById('destinationSearch').value = currentAddress;
-        document.getElementById('destinationLat').value = currentLat;
-        document.getElementById('destinationLng').value = currentLng;
-        document.getElementById('destinationAddress').value = currentAddress;
-        document.getElementById('selectedAddressText').textContent = currentAddress;
-        document.getElementById('selectedAddress').style.display = 'block';
-        
-        openDestinationModal();
-        
-        // Centrar mapa en la ubicación actual
-        setTimeout(() => {
-            const pos = { lat: parseFloat(currentLat), lng: parseFloat(currentLng) };
-            destinationMap.setCenter(pos);
-            destinationMarker.setPosition(pos);
-        }, 300);
-    }
-    
-    // Abrir modal
-    function openDestinationModal() {
-        const modal = document.getElementById('destinationModal');
-        modal.style.display = 'flex';
-        modal.classList.add('show');
-        
-        // Inicializar mapa
-        setTimeout(initDestinationMap, 100);
-    }
-    
-    // Cerrar modal
-    function closeDestinationModal() {
-        const modal = document.getElementById('destinationModal');
-        modal.style.display = 'none';
-        modal.classList.remove('show');
-    }
-    
-    // Inicializar mapa del modal
-    function initDestinationMap() {
-        const lat = parseFloat(document.getElementById('destinationLat').value) || {{ ride.origin_latitude }};
-        const lng = parseFloat(document.getElementById('destinationLng').value) || {{ ride.origin_longitude }};
-        
-        destinationMap = new google.maps.Map(document.getElementById('destinationMap'), {
-            center: { lat, lng },
-            zoom: 15,
-            styles: [
-                { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-                { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-                { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] }
-            ]
-        });
-        
-        destinationMarker = new google.maps.Marker({
-            position: { lat, lng },
-            map: destinationMap,
-            draggable: true,
-            animation: google.maps.Animation.DROP,
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: '#4CAF50',
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2
+    document.getElementById('editingDestinationId').value = destinationId;
+    document.getElementById('destinationSearch').value = currentAddress;
+    document.getElementById('destinationLat').value = currentLat;
+    document.getElementById('destinationLng').value = currentLng;
+    document.getElementById('destinationAddress').value = currentAddress;
+    document.getElementById('selectedAddressText').textContent = currentAddress;
+    document.getElementById('selectedAddress').style.display = 'block';
+
+    openDestinationModal();
+
+    // Centrar mapa en la ubicación actual
+    setTimeout(() => {
+        const pos = { lat: parseFloat(currentLat), lng: parseFloat(currentLng) };
+        destinationMap.setCenter(pos);
+        destinationMarker.setPosition(pos);
+    }, 300);
+}
+
+// Abrir modal
+function openDestinationModal() {
+    const modal = document.getElementById('destinationModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+
+    // Inicializar mapa
+    setTimeout(initDestinationMap, 100);
+}
+
+// Cerrar modal
+function closeDestinationModal() {
+    const modal = document.getElementById('destinationModal');
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+}
+
+// Inicializar mapa del modal
+function initDestinationMap() {
+    const lat = parseFloat(document.getElementById('destinationLat').value) || {{ ride.origin_latitude|default:'null' }};
+    const lng = parseFloat(document.getElementById('destinationLng').value) || {{ ride.origin_longitude|default:'null' }};
+
+    destinationMap = new google.maps.Map(document.getElementById('destinationMap'), {
+        center: { lat: lat || 0, lng: lng || 0 },
+        zoom: 15,
+        styles: [
+            { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] }
+        ]
+    });
+
+    destinationMarker = new google.maps.Marker({
+        position: { lat: lat || 0, lng: lng || 0 },
+        map: destinationMap,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: '#4CAF50',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+        }
+    });
+
+    // Actualizar coordenadas al arrastrar marcador
+    destinationMarker.addListener('dragend', function(event) {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+        document.getElementById('destinationLat').value = lat;
+        document.getElementById('destinationLng').value = lng;
+
+        // Geocodificar inverso
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const address = results[0].formatted_address;
+                document.getElementById('destinationAddress').value = address;
+                document.getElementById('destinationSearch').value = address;
+                document.getElementById('selectedAddressText').textContent = address;
+                document.getElementById('selectedAddress').style.display = 'block';
             }
         });
-        
-        // Actualizar coordenadas al arrastrar marcador
-        destinationMarker.addListener('dragend', function(event) {
-            const lat = event.latLng.lat();
-            const lng = event.latLng.lng();
-            document.getElementById('destinationLat').value = lat;
-            document.getElementById('destinationLng').value = lng;
-            
-            // Geocodificar inverso
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    const address = results[0].formatted_address;
-                    document.getElementById('destinationAddress').value = address;
-                    document.getElementById('destinationSearch').value = address;
-                    document.getElementById('selectedAddressText').textContent = address;
-                    document.getElementById('selectedAddress').style.display = 'block';
-                }
-            });
-        });
-        
-        // Click en el mapa para seleccionar ubicación
-        destinationMap.addListener('click', function(event) {
-            const lat = event.latLng.lat();
-            const lng = event.latLng.lng();
-            
-            // Mover marcador a la nueva posición
-            destinationMarker.setPosition({ lat, lng });
-            destinationMap.panTo({ lat, lng });
-            
-            // Actualizar valores
-            document.getElementById('destinationLat').value = lat;
-            document.getElementById('destinationLng').value = lng;
-            
-            // Geocodificar inverso
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    const address = results[0].formatted_address;
-                    document.getElementById('destinationAddress').value = address;
-                    document.getElementById('destinationSearch').value = address;
-                    document.getElementById('selectedAddressText').textContent = address;
-                    document.getElementById('selectedAddress').style.display = 'block';
-                }
-            });
-        });
-        
-        // Autocompletado de direcciones
-        const input = document.getElementById('destinationSearch');
-        destinationAutocomplete = new google.maps.places.Autocomplete(input);
-        destinationAutocomplete.bindTo('bounds', destinationMap);
-        
-        destinationAutocomplete.addListener('place_changed', function() {
-            const place = destinationAutocomplete.getPlace();
-            
-            if (!place.geometry) {
-                alert('No se encontró la ubicación');
-                return;
+    });
+
+    // Click en el mapa para seleccionar ubicación
+    destinationMap.addListener('click', function(event) {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+
+        // Mover marcador a la nueva posición
+        destinationMarker.setPosition({ lat, lng });
+        destinationMap.panTo({ lat, lng });
+
+        // Actualizar valores
+        document.getElementById('destinationLat').value = lat;
+        document.getElementById('destinationLng').value = lng;
+
+        // Geocodificar inverso
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const address = results[0].formatted_address;
+                document.getElementById('destinationAddress').value = address;
+                document.getElementById('destinationSearch').value = address;
+                document.getElementById('selectedAddressText').textContent = address;
+                document.getElementById('selectedAddress').style.display = 'block';
             }
-            
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-            const address = place.formatted_address;
-            
-            document.getElementById('destinationLat').value = lat;
-            document.getElementById('destinationLng').value = lng;
-            document.getElementById('destinationAddress').value = address;
-            document.getElementById('selectedAddressText').textContent = address;
-            document.getElementById('selectedAddress').style.display = 'block';
-            
-            destinationMap.setCenter({ lat, lng });
-            destinationMarker.setPosition({ lat, lng });
         });
-    }
-    
-    // Guardar destino
-    async function saveDestination() {
-        const lat = document.getElementById('destinationLat').value;
-        const lng = document.getElementById('destinationLng').value;
-        const address = document.getElementById('destinationAddress').value;
-        const editingId = document.getElementById('editingDestinationId').value;
-        
-        if (!lat || !lng || !address) {
-            alert('⚠️ Por favor selecciona una dirección en el mapa');
+    });
+
+    // Autocompletado de direcciones
+    const input = document.getElementById('destinationSearch');
+    destinationAutocomplete = new google.maps.places.Autocomplete(input);
+    destinationAutocomplete.bindTo('bounds', destinationMap);
+
+    destinationAutocomplete.addListener('place_changed', function() {
+        const place = destinationAutocomplete.getPlace();
+
+        if (!place.geometry) {
+            alert('No se encontró la ubicación');
             return;
         }
-        
-        const saveBtn = document.getElementById('saveDestinationBtn');
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Guardando...';
-        
-        try {
-            let url, method;
-            
-            if (editingId) {
-                // Editar
-                url = `/api/rides/${RIDE_ID}/destinations/${editingId}/`;
-                method = 'PUT';
-            } else {
-                // Agregar
-                url = `/api/rides/${RIDE_ID}/destinations/add/`;
-                method = 'POST';
-            }
-            
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    destination: address,
-                    latitude: parseFloat(lat),
-                    longitude: parseFloat(lng)
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                alert(`✅ ${editingId ? 'Destino actualizado' : 'Destino agregado'}. Nuevo precio: $${data.new_price.toFixed(2)}`);
-                location.reload();
-            } else {
-                alert('❌ Error: ' + (data.error || 'No se pudo guardar'));
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar';
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('❌ Error de conexión');
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const address = place.formatted_address;
+
+        document.getElementById('destinationLat').value = lat;
+        document.getElementById('destinationLng').value = lng;
+        document.getElementById('destinationAddress').value = address;
+        document.getElementById('selectedAddressText').textContent = address;
+        document.getElementById('selectedAddress').style.display = 'block';
+
+        destinationMap.setCenter({ lat, lng });
+        destinationMarker.setPosition({ lat, lng });
+    });
+}
+
+// Guardar destino
+async function saveDestination() {
+    const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
+    const lat = document.getElementById('destinationLat').value;
+    const lng = document.getElementById('destinationLng').value;
+    const address = document.getElementById('destinationAddress').value;
+    const editingId = document.getElementById('editingDestinationId').value;
+
+    if (!lat || !lng || !address) {
+        alert('⚠️ Por favor selecciona una dirección en el mapa');
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveDestinationBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Guardando...';
+
+    try {
+        let url, method;
+
+        if (editingId) {
+            // Editar
+            url = `/api/rides/${RIDE_ID_VAL}/destinations/${editingId}/`;
+            method = 'PUT';
+        } else {
+            // Agregar
+            url = `/api/rides/${RIDE_ID_VAL}/destinations/add/`;
+            method = 'POST';
+        }
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                destination: address,
+                latitude: parseFloat(lat),
+                longitude: parseFloat(lng)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`✅ ${editingId ? 'Destino actualizado' : 'Destino agregado'}. Nuevo precio: $${data.new_price.toFixed(2)}`);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (data.error || 'No se pudo guardar'));
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar';
         }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar';
     }
-    
-    // Cerrar modal con ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeDestinationModal();
-        }
-    });
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeDestinationModal();
+    }
+});
 </script>
 
 <script>

@@ -1833,12 +1833,14 @@ def ride_detail(request, ride_id):
         # Preparar datos de destinos para el mapa (JSON serializable)
         destinations_data = []
         for dest in destinations:
-            destinations_data.append({
-                'lat': dest.destination_latitude,
-                'lng': dest.destination_longitude,
-                'address': dest.destination,
-                'order': dest.order
-            })
+            # Solo agregar destinos con coordenadas válidas
+            if dest.destination_latitude is not None and dest.destination_longitude is not None:
+                destinations_data.append({
+                    'lat': float(dest.destination_latitude),
+                    'lng': float(dest.destination_longitude),
+                    'address': dest.destination,
+                    'order': dest.order
+                })
 
         # Coordenadas del cliente
         client_lat = None

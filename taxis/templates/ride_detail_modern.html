@@ -578,6 +578,74 @@
                     <div>✅ Status válido: {% if ride.status == 'requested' or ride.status == 'accepted' %}SÍ{% else %}NO{% endif %}</div>
                 </div>
                 {% endcomment %}
+
+<script>
+// ============================================
+// GESTIÓN DE DESTINOS
+// ============================================
+
+{% if request.user == ride.customer %}
+{% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
+const RIDE_ID = {{ ride.id }};
+{% else %}
+const RIDE_ID = null;
+{% endif %}
+{% else %}
+const RIDE_ID = null;
+{% endif %}
+
+// Eliminar destino
+async function deleteDestinationFromRide(destinationId) {
+    if (!RIDE_ID) {
+        alert('⚠️ No tienes permisos para modificar destinos');
+        return;
+    }
+    if (!confirm('¿Estás seguro de eliminar este destino? El precio se recalculará automáticamente.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/rides/${RIDE_ID}/destinations/${destinationId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`✅ Destino eliminado. Nuevo precio: $${data.new_price.toFixed(2)}`);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (data.error || 'No se pudo eliminar el destino'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
+// Editar destino
+function editDestination(destinationId, currentAddress, currentLat, currentLng) {
+    if (!RIDE_ID) {
+        alert('⚠️ No tienes permisos para editar destinos');
+        return;
+    }
+    // La función completa se cargará después con el modal
+    console.log('editDestination called:', destinationId, currentAddress);
+}
+
+// Agregar destino
+function showAddDestinationModal() {
+    if (!RIDE_ID) {
+        alert('⚠️ No tienes permisos para agregar destinos');
+        return;
+    }
+    // La función completa se cargará después con el modal
+    console.log('showAddDestinationModal called');
+}
+</script>
                 
                 <ul class="destination-list" id="destinations-list">
                     {% for dest in destinations %}

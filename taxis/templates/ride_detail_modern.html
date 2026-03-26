@@ -1336,17 +1336,21 @@ async function deleteDestinationFromRide(destinationId) {
             alert('❌ Error de conexión');
         }
     }
-    
-    // ============================================
-    // MODAL DE DESTINOS
-    // ============================================
-    
-    let destinationMap;
-    let destinationMarker;
-    let destinationAutocomplete;
-    
-    // Abrir modal para agregar destino
-    function showAddDestinationModal() {
+
+// ============================================
+// MODAL DE DESTINOS
+// ============================================
+
+let destinationMap;
+let destinationMarker;
+let destinationAutocomplete;
+
+// Abrir modal para agregar destino
+function showAddDestinationModal() {
+    if (!RIDE_ID) {
+        alert('⚠️ No tienes permisos para agregar destinos');
+        return;
+    }
         document.getElementById('modalTitle').textContent = '📍 Agregar Destino';
         document.getElementById('editingDestinationId').value = '';
         document.getElementById('destinationSearch').value = '';
@@ -1358,9 +1362,13 @@ async function deleteDestinationFromRide(destinationId) {
         openDestinationModal();
     }
     
-    // Editar destino
-    function editDestination(destinationId, currentAddress, currentLat, currentLng) {
-        document.getElementById('modalTitle').textContent = '✏️ Editar Destino';
+// Editar destino
+function editDestination(destinationId, currentAddress, currentLat, currentLng) {
+    if (!RIDE_ID) {
+        alert('⚠️ No tienes permisos para editar destinos');
+        return;
+    }
+    document.getElementById('modalTitle').textContent = '✏️ Editar Destino';
         document.getElementById('editingDestinationId').value = destinationId;
         document.getElementById('destinationSearch').value = currentAddress;
         document.getElementById('destinationLat').value = currentLat;

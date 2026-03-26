@@ -625,8 +625,17 @@ async function deleteDestinationFromRide(destinationId) {
         alert('❌ Error de conexión');
     }
 }
+
+// Funciones stub - Las implementaciones completas se cargan después con el modal
+function editDestination(destinationId, currentAddress, currentLat, currentLng) {
+    // La implementación completa se cargará después
+}
+
+function showAddDestinationModal() {
+    // La implementación completa se cargará después
+}
 </script>
-                
+
                 <ul class="destination-list" id="destinations-list">
                     {% for dest in destinations %}
                     <li class="destination-item" data-destination-id="{{ dest.id }}" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
@@ -899,7 +908,7 @@ async function deleteDestinationFromRide(destinationId) {
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_history %}
             <div class="message {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
-                {% if msg.message_type == 'image' %}
+                {% if msg.message_type == 'image' and msg.media_url %}
                     <img src="{{ msg.media_url }}" alt="Imagen" style="max-width: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open('{{ msg.media_url }}', '_blank')">
                 {% else %}
                     {{ msg.message }}
@@ -1771,6 +1780,53 @@ document.addEventListener('keydown', function(e) {
 
         // Actualizar ubicación del conductor cada 5 segundos
         setInterval(updateDriverLocation, 5000);
+
+    function updateDriverLocation() {
+        const driverId = {{ ride.driver.id|default:'null' }};
+        if (!driverId) {
+            console.warn('⚠️ No hay conductor asignado');
+            return;
+        }
+        console.log(`🔄 Consultando ubicación del conductor ${driverId}...`);
+
+        // Obtener ubicación actualizada del conductor via AJAX
+        fetch(`/api/driver-location/${driverId}/`)
+            .then(response => {
+                console.log(`📡 Respuesta API recibida:`, response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log(`📍 Datos de ubicación:`, data);
+
+                if (data.success && data.latitude && data.longitude) {
+                    if (driverMarker) {
+                        const oldPos = driverMarker.getPosition();
+                        const newPos = { lat: data.latitude, lng: data.longitude };
+
+                        console.log(`🚕 Moviendo marcador:`);
+                        console.log(`   Anterior: lat=${oldPos.lat()}, lng=${oldPos.lng()}`);
+                        console.log(`   Nueva: lat=${newPos.lat}, lng=${newPos.lng}`);
+                        console.log(`   Actualizado: ${data.updated_at}`);
+
+                        driverMarker.setPosition(newPos);
+
+                        // Opcional: centrar mapa en conductor si está muy lejos
+                        const bounds = map.getBounds();
+                        if (bounds && !bounds.contains(newPos)) {
+                            console.log(`📌 Conductor fuera de vista, centrando mapa...`);
+                            map.panTo(newPos);
+                        }
+                    } else {
+                        console.warn('⚠️ driverMarker no está inicializado');
+                    }
+                } else {
+                    console.warn('⚠️ Ubicación no disponible:', data.message || 'Sin datos');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error actualizando ubicación:', error);
+            });
+    }
         {% endif %}
     }
 
@@ -1819,49 +1875,6 @@ document.addEventListener('keydown', function(e) {
                 console.error('Directions request failed due to ' + status);
             }
         });
-    }
-
-    function updateDriverLocation() {
-        const driverId = {{ ride.driver.id }};
-        console.log(`🔄 Consultando ubicación del conductor ${driverId}...`);
-        
-        // Obtener ubicación actualizada del conductor via AJAX
-        fetch(`/api/driver-location/${driverId}/`)
-            .then(response => {
-                console.log(`📡 Respuesta API recibida:`, response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log(`📍 Datos de ubicación:`, data);
-                
-                if (data.success && data.latitude && data.longitude) {
-                    if (driverMarker) {
-                        const oldPos = driverMarker.getPosition();
-                        const newPos = { lat: data.latitude, lng: data.longitude };
-                        
-                        console.log(`🚕 Moviendo marcador:`);
-                        console.log(`   Anterior: lat=${oldPos.lat()}, lng=${oldPos.lng()}`);
-                        console.log(`   Nueva: lat=${newPos.lat}, lng=${newPos.lng}`);
-                        console.log(`   Actualizado: ${data.updated_at}`);
-                        
-                        driverMarker.setPosition(newPos);
-                        
-                        // Opcional: centrar mapa en conductor si está muy lejos
-                        const bounds = map.getBounds();
-                        if (bounds && !bounds.contains(newPos)) {
-                            console.log(`📌 Conductor fuera de vista, centrando mapa...`);
-                            map.panTo(newPos);
-                        }
-                    } else {
-                        console.warn('⚠️ driverMarker no está inicializado');
-                    }
-                } else {
-                    console.warn('⚠️ Ubicación no disponible:', data.message || 'Sin datos');
-                }
-            })
-            .catch(error => {
-                console.error('❌ Error actualizando ubicación:', error);
-            });
     }
 </script>
 

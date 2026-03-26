@@ -1297,10 +1297,20 @@
 
 {% if request.user == ride.customer %}
 {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
-    const RIDE_ID = {{ ride.id }};
-    
-    // Eliminar destino
-    async function deleteDestinationFromRide(destinationId) {
+const RIDE_ID = {{ ride.id }};
+{% else %}
+const RIDE_ID = null;
+{% endif %}
+{% else %}
+const RIDE_ID = null;
+{% endif %}
+
+// Eliminar destino
+async function deleteDestinationFromRide(destinationId) {
+    if (!RIDE_ID) {
+        alert('⚠️ No tienes permisos para modificar destinos');
+        return;
+    }
         if (!confirm('¿Estás seguro de eliminar este destino? El precio se recalculará automáticamente.')) {
             return;
         }
@@ -1555,8 +1565,6 @@
             closeDestinationModal();
         }
     });
-{% endif %}
-{% endif %}
 </script>
 
 <script>

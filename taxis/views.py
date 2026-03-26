@@ -1929,18 +1929,24 @@ def driver_location_api(request, driver_id):
         taxi = Taxi.objects.filter(user=driver).first()
         
         if taxi and taxi.latitude and taxi.longitude:
+            # Log detallado para debugging
+            logger.info(f'📍 API ubicación conductor {driver_id}: lat={taxi.latitude}, lng={taxi.longitude}, updated_at={taxi.updated_at}')
+            
             return JsonResponse({
                 'success': True,
-                'latitude': taxi.latitude,
-                'longitude': taxi.longitude,
-                'updated_at': taxi.updated_at.isoformat() if taxi.updated_at else None
+                'latitude': float(taxi.latitude),
+                'longitude': float(taxi.longitude),
+                'updated_at': taxi.updated_at.isoformat() if taxi.updated_at else None,
+                'driver_name': driver.get_full_name() or driver.username
             })
         else:
+            logger.warning(f'⚠️ Ubicación no disponible para conductor {driver_id}: taxi={taxi}, lat={taxi.latitude if taxi else None}, lng={taxi.longitude if taxi else None}')
             return JsonResponse({
                 'success': False,
                 'message': 'Ubicación no disponible'
             }, status=404)
     except AppUser.DoesNotExist:
+        logger.error(f'❌ Conductor {driver_id} no encontrado')
         return JsonResponse({
             'success': False,
             'message': 'Conductor no encontrado'

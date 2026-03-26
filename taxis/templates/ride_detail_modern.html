@@ -1290,13 +1290,13 @@
 {% endif %}
 {% endif %}
 
+<script>
+// ============================================
+// GESTIÓN DE DESTINOS
+// ============================================
+
 {% if request.user == ride.customer %}
 {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
-<script>
-    // ============================================
-    // GESTIÓN DE DESTINOS
-    // ============================================
-    
     const RIDE_ID = {{ ride.id }};
     
     // Eliminar destino
@@ -1555,9 +1555,9 @@
             closeDestinationModal();
         }
     });
+{% endif %}
+{% endif %}
 </script>
-{% endif %}
-{% endif %}
 
 <script>
     let map;
@@ -1794,16 +1794,46 @@
     }
 
     function updateDriverLocation() {
+        const driverId = {{ ride.driver.id }};
+        console.log(`🔄 Consultando ubicación del conductor ${driverId}...`);
+        
         // Obtener ubicación actualizada del conductor via AJAX
-        fetch(`/api/driver-location/{{ ride.driver.id }}/`)
-            .then(response => response.json())
+        fetch(`/api/driver-location/${driverId}/`)
+            .then(response => {
+                console.log(`📡 Respuesta API recibida:`, response.status);
+                return response.json();
+            })
             .then(data => {
-                if (data.latitude && data.longitude && driverMarker) {
-                    const newPos = { lat: data.latitude, lng: data.longitude };
-                    driverMarker.setPosition(newPos);
+                console.log(`📍 Datos de ubicación:`, data);
+                
+                if (data.success && data.latitude && data.longitude) {
+                    if (driverMarker) {
+                        const oldPos = driverMarker.getPosition();
+                        const newPos = { lat: data.latitude, lng: data.longitude };
+                        
+                        console.log(`🚕 Moviendo marcador:`);
+                        console.log(`   Anterior: lat=${oldPos.lat()}, lng=${oldPos.lng()}`);
+                        console.log(`   Nueva: lat=${newPos.lat}, lng=${newPos.lng}`);
+                        console.log(`   Actualizado: ${data.updated_at}`);
+                        
+                        driverMarker.setPosition(newPos);
+                        
+                        // Opcional: centrar mapa en conductor si está muy lejos
+                        const bounds = map.getBounds();
+                        if (bounds && !bounds.contains(newPos)) {
+                            console.log(`📌 Conductor fuera de vista, centrando mapa...`);
+                            map.panTo(newPos);
+                        }
+                    } else {
+                        console.warn('⚠️ driverMarker no está inicializado');
+                    }
+                } else {
+                    console.warn('⚠️ Ubicación no disponible:', data.message || 'Sin datos');
                 }
             })
-            .catch(error => console.log('Error actualizando ubicación:', error));
+            .catch(error => {
+                console.error('❌ Error actualizando ubicación:', error);
+            });
     }
 </script>
 

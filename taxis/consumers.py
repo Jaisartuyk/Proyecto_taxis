@@ -131,17 +131,31 @@ class AudioConsumer(AsyncWebsocketConsumer):
                         @database_sync_to_async
                         def save_driver_location():
                             try:
-                                # Buscar el conductor
-                                driver = AppUser.objects.get(id=driver_id, role='driver')
+                                # Buscar el conductor (puede ser ID numérico o username)
+                                if isinstance(driver_id, str) and not driver_id.isdigit():
+                                    # Es un username (ej: 'carlos')
+                                    driver = AppUser.objects.get(username=driver_id, role='driver')
+                                    print(f'🔍 Conductor encontrado por username: {driver.username} (ID: {driver.id})')
+                                else:
+                                    # Es un ID numérico
+                                    driver = AppUser.objects.get(id=driver_id, role='driver')
+                                    print(f'🔍 Conductor encontrado por ID: {driver.id}')
+                                
                                 # Buscar o crear el taxi del conductor
                                 taxi, created = Taxi.objects.get_or_create(user=driver)
+                                
                                 # Actualizar ubicación
                                 taxi.latitude = float(lat)
                                 taxi.longitude = float(lng)
                                 taxi.save(update_fields=['latitude', 'longitude', 'updated_at'])
-                                print(f'💾 Ubicación guardada en BD para conductor {driver_id}')
+                                
+                                print(f'💾 Ubicación guardada en BD para conductor {driver.username} (ID: {driver.id}): lat={lat}, lng={lng}')
+                                
+                                if created:
+                                    print(f'✨ Nuevo registro Taxi creado para {driver.username}')
+                                    
                             except AppUser.DoesNotExist:
-                                print(f'⚠️ Conductor {driver_id} no encontrado')
+                                print(f'⚠️ Conductor {driver_id} no encontrado (buscado como ID y username)')
                             except Exception as e:
                                 print(f'❌ Error guardando ubicación: {e}')
                         

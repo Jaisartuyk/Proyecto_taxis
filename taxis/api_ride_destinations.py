@@ -11,8 +11,37 @@ from django.db.models import Q
 from decimal import Decimal
 import googlemaps
 from django.conf import settings
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+import json
 
 from .models import Ride, RideDestination, AppUser
+
+
+def broadcast_ride_update(ride):
+    """
+    Envía actualizaciones de carrera a través de WebSocket
+    a todos los usuarios de la organización
+    """
+    try:
+        channel_layer = get_channel_layer()
+        group_name = f'rides_org_{ride.organization_id}'
+        
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                'type': 'ride_update',
+                'ride_id': ride.id,
+                'status': ride.status,
+                'price': str(ride.price),
+                'driver_id': ride.driver.id if ride.driver else None,
+            }
+        )
+        print(f'[WS] Broadcast ride update to group {group_name}')
+    except Exception as e:
+        print(f'[WS] Error broadcasting ride update: {e}')
+        import traceback
+        traceback.print_exc()
 
 
 def calculate_route_distance_and_price(ride):
@@ -62,7 +91,7 @@ def calculate_route_distance_and_price(ride):
                 distance = result['rows'][0]['elements'][0]['distance']['value']
                 total_distance_meters += distance
             else:
-                print(f"⚠️ No se pudo calcular distancia del segmento {i+1}")
+                print(f"No se pudo calcular distancia del segmento {i+1}")
         
         # Convertir a kilómetros
         distance_km = total_distance_meters / 1000.0
@@ -77,8 +106,8 @@ def calculate_route_distance_and_price(ride):
             extra_distance = Decimal(str(distance_km - threshold))
             price += extra_distance * price_per_km
         
-        print(f"📏 Distancia calculada: {distance_km:.2f} km")
-        print(f"💰 Precio calculado: ${price:.2f}")
+        print(f"Distancia calculada: {distance_km:.2f} km")
+        print(f"Precio calculado: ${price:.2f}")
         
         return {
             'distance_km': distance_km,
@@ -86,7 +115,7 @@ def calculate_route_distance_and_price(ride):
         }
         
     except Exception as e:
-        print(f"❌ Error calculando distancia y precio: {e}")
+        print(f"Error calculando distancia y precio: {e}")
         import traceback
         traceback.print_exc()
         return {'distance_km': 0.0, 'price': Decimal('0.00')}
@@ -155,12 +184,15 @@ def add_destination(request, ride_id):
             order=int(order)
         )
         
-        print(f"✅ Nuevo destino agregado a carrera #{ride_id}: {destination}")
+        print(f"Nuevo destino agregado a carrera #{ride_id}: {destination}")
         
         # Recalcular distancia y precio
         result = calculate_route_distance_and_price(ride)
         ride.price = result['price']
         ride.save(update_fields=['price'])
+        
+        # Enviar actualización por WebSocket
+        broadcast_ride_update(ride)
         
         return Response({
             'success': True,
@@ -171,7 +203,7 @@ def add_destination(request, ride_id):
         }, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        print(f"❌ Error agregando destino: {e}")
+        print(f"Error agregando destino: {e}")
         import traceback
         traceback.print_exc()
         return Response({
@@ -234,12 +266,15 @@ def update_destination(request, ride_id, destination_id):
         
         dest.save()
         
-        print(f"✅ Destino #{destination_id} actualizado: {dest.destination}")
+        print(f"Destino #{destination_id} actualizado: {dest.destination}")
         
         # Recalcular distancia y precio
         result = calculate_route_distance_and_price(ride)
         ride.price = result['price']
         ride.save(update_fields=['price'])
+        
+        # Enviar actualización por WebSocket
+        broadcast_ride_update(ride)
         
         return Response({
             'success': True,
@@ -249,7 +284,7 @@ def update_destination(request, ride_id, destination_id):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        print(f"❌ Error actualizando destino: {e}")
+        print(f"Error actualizando destino: {e}")
         import traceback
         traceback.print_exc()
         return Response({
@@ -306,12 +341,15 @@ def delete_destination(request, ride_id, destination_id):
         destination_name = dest.destination
         dest.delete()
         
-        print(f"✅ Destino eliminado de carrera #{ride_id}: {destination_name}")
+        print(f"Destino eliminado de carrera #{ride_id}: {destination_name}")
         
         # Recalcular distancia y precio
         result = calculate_route_distance_and_price(ride)
         ride.price = result['price']
         ride.save(update_fields=['price'])
+        
+        # Enviar actualización por WebSocket
+        broadcast_ride_update(ride)
         
         return Response({
             'success': True,
@@ -321,7 +359,7 @@ def delete_destination(request, ride_id, destination_id):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        print(f"❌ Error eliminando destino: {e}")
+        print(f"Error eliminando destino: {e}")
         import traceback
         traceback.print_exc()
         return Response({
@@ -372,7 +410,7 @@ def list_destinations(request, ride_id):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        print(f"❌ Error listando destinos: {e}")
+        print(f"Error listando destinos: {e}")
         return Response({
             'error': f'Error al listar destinos: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

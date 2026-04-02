@@ -601,7 +601,7 @@ function getCsrfToken() {
 // Eliminar destino
 async function deleteDestinationFromRide(destinationId) {
     if (!RIDE_ID) {
-        alert('⚠️ No tienes permisos para modificar destinos');
+        alert('No tienes permisos para modificar destinos');
         return;
     }
     if (!confirm('¿Estás seguro de eliminar este destino? El precio se recalculará automáticamente.')) {
@@ -620,24 +620,26 @@ async function deleteDestinationFromRide(destinationId) {
         const data = await response.json();
         
         if (data.success) {
-            alert(`✅ Destino eliminado. Nuevo precio: $${data.new_price.toFixed(2)}`);
+            alert('Destino eliminado. Nuevo precio: $' + data.new_price.toFixed(2));
             location.reload();
         } else {
-            alert('❌ Error: ' + (data.error || 'No se pudo eliminar el destino'));
+            alert('Error: ' + (data.error || 'No se pudo eliminar el destino'));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('❌ Error de conexión');
+        alert('Error de conexión');
     }
 }
 
 // Funciones stub - Las implementaciones completas se cargan después con el modal
 function editDestination(destinationId, currentAddress, currentLat, currentLng) {
     // La implementación completa se cargará después
+    console.log('editDestination called with:', {destinationId, currentAddress, currentLat, currentLng});
 }
 
 function showAddDestinationModal() {
     // La implementación completa se cargará después
+    console.log('showAddDestinationModal called');
 }
 </script>
 
@@ -677,10 +679,10 @@ function showAddDestinationModal() {
                         <i class="bi bi-plus-circle me-1"></i> Agregar destino
                     </button>
                     {% else %}
-                    <small class="text-muted">⚠️ No puedes modificar destinos en estado: {{ ride.status }}</small>
+                    <small class="text-muted">No puedes modificar destinos en estado: {{ ride.status }}</small>
                     {% endif %}
                 {% else %}
-                    <small class="text-muted">ℹ️ Solo el cliente puede modificar destinos</small>
+                    <small class="text-muted">Solo el cliente puede modificar destinos</small>
                 {% endif %}
             </div>
         </div>
@@ -1365,10 +1367,11 @@ let destinationAutocomplete;
 function showAddDestinationModal() {
     const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
     if (!RIDE_ID_VAL) {
-        alert('⚠️ No tienes permisos para agregar destinos');
+        alert('No tienes permisos para agregar destinos');
         return;
     }
-    document.getElementById('modalTitle').textContent = '📍 Agregar Destino';
+    console.log('Opening modal to add destination for ride', RIDE_ID_VAL);
+    document.getElementById('modalTitle').textContent = 'Agregar Destino';
     document.getElementById('editingDestinationId').value = '';
     document.getElementById('destinationSearch').value = '';
     document.getElementById('destinationLat').value = '';
@@ -1383,17 +1386,18 @@ function showAddDestinationModal() {
 function editDestination(destinationId, currentAddress, currentLat, currentLng) {
     const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
     if (!RIDE_ID_VAL) {
-        alert('⚠️ No tienes permisos para editar destinos');
+        alert('No tienes permisos para editar destinos');
         return;
     }
 
     // Validar que las coordenadas no sean null
     if (currentLat === null || currentLng === null) {
-        alert('⚠️ Este destino no tiene coordenadas válidas');
+        alert('Este destino no tiene coordenadas válidas');
         return;
     }
 
-    document.getElementById('modalTitle').textContent = '✏️ Editar Destino';
+    console.log('Opening modal to edit destination', {destinationId, currentAddress, currentLat, currentLng});
+    document.getElementById('modalTitle').textContent = 'Editar Destino';
     document.getElementById('editingDestinationId').value = destinationId;
     document.getElementById('destinationSearch').value = currentAddress;
     document.getElementById('destinationLat').value = currentLat;
@@ -1542,13 +1546,13 @@ async function saveDestination() {
     const editingId = document.getElementById('editingDestinationId').value;
 
     if (!lat || !lng || !address) {
-        alert('⚠️ Por favor selecciona una dirección en el mapa');
+        alert('Por favor selecciona una dirección en el mapa');
         return;
     }
 
     const saveBtn = document.getElementById('saveDestinationBtn');
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Guardando...';
+    saveBtn.innerHTML = 'Guardando...';
 
     try {
         let url, method;
@@ -1562,6 +1566,8 @@ async function saveDestination() {
             url = `/api/rides/${RIDE_ID_VAL}/destinations/add/`;
             method = 'POST';
         }
+
+        console.log('Saving destination:', {url, method, lat, lng, address, editingId});
 
         const response = await fetch(url, {
             method: method,
@@ -1577,20 +1583,21 @@ async function saveDestination() {
         });
 
         const data = await response.json();
+        console.log('Response:', {status: response.status, data});
 
         if (data.success) {
-            alert(`✅ ${editingId ? 'Destino actualizado' : 'Destino agregado'}. Nuevo precio: $${data.new_price.toFixed(2)}`);
+            alert('Destino ' + (editingId ? 'actualizado' : 'agregado') + '. Nuevo precio: $' + data.new_price.toFixed(2));
             location.reload();
         } else {
-            alert('❌ Error: ' + (data.error || 'No se pudo guardar'));
+            alert('Error: ' + (data.error || 'No se pudo guardar'));
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar';
+            saveBtn.innerHTML = 'Guardar';
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('❌ Error de conexión');
+        alert('Error de conexión');
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar';
+        saveBtn.innerHTML = 'Guardar';
     }
 }
 

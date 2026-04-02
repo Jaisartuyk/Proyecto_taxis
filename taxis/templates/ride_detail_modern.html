@@ -540,7 +540,7 @@
                                 
                                 console.log('🗺️ Google Maps cargado, obteniendo dirección de origen...');
                                 const geocoder = new google.maps.Geocoder();
-                                const latlng = { lat: {{ ride.origin_latitude|default:'null' }}, lng: {{ ride.origin_longitude|default:'null' }} };
+                                const latlng = { lat: {{ ride.origin_latitude|default:0 }}, lng: {{ ride.origin_longitude|default:0 }} };
                                 geocoder.geocode({ location: latlng }, (results, status) => {
                                     const displayElement = document.getElementById('origin-address-display');
                                     if (status === 'OK' && results[0]) {
@@ -1799,7 +1799,7 @@ async function deleteDestinationFromRide(destinationId) {
     }
 
     function updateDriverLocation() {
-        const driverId = {{ ride.driver.id|default:'null'|safe }};
+        const driverId = {{ ride.driver.id|default:null }};
         if (!driverId) {
             console.warn('No hay conductor asignado');
             return;

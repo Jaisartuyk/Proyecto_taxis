@@ -594,6 +594,10 @@ const RIDE_ID = null;
 const RIDE_ID = null;
 {% endif %}
 
+function getCsrfToken() {
+    return document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
 // Eliminar destino
 async function deleteDestinationFromRide(destinationId) {
     if (!RIDE_ID) {
@@ -603,12 +607,13 @@ async function deleteDestinationFromRide(destinationId) {
     if (!confirm('¿Estás seguro de eliminar este destino? El precio se recalculará automáticamente.')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/rides/${RIDE_ID}/destinations/${destinationId}/delete/`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
             }
         });
         
@@ -1562,6 +1567,7 @@ async function saveDestination() {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
             },
             body: JSON.stringify({
                 destination: address,

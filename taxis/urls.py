@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from . import api_views
 from . import admin_views  # Panel de administración Fase 3
+from . import api_ride_destinations as destination_views
 from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
 from .views import get_google_maps_key
 
@@ -106,7 +107,13 @@ urlpatterns = [
     path('api/rides/<int:ride_id>/start/', api_views.start_ride_view, name='start_ride'),
     path('api/rides/<int:ride_id>/complete/', api_views.complete_ride_view, name='complete_ride'),
     path('api/rides/<int:ride_id>/cancel/', api_views.cancel_ride_view, name='cancel_ride'),
-    
+
+    # Gestión de Destinos (web)
+    path('api/rides/<int:ride_id>/destinations/add/', destination_views.add_destination, name='add_destination'),
+    path('api/rides/<int:ride_id>/destinations/<int:destination_id>/', destination_views.update_destination, name='update_destination'),
+    path('api/rides/<int:ride_id>/destinations/<int:destination_id>/delete/', destination_views.delete_destination, name='delete_destination'),
+    path('api/rides/<int:ride_id>/destinations/', destination_views.list_destinations, name='list_destinations'),
+
     # Negociación de Precios
     path('api/price-negotiation/', api_views.create_price_negotiation, name='create_price_negotiation'),
     path('api/price-negotiation/<int:negotiation_id>/accept/', api_views.accept_price_negotiation, name='accept_price_negotiation'),

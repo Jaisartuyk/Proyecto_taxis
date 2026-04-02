@@ -124,10 +124,10 @@ def add_destination(request, ride_id):
                 'error': 'Solo el cliente puede modificar los destinos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Verificar que la carrera no haya iniciado
-        if ride.status not in ['requested', 'accepted']:
+        # Verificar que la carrera no esté completada ni cancelada
+        if ride.status not in ['requested', 'accepted', 'in_progress']:
             return Response({
-                'error': 'No se pueden modificar destinos de una carrera en curso o completada'
+                'error': 'No se pueden modificar destinos de una carrera completada o cancelada'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Obtener datos del destino
@@ -210,10 +210,10 @@ def update_destination(request, ride_id, destination_id):
                 'error': 'Solo el cliente puede modificar los destinos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Verificar que la carrera no haya iniciado
-        if ride.status not in ['requested', 'accepted']:
+        # Verificar que la carrera no esté completada ni cancelada
+        if ride.status not in ['requested', 'accepted', 'in_progress']:
             return Response({
-                'error': 'No se pueden modificar destinos de una carrera en curso o completada'
+                'error': 'No se pueden modificar destinos de una carrera completada o cancelada'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Obtener el destino
@@ -282,10 +282,10 @@ def delete_destination(request, ride_id, destination_id):
                 'error': 'Solo el cliente puede modificar los destinos'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Verificar que la carrera no haya iniciado
-        if ride.status not in ['requested', 'accepted']:
+        # Verificar que la carrera no esté completada ni cancelada
+        if ride.status not in ['requested', 'accepted', 'in_progress']:
             return Response({
-                'error': 'No se pueden modificar destinos de una carrera en curso o completada'
+                'error': 'No se pueden modificar destinos de una carrera completada o cancelada'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Obtener el destino

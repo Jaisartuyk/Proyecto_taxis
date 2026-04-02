@@ -630,17 +630,6 @@ async function deleteDestinationFromRide(destinationId) {
         alert('Error de conexión');
     }
 }
-
-// Funciones stub - Las implementaciones completas se cargan después con el modal
-function editDestination(destinationId, currentAddress, currentLat, currentLng) {
-    // La implementación completa se cargará después
-    console.log('editDestination called with:', {destinationId, currentAddress, currentLat, currentLng});
-}
-
-function showAddDestinationModal() {
-    // La implementación completa se cargará después
-    console.log('showAddDestinationModal called');
-}
 </script>
 
                 <ul class="destination-list" id="destinations-list">
@@ -1365,12 +1354,28 @@ let destinationAutocomplete;
 
 // Abrir modal para agregar destino
 function showAddDestinationModal() {
+    console.log('showAddDestinationModal called');
     const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
+    console.log('RIDE_ID_VAL:', RIDE_ID_VAL);
+    
     if (!RIDE_ID_VAL) {
+        console.warn('No RIDE_ID disponible');
         alert('No tienes permisos para agregar destinos');
         return;
     }
+    
     console.log('Opening modal to add destination for ride', RIDE_ID_VAL);
+    
+    // Verificar que el modal existe
+    const modal = document.getElementById('destinationModal');
+    console.log('Modal element:', modal);
+    
+    if (!modal) {
+        console.error('Modal no encontrado en el DOM');
+        alert('Error: Modal no disponible');
+        return;
+    }
+    
     document.getElementById('modalTitle').textContent = 'Agregar Destino';
     document.getElementById('editingDestinationId').value = '';
     document.getElementById('destinationSearch').value = '';

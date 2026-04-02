@@ -1799,7 +1799,7 @@ async function deleteDestinationFromRide(destinationId) {
     }
 
     function updateDriverLocation() {
-        const driverId = {{ ride.driver.id|default:null }};
+        const driverId = {{ ride.driver.id|default:0 }};
         if (!driverId) {
             console.warn('No hay conductor asignado');
             return;

@@ -691,8 +691,8 @@ function closeDestinationModal() {
 
 // Inicializar mapa del modal
 function initDestinationMap() {
-    const lat = parseFloat(document.getElementById('destinationLat').value) || {{ ride.origin_latitude|default:0 }};
-    const lng = parseFloat(document.getElementById('destinationLng').value) || {{ ride.origin_longitude|default:0 }};
+    const lat = parseFloat(document.getElementById('destinationLat').value) || parseFloat("{{ ride.origin_latitude|default:0|stringformat:'f' }}");
+    const lng = parseFloat(document.getElementById('destinationLng').value) || parseFloat("{{ ride.origin_longitude|default:0|stringformat:'f' }}");
 
     destinationMap = new google.maps.Map(document.getElementById('destinationMap'), {
         center: { lat: lat || 0, lng: lng || 0 },

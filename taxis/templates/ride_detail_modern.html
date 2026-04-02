@@ -910,7 +910,7 @@ async function deleteDestinationFromRide(destinationId) {
                             {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
                             <div class="destination-actions" style="display: flex; gap: 5px;">
                                 <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;"
-                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude|default:'null' }}, {{ dest.destination_longitude|default:'null' }})"
+                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude|default:0 }}, {{ dest.destination_longitude|default:0 }})"
                                         title="Editar destino">
                                     <i class="bi bi-pencil"></i>
                                 </button>

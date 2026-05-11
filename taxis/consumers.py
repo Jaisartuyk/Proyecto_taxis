@@ -299,6 +299,20 @@ class AudioConsumer(AsyncWebsocketConsumer):
         """Enviar audio como bytes binarios"""
         await self.send(bytes_data=event['audio_bytes'])
 
+    async def send_panic_alert(self, event):
+        """🚨 Enviar alerta de pánico a todos los clientes conectados (Central de Monitoreo)"""
+        await self.send(text_data=json.dumps({
+            'type': 'panic_alert',
+            'alert_id': event.get('alert_id'),
+            'driver_id': event.get('driver_id'),
+            'driver_name': event.get('driver_name'),
+            'driver_number': event.get('driver_number'),
+            'latitude': event.get('latitude'),
+            'longitude': event.get('longitude'),
+            'ride_id': event.get('ride_id'),
+            'timestamp': event.get('timestamp'),
+        }))
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     """Consumer para chat en tiempo real"""

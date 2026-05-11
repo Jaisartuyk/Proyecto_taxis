@@ -1,0 +1,445 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 Seguimiento en Vivo - De Aquí Pa'llá</title>
+    <meta name="description" content="Sigue tu viaje en tiempo real. Monitoreo GPS en vivo para tu seguridad.">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #FFD700;
+            --primary-dark: #E6C200;
+            --bg-dark: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #222240;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b8;
+            --success: #00e676;
+            --danger: #ff5252;
+            --info: #40c4ff;
+            --border: rgba(255, 215, 0, 0.15);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, #16213e 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+        
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .header-logo span {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-badge.active {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
+        
+        .status-badge.active::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-badge.completed {
+            background: rgba(64, 196, 255, 0.15);
+            color: var(--info);
+            border: 1px solid rgba(64, 196, 255, 0.3);
+        }
+        
+        .status-badge.inactive {
+            background: rgba(255, 82, 82, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+        
+        /* Map */
+        #map {
+            flex: 1;
+            width: 100%;
+            min-height: 400px;
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .driver-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--bg-card-hover);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        
+        .driver-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--bg-dark);
+            flex-shrink: 0;
+        }
+        
+        .driver-details h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .driver-details p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .ride-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .ride-info-item {
+            background: var(--bg-card-hover);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        
+        .ride-info-item .label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .ride-info-item .value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .security-note {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(255, 215, 0, 0.08);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        .security-note strong {
+            color: var(--primary);
+        }
+        
+        /* Expired/Completed overlay */
+        .overlay-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 26, 0.95);
+            padding: 30px 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        .overlay-message h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .overlay-message p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .map-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+        }
+        
+        /* Last update indicator */
+        .last-update {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(15, 15, 26, 0.85);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            z-index: 5;
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-logo">
+            <span>🚕 De Aquí Pa'llá</span>
+        </div>
+        {% if is_valid %}
+            <div class="status-badge active" id="statusBadge">
+                EN VIVO
+            </div>
+        {% elif ride_status == 'completed' %}
+            <div class="status-badge completed">
+                ✅ Viaje Completado
+            </div>
+        {% else %}
+            <div class="status-badge inactive">
+                Link Expirado
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Map -->
+    <div class="map-container">
+        <div id="map"></div>
+        
+        {% if not is_valid %}
+        <div class="overlay-message">
+            {% if ride_status == 'completed' %}
+                <h2>✅ Viaje Completado</h2>
+                <p>El pasajero llegó a su destino de forma segura.</p>
+            {% elif ride_status == 'canceled' %}
+                <h2>❌ Viaje Cancelado</h2>
+                <p>Este viaje fue cancelado.</p>
+            {% else %}
+                <h2>⏰ Link Expirado</h2>
+                <p>Este enlace de seguimiento ya no está activo.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if is_valid %}
+        <div class="last-update" id="lastUpdate">
+            Conectando...
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="info-panel">
+        {% if driver_info %}
+        <div class="driver-card">
+            <div class="driver-avatar">
+                {{ driver_info.name|first }}
+            </div>
+            <div class="driver-details">
+                <h3>{{ driver_info.name }}</h3>
+                <p>🚖 Unidad #{{ driver_info.driver_number }} • {{ driver_info.vehicle_color }} {{ driver_info.vehicle_brand }} {{ driver_info.vehicle_model }}</p>
+                <p>📋 Placa: {{ driver_info.vehicle_plate }}</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="ride-info">
+            <div class="ride-info-item">
+                <div class="label">📍 Origen</div>
+                <div class="value">{{ ride.origin|truncatechars:30 }}</div>
+            </div>
+            <div class="ride-info-item">
+                <div class="label">📌 Estado</div>
+                <div class="value" id="rideStatusText">{{ ride_status_display }}</div>
+            </div>
+        </div>
+        
+        <div class="security-note">
+            🛡️ <strong>Monitoreo de seguridad activo</strong> — Ubicación actualizada en tiempo real
+        </div>
+    </div>
+    
+    <!-- Google Maps -->
+    <script>
+        let map;
+        let marker;
+        let originMarker;
+        let isValid = {{ is_valid|yesno:"true,false" }};
+        let token = "{{ token }}";
+        let pollInterval;
+        
+        function initMap() {
+            // Centro inicial: ubicación actual del taxi o del origen
+            let center = { 
+                lat: {{ current_location.latitude|default:origin.latitude|default:"-0.2" }}, 
+                lng: {{ current_location.longitude|default:origin.longitude|default:"-78.5" }}
+            };
+            
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: center,
+                zoom: 15,
+                styles: [
+                    { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
+                    { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
+                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
+                    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#255763" }] },
+                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] },
+                    { featureType: "poi", elementType: "geometry", stylers: [{ color: "#283d6a" }] },
+                ],
+                disableDefaultUI: true,
+                zoomControl: true,
+            });
+            
+            // Marker del origen
+            {% if origin.latitude and origin.longitude %}
+            originMarker = new google.maps.Marker({
+                position: { lat: {{ origin.latitude }}, lng: {{ origin.longitude }} },
+                map: map,
+                title: "Origen: {{ ride.origin|escapejs }}",
+                icon: {
+                    url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
+                }
+            });
+            {% endif %}
+            
+            // Marker del taxi
+            {% if current_location %}
+            marker = new google.maps.Marker({
+                position: { lat: {{ current_location.latitude }}, lng: {{ current_location.longitude }} },
+                map: map,
+                title: "{{ driver_info.name|default:'Conductor'|escapejs }}",
+                icon: {
+                    url: "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png"
+                },
+                animation: google.maps.Animation.DROP
+            });
+            {% endif %}
+            
+            // Iniciar polling si el link está activo
+            if (isValid) {
+                pollLocation();
+                pollInterval = setInterval(pollLocation, 5000);
+            }
+        }
+        
+        function pollLocation() {
+            fetch(`/api/track/${token}/location/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.latitude && data.longitude) {
+                        let newPos = { lat: data.latitude, lng: data.longitude };
+                        
+                        if (marker) {
+                            marker.setPosition(newPos);
+                        } else {
+                            marker = new google.maps.Marker({
+                                position: newPos,
+                                map: map,
+                                title: data.driver_name || 'Conductor',
+                                icon: {
+                                    url: "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png"
+                                }
+                            });
+                        }
+                        
+                        map.panTo(newPos);
+                        
+                        // Actualizar indicador
+                        let now = new Date();
+                        document.getElementById('lastUpdate').textContent = 
+                            `📡 Actualizado: ${now.toLocaleTimeString('es-EC')}`;
+                        
+                        // Actualizar estado del viaje
+                        if (data.ride_status_display) {
+                            document.getElementById('rideStatusText').textContent = data.ride_status_display;
+                        }
+                    }
+                    
+                    // Si la carrera terminó, detener polling
+                    if (!data.active) {
+                        clearInterval(pollInterval);
+                        isValid = false;
+                        
+                        let badge = document.getElementById('statusBadge');
+                        if (badge) {
+                            badge.className = 'status-badge completed';
+                            badge.innerHTML = '✅ Viaje Finalizado';
+                        }
+                        
+                        document.getElementById('lastUpdate').textContent = 'Viaje finalizado';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error polling location:', err);
+                    document.getElementById('lastUpdate').textContent = '⚠️ Reconectando...';
+                });
+        }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&callback=initMap">
+    </script>
+</body>
+</html>

@@ -4,6 +4,8 @@ from . import views
 from . import api_views
 from . import admin_views  # Panel de administración Fase 3
 from . import api_ride_destinations as destination_views
+from . import api_panic  # Botón de Pánico
+from . import api_tracking  # Link de Seguimiento en Vivo
 from .whatsapp_webhook import whatsapp_webhook, whatsapp_status_webhook, whatsapp_send_notification
 from .views import get_google_maps_key
 
@@ -169,5 +171,19 @@ urlpatterns = [
     # path('admin/invoices/', admin_views.InvoiceListView.as_view(), name='admin_invoices'),
     # path('admin/invoices/create/', admin_views.InvoiceCreateView.as_view(), name='admin_invoice_create'),
     # path('admin/invoices/<int:pk>/mark-paid/', admin_views.InvoiceMarkPaidView.as_view(), name='admin_invoice_mark_paid'),
+    
+    # ============================================
+    # BOTÓN DE PÁNICO (SEGURIDAD)
+    # ============================================
+    path('api/panic/', api_panic.activate_panic, name='api_panic_activate'),
+    path('api/panic/<int:alert_id>/resolve/', api_panic.resolve_panic, name='api_panic_resolve'),
+    path('api/panic/active/', api_panic.active_alerts, name='api_panic_active'),
+    
+    # ============================================
+    # LINK DE SEGUIMIENTO EN VIVO
+    # ============================================
+    path('api/rides/<int:ride_id>/share/', api_tracking.create_tracking_link, name='api_create_tracking'),
+    path('track/<str:token>/', api_tracking.live_tracking_page, name='live_tracking_page'),
+    path('api/track/<str:token>/location/', api_tracking.get_tracking_location, name='api_tracking_location'),
 ]
 

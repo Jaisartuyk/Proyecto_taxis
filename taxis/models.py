@@ -1425,3 +1425,187 @@ class Invoice(models.Model):
         self.paid_at = timezone.now()
         self.save()
 
+
+# ============================================
+# ALERTA DE PÁNICO (SEGURIDAD)
+# ============================================
+
+class PanicAlert(models.Model):
+    """
+    Alerta de pánico activada por un conductor desde la app móvil.
+    Notifica a la central de monitoreo y a los taxistas más cercanos.
+    """
+    STATUS_CHOICES = [
+        ('active', 'Activa'),
+        ('attended', 'Atendida'),
+        ('resolved', 'Resuelta'),
+        ('false_alarm', 'Falsa Alarma'),
+    ]
+    
+    driver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='panic_alerts',
+        limit_choices_to={'role': 'driver'},
+        help_text="Conductor que activó la alerta"
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='panic_alerts',
+        null=True,
+        blank=True,
+        help_text="Cooperativa del conductor"
+    )
+    
+    # Ubicación al momento de la emergencia
+    latitude = models.FloatField(help_text="Latitud al activar la alerta")
+    longitude = models.FloatField(help_text="Longitud al activar la alerta")
+    address = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Dirección aproximada (geocodificación inversa)"
+    )
+    
+    # Estado y seguimiento
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active'
+    )
+    attended_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='attended_panic_alerts',
+        help_text="Admin que atendió la alerta"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="Notas del operador sobre la alerta"
+    )
+    
+    # Carrera activa al momento del pánico (si existe)
+    ride = models.ForeignKey(
+        'Ride',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='panic_alerts',
+        help_text="Carrera activa al momento de la alerta"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    attended_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Alerta de Pánico'
+        verbose_name_plural = 'Alertas de Pánico'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"🚨 Alerta #{self.id} - {self.driver.get_full_name()} ({self.get_status_display()})"
+    
+    def attend(self, admin_user):
+        """Marcar como atendida"""
+        from django.utils import timezone
+        self.status = 'attended'
+        self.attended_by = admin_user
+        self.attended_at = timezone.now()
+        self.save()
+    
+    def resolve(self, admin_user, notes=''):
+        """Marcar como resuelta"""
+        from django.utils import timezone
+        self.status = 'resolved'
+        self.attended_by = admin_user
+        self.resolved_at = timezone.now()
+        if notes:
+            self.notes = notes
+        self.save()
+    
+    def mark_false_alarm(self, admin_user, notes=''):
+        """Marcar como falsa alarma"""
+        from django.utils import timezone
+        self.status = 'false_alarm'
+        self.attended_by = admin_user
+        self.resolved_at = timezone.now()
+        self.notes = notes or 'Falsa alarma'
+        self.save()
+
+
+# ============================================
+# LINK DE SEGUIMIENTO EN VIVO
+# ============================================
+
+class RideTrackingLink(models.Model):
+    """
+    Link temporal y público para que los familiares del cliente
+    puedan ver en un mapa la ubicación del taxi en tiempo real.
+    """
+    ride = models.ForeignKey(
+        'Ride',
+        on_delete=models.CASCADE,
+        related_name='tracking_links',
+        help_text="Carrera que se está rastreando"
+    )
+    token = models.CharField(
+        max_length=32,
+        unique=True,
+        help_text="Token único para acceder al link (ej: a7h2k9l1)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si el link está activo (se desactiva al completar la carrera)"
+    )
+    views_count = models.IntegerField(
+        default=0,
+        help_text="Número de veces que se ha abierto el link"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de expiración del link"
+    )
+    
+    class Meta:
+        verbose_name = 'Link de Seguimiento'
+        verbose_name_plural = 'Links de Seguimiento'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"🔗 Track #{self.token[:8]} - Carrera #{self.ride.id}"
+    
+    def is_valid(self):
+        """Verifica si el link sigue siendo válido"""
+        from django.utils import timezone
+        if not self.is_active:
+            return False
+        if self.expires_at and timezone.now() > self.expires_at:
+            return False
+        if self.ride.status in ['completed', 'canceled']:
+            return False
+        return True
+    
+    def increment_views(self):
+        """Incrementa el contador de vistas"""
+        self.views_count += 1
+        self.save(update_fields=['views_count'])
+    
+    def deactivate(self):
+        """Desactiva el link"""
+        self.is_active = False
+        self.save(update_fields=['is_active'])
+    
+    @staticmethod
+    def generate_token():
+        """Genera un token único de 8 caracteres"""
+        import uuid
+        return uuid.uuid4().hex[:8]
+

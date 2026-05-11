@@ -271,11 +271,12 @@ class AppUser(AbstractUser):
     # Número de unidad del conductor (001, 002, 003, etc.)
     driver_number = models.CharField(
         max_length=10,
-        unique=True,
+        unique=False,  # Cambiado de True a False para permitir duplicados en diferentes cooperativas
         null=True,
         blank=True,
         help_text="Número de unidad del conductor (ej: 001, 002, 003)"
     )
+
     
     # Estado de aprobación del conductor
     driver_status = models.CharField(
@@ -396,6 +397,18 @@ class AppUser(AbstractUser):
     def can_accept_rides(self):
         """Verifica si el conductor puede aceptar carreras"""
         return self.is_active_driver() and self.organization and self.organization.is_active()
+
+    class Meta:
+        verbose_name = 'Usuario'
+        verbose_name_plural = 'Usuarios'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'driver_number'],
+                name='unique_driver_number_per_organization',
+                # Solo aplicar si driver_number no es nulo
+                condition=models.Q(driver_number__isnull=False)
+            )
+        ]
 
 class Taxi(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

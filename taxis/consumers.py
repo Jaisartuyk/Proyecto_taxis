@@ -313,6 +313,15 @@ class AudioConsumer(AsyncWebsocketConsumer):
             'timestamp': event.get('timestamp'),
         }))
 
+    async def nueva_carrera(self, event):
+        """🚕 Enviar notificación de nueva carrera a todos los clientes conectados"""
+        notification = event.get('notification', {})
+        await self.send(text_data=json.dumps({
+            'type': 'nueva_carrera',
+            'title': notification.get('title', ''),
+            'body': notification.get('body', ''),
+            'data': notification.get('data', {}),
+        }))
 
 class ChatConsumer(AsyncWebsocketConsumer):
     """Consumer para chat en tiempo real"""

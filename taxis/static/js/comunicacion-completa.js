@@ -1527,6 +1527,74 @@ function dismissPanicBanner() {
     }
 }
 
+// =====================================================
+// 🚨 POLLING DE ALERTAS DE PÁNICO (respaldo al WebSocket)
+// Consulta cada 10 segundos si hay alertas activas
+// =====================================================
+let _lastSeenPanicAlertIds = new Set();
+let _panicPollingInterval = null;
+
+function startPanicAlertPolling() {
+    // No duplicar intervalos
+    if (_panicPollingInterval) return;
+    
+    console.log('🔄 Iniciando polling de alertas de pánico (cada 10s)...');
+    
+    // Verificar inmediatamente
+    checkForActivePanicAlerts();
+    
+    // Luego cada 10 segundos
+    _panicPollingInterval = setInterval(checkForActivePanicAlerts, 10000);
+}
+
+async function checkForActivePanicAlerts() {
+    try {
+        const response = await fetch('/api/panic/active/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+        });
+        
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        
+        if (data.success && data.alerts && data.alerts.length > 0) {
+            // Procesar cada alerta activa que no hayamos visto
+            for (const alert of data.alerts) {
+                if (!_lastSeenPanicAlertIds.has(alert.id)) {
+                    _lastSeenPanicAlertIds.add(alert.id);
+                    
+                    console.log('🚨 [POLLING] Nueva alerta de pánico detectada:', alert);
+                    
+                    // Disparar el mismo handler que el WebSocket
+                    handlePanicAlert({
+                        alert_id: alert.id,
+                        driver_id: alert.driver.id,
+                        driver_name: alert.driver.name,
+                        driver_number: alert.driver.driver_number,
+                        latitude: alert.latitude,
+                        longitude: alert.longitude,
+                        ride_id: alert.ride_id,
+                        timestamp: alert.created_at,
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        // Silenciar errores de polling para no saturar la consola
+    }
+}
+
+// Iniciar polling cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startPanicAlertPolling);
+} else {
+    startPanicAlertPolling();
+}
+
 // Manejar mensaje de audio
 function handleAudioMessage(data) {
     console.log('🎵 Mensaje de audio recibido', data);

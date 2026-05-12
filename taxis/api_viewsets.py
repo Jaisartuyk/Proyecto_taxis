@@ -258,6 +258,59 @@ class RideViewSet(viewsets.ModelViewSet):
             commission_rate = ride.organization.commission_rate / 100
             ride.commission_amount = ride.price * commission_rate
             ride.save(update_fields=['commission_amount'])
+        
+        # ✅ Notificar a todos los conductores de la organización
+        self._notify_drivers_new_ride(ride)
+    
+    def _notify_drivers_new_ride(self, ride):
+        """Enviar notificación FCM a todos los conductores disponibles"""
+        try:
+            from .fcm_notifications import send_fcm_notification
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            # Buscar conductores activos de la misma organización
+            drivers = AppUser.objects.filter(
+                organization=ride.organization,
+                role='driver',
+                is_active=True,
+            )
+            
+            if not drivers.exists():
+                logger.info("ℹ️ No hay conductores activos para notificar")
+                return
+            
+            # Datos de la carrera
+            origin = ride.origin_address or 'Sin dirección'
+            customer_name = ride.customer.get_full_name() if ride.customer else 'Cliente'
+            price_text = f"${ride.price}" if ride.price else 'Por definir'
+            
+            notified = 0
+            for driver in drivers:
+                try:
+                    result = send_fcm_notification(
+                        user=driver,
+                        title="🚕 ¡Nueva carrera disponible!",
+                        body=f"📍 {origin} · 💰 {price_text}",
+                        data={
+                            'type': 'new_ride',
+                            'ride_id': str(ride.id),
+                            'origin': origin,
+                            'customer_name': customer_name,
+                            'price': str(ride.price or ''),
+                        },
+                        sound='default'
+                    )
+                    if result.get('sent', 0) > 0:
+                        notified += 1
+                except Exception as e:
+                    logger.error(f"❌ Error notificando a conductor {driver.username}: {e}")
+            
+            logger.info(f"✅ {notified} conductores notificados sobre nueva carrera #{ride.id}")
+            
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"❌ Error en _notify_drivers_new_ride: {e}")
     
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):

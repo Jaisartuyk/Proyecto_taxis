@@ -586,12 +586,12 @@
 
 {% if request.user == ride.customer %}
 {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
-const RIDE_ID = {{ ride.id }};
+const RIDE_ID = {{ ride.id|default:0 }};
 {% else %}
-const RIDE_ID = null;
+const RIDE_ID = 0;
 {% endif %}
 {% else %}
-const RIDE_ID = null;
+const RIDE_ID = 0;
 {% endif %}
 
 let destinationMap;
@@ -605,12 +605,9 @@ function getCsrfToken() {
 // ===== FUNCIONES DEL MODAL =====
 // Abrir modal para agregar destino
 function showAddDestinationModal() {
-    console.log('showAddDestinationModal called');
-    const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' ? RIDE_ID : null;
-    console.log('RIDE_ID_VAL:', RIDE_ID_VAL);
+    const RIDE_ID_VAL = typeof RIDE_ID !== 'undefined' && RIDE_ID !== 0 ? RIDE_ID : null;
     
     if (!RIDE_ID_VAL) {
-        console.warn('No RIDE_ID disponible');
         alert('No tienes permisos para agregar destinos');
         return;
     }
@@ -868,7 +865,7 @@ document.addEventListener('keydown', function(e) {
 
 // Eliminar destino
 async function deleteDestinationFromRide(destinationId) {
-    if (!RIDE_ID) {
+    if (!RIDE_ID || RIDE_ID === 0) {
         alert('No tienes permisos para modificar destinos');
         return;
     }
@@ -910,7 +907,7 @@ async function deleteDestinationFromRide(destinationId) {
                             {% if ride.status == 'requested' or ride.status == 'accepted' or ride.status == 'in_progress' %}
                             <div class="destination-actions" style="display: flex; gap: 5px;">
                                 <button type="button" class="btn btn-sm btn-warning rounded-circle" style="width: 30px; height: 30px; padding: 0;"
-                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude|default:0 }}, {{ dest.destination_longitude|default:0 }})"
+                                        onclick="editDestination({{ dest.id }}, '{{ dest.destination|escapejs }}', {{ dest.destination_latitude|default:0|stringformat:'f' }}, {{ dest.destination_longitude|default:0|stringformat:'f' }})"
                                         title="Editar destino">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -1567,15 +1564,15 @@ async function deleteDestinationFromRide(destinationId) {
     }
     
     .destination-modal-footer .btn-primary {
-        background: #4CAF50;
+        background: #FFD700;
         border: none;
-        color: #fff;
+        color: #1a1a1a;
     }
     
     .destination-modal-footer .btn-primary:hover {
-        background: #45a049;
+        background: #FFC107;
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
     }
     
     .destination-modal-footer .btn-primary:disabled {

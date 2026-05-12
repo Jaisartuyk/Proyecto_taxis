@@ -105,7 +105,7 @@ function activatePanicAlert(userType) {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
         
-        fetch('/api/panic-alert/', {
+        fetch('/api/panic/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ function activatePanicAlert(userType) {
 function startContinuousLocationTracking(emergencyId) {
     setInterval(function() {
         navigator.geolocation.getCurrentPosition(function(position) {
-            fetch('/api/panic-alert/update-location/', {
+            fetch('/api/panic/update-location/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ class _DriverRideScreenState extends State<DriverRideScreen> {
     String? token = await _getAuthToken();
     
     final response = await http.post(
-      Uri.parse('https://taxis-deaquipalla.up.railway.app/api/panic-alert/'),
+      Uri.parse('https://taxis-deaquipalla.up.railway.app/api/panic/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Token $token',
@@ -456,8 +456,9 @@ urlpatterns = [
     # ... otras rutas ...
     
     # Botón de Pánico
-    path('api/panic-alert/', views.panic_alert, name='panic_alert'),
-    path('api/panic-alert/update-location/', views.panic_alert_update_location, name='panic_alert_update_location'),
+    path('api/panic/', api_panic.activate_panic, name='api_panic_activate'),
+    path('api/panic/<int:alert_id>/resolve/', api_panic.resolve_panic, name='api_panic_resolve'),
+    path('api/panic/active/', api_panic.active_alerts, name='api_panic_active'),
 ]
 ```
 
@@ -489,7 +490,7 @@ Confirmación doble
     ↓
 Obtiene GPS actual
     ↓
-Envía POST /api/panic-alert/
+Envía POST /api/panic/
     ↓
 Backend crea EmergencyAlert
     ↓
@@ -501,7 +502,7 @@ Notifica a:
     ↓
 Inicia tracking GPS cada 5s
     ↓
-POST /api/panic-alert/update-location/
+POST /api/panic/update-location/
     ↓
 EmergencyLocationLog guardado
     ↓
@@ -540,14 +541,16 @@ Admin resuelve emergencia
 ## 📝 Notas de Implementación
 
 - ✅ Sistema completo frontend (PWA + Android)
-- ✅ Backend API listo
-- ✅ Modelos de BD definidos
-- ⏳ Migración pendiente
+- ✅ Backend API implementado (`taxis/api_panic.py`)
+- ✅ Modelos de BD creados (`PanicAlert` en `taxis/models.py`)
+- ✅ Migración aplicada (`0027_panicalert_ridetrackinglink`)
+- ✅ Desplegado en Railway
+- ✅ Link de Seguimiento en Vivo implementado (`taxis/api_tracking.py`)
 - ⏳ Testing pendiente
 - ⏳ Integración ECU-911 pendiente
 
 ---
 
-**Fecha de Documentación:** 9 de enero de 2026  
+**Fecha de Documentación:** 9 de enero de 2026 (actualizado: 11 de mayo de 2026)  
 **Autor:** Sistema de desarrollo  
-**Estado:** Documentado - Pendiente implementación
+**Estado:** ✅ IMPLEMENTADO Y DESPLEGADO

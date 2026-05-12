@@ -1325,8 +1325,205 @@ function handleWebSocketMessage(data) {
         case 'driver_location_update':  // ✅ Agregar soporte para ubicaciones desde app móvil
             handleLocationUpdate(data);
             break;
+        case 'panic_alert':
+            handlePanicAlert(data);
+            break;
         default:
             console.log('ℹ️ Tipo de mensaje no manejado:', data.type);
+    }
+}
+
+// 🚨 Manejar alerta de pánico recibida por WebSocket
+function handlePanicAlert(data) {
+    console.log('🚨🚨🚨 ALERTA DE PÁNICO RECIBIDA:', data);
+    
+    const driverName = data.driver_name || 'Conductor desconocido';
+    const driverNumber = data.driver_number || 'N/A';
+    const alertId = data.alert_id;
+    const lat = data.latitude;
+    const lng = data.longitude;
+    const rideId = data.ride_id;
+    const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('es-EC') : new Date().toLocaleTimeString('es-EC');
+    
+    // 1. Reproducir sonido de alarma
+    try {
+        const alarmAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+Jk5yWjHhpeHqEkJugnJOGe3R0foqZoJ+ZkIR7c3R+i5qfnJWLgHdyd4OQm5+clIp/d3N3g5CbnpuTiX93c3iDkJuem5OIf3dzd4OQm56bk4h/d3N3g5CbnpuTiH93c3eDkJuem5OIf3dzd4OQm56bk4h/d3N3hJCbnpuTiH93c3eDkJuem5OIf3dzd4OQm56bk4h/d3N3hJGcn5uTiH93c3eDkJuem5OIf3dzd4OQm56bk4h/d3N3hJGcn5uTiX93c3eDkJuem5OIf3dzd4SRnJ+bk4h/d3N3g5CbnpuTiH93c3eDkJuem5OIf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH93c3eDkJuem5OJf3d0eISRnJ+bk4l/d3N3g5Ccn5uUiX93c3eDkJuem5OIf3d0eISRnJ+bk4h/d3R4hJGcn5uTiX93dHiEkZyfm5OIf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH94dHiEkZyfm5OJf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH93c3eDkJuem5OIf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH93c3eDkJuem5OIf3d0eISRnJ+bk4l/d3N3g5Ccn5uUiX93c3eDkJuem5OIf3d0eISRnJ+bk4h/d3R4hJGcn5uTiX93dHiEkZyfm5OIf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH94dHiEkZyfm5OJf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH93c3eDkJuem5OIf3d0eISRnJ+bk4l/d3N3g5Ccn5uUiX93c3eDkJuem5OJf3d0eISRnJ+bk4l/d3N3g5CbnpuTiH93c3eDkJuem5OIf3d0eISRnJ+bk4l/d3N3g5Ccnw==');
+        alarmAudio.volume = 1.0;
+        alarmAudio.play().catch(e => console.warn('No se pudo reproducir alarma:', e));
+    } catch(e) {
+        console.warn('Error con alarma de audio:', e);
+    }
+    
+    // 2. Crear/actualizar banner de alerta de pánico en el DOM
+    let panicBanner = document.getElementById('panic-alert-banner');
+    if (!panicBanner) {
+        panicBanner = document.createElement('div');
+        panicBanner.id = 'panic-alert-banner';
+        panicBanner.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 99999;
+            background: linear-gradient(135deg, #ff0000, #cc0000, #ff0000);
+            background-size: 200% 200%;
+            animation: panicGradient 1s ease infinite;
+            color: white;
+            padding: 0;
+            box-shadow: 0 4px 30px rgba(255, 0, 0, 0.8);
+            font-family: 'Inter', Arial, sans-serif;
+        `;
+        document.body.prepend(panicBanner);
+        
+        // Agregar keyframe de animación
+        if (!document.getElementById('panic-keyframes')) {
+            const style = document.createElement('style');
+            style.id = 'panic-keyframes';
+            style.textContent = `
+                @keyframes panicGradient {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                @keyframes panicPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                }
+                @keyframes panicBlink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    panicBanner.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 40px; animation: panicPulse 0.5s infinite;">🚨</div>
+                <div>
+                    <div style="font-size: 20px; font-weight: 800; animation: panicBlink 1s infinite;">
+                        ¡ALERTA DE PÁNICO!
+                    </div>
+                    <div style="font-size: 15px; margin-top: 4px;">
+                        <strong>${driverName}</strong> (Unidad #${driverNumber}) ha activado el botón de emergencia
+                    </div>
+                    <div style="font-size: 13px; opacity: 0.9; margin-top: 2px;">
+                        📍 Ubicación: ${lat ? lat.toFixed(4) : '?'}, ${lng ? lng.toFixed(4) : '?'} · ⏰ ${timestamp}
+                        ${rideId ? ' · 🚗 Carrera #' + rideId : ''}
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="centerMapOnPanic(${lat}, ${lng})" 
+                        style="background: white; color: #cc0000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px;">
+                    📍 Ver en Mapa
+                </button>
+                <button onclick="resolvePanicAlert(${alertId})" 
+                        style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px;">
+                    ✅ Atendida
+                </button>
+                <button onclick="dismissPanicBanner()" 
+                        style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 10px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                    ✕ Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // 3. Centrar mapa en la ubicación del pánico
+    if (lat && lng && map) {
+        centerMapOnPanic(lat, lng);
+    }
+    
+    // 4. Agregar entrada al log de audio
+    updateAudioLog(`🚨 ¡PÁNICO! ${driverName} (Unidad #${driverNumber}) - Alerta #${alertId}`);
+    
+    // 5. Notificación del navegador
+    if (Notification.permission === 'granted') {
+        new Notification('🚨 ¡ALERTA DE PÁNICO!', {
+            body: `${driverName} (Unidad #${driverNumber}) ha activado el botón de emergencia`,
+            icon: '/static/imagenes/logo1.png',
+            tag: `panic-${alertId}`,
+            requireInteraction: true,
+        });
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission();
+    }
+}
+
+// Centrar mapa en ubicación de pánico
+function centerMapOnPanic(lat, lng) {
+    if (map && lat && lng) {
+        const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        map.setCenter(position);
+        map.setZoom(17);
+        
+        // Agregar marcador rojo de emergencia
+        if (window._panicMarker) {
+            window._panicMarker.setMap(null);
+        }
+        window._panicMarker = new google.maps.Marker({
+            position: position,
+            map: map,
+            title: '🚨 ALERTA DE PÁNICO',
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                scaledSize: new google.maps.Size(40, 40),
+            },
+            animation: google.maps.Animation.BOUNCE,
+            zIndex: 9999,
+        });
+        
+        console.log('📍 Mapa centrado en ubicación de pánico:', position);
+    }
+}
+
+// Resolver alerta de pánico
+async function resolvePanicAlert(alertId) {
+    try {
+        const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        
+        const response = await fetch(`/api/panic/${alertId}/resolve/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({
+                status: 'resolved',
+                notes: 'Atendida desde la Central de Monitoreo'
+            })
+        });
+        
+        if (response.ok) {
+            console.log(`✅ Alerta #${alertId} resuelta`);
+            dismissPanicBanner();
+            updateAudioLog(`✅ Alerta #${alertId} resuelta por la Central`);
+        } else {
+            const error = await response.json();
+            console.error('❌ Error resolviendo alerta:', error);
+            alert('Error resolviendo la alerta: ' + (error.error || 'Error desconocido'));
+        }
+    } catch (e) {
+        console.error('❌ Error en resolvePanicAlert:', e);
+        alert('Error de conexión al resolver la alerta');
+    }
+}
+
+// Cerrar banner de pánico
+function dismissPanicBanner() {
+    const banner = document.getElementById('panic-alert-banner');
+    if (banner) {
+        banner.style.transition = 'all 0.3s ease';
+        banner.style.transform = 'translateY(-100%)';
+        setTimeout(() => banner.remove(), 300);
+    }
+    // Limpiar marcador de pánico
+    if (window._panicMarker) {
+        window._panicMarker.setMap(null);
+        window._panicMarker = null;
     }
 }
 

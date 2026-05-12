@@ -250,7 +250,14 @@ def send_new_ride_notification_fcm(ride):
     Args:
         ride: Objeto Ride
     """
-    drivers = User.objects.filter(role='driver')
+    if ride.organization:
+        drivers = User.objects.filter(role='driver', organization=ride.organization, is_active=True)
+    else:
+        # Fallback si no hay organización (no debería pasar en multi-tenant)
+        drivers = User.objects.filter(role='driver', is_active=True)
+        
+    if not drivers.exists():
+        return {'success': False, 'error': 'No hay conductores disponibles para notificar'}
     
     title = "🚖 Nueva Carrera Disponible"
     body = f"Origen: {ride.origin}"
@@ -259,7 +266,7 @@ def send_new_ride_notification_fcm(ride):
         'ride_id': str(ride.id),
         'origin': ride.origin,
         'price': str(ride.price) if ride.price else '0',
-        'customer_name': ride.customer.get_full_name()
+        'customer_name': ride.customer.get_full_name() if ride.customer else 'Cliente'
     }
     
     return send_fcm_to_multiple_users(drivers, title, body, data)

@@ -1609,3 +1609,24 @@ class RideTrackingLink(models.Model):
         import uuid
         return uuid.uuid4().hex[:8]
 
+
+# =====================================================
+# SEÑALES (SIGNALS)
+# =====================================================
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Ride)
+def notify_drivers_on_new_ride(sender, instance, created, **kwargs):
+    """
+    Envía notificación FCM a los conductores cuando se crea una nueva carrera,
+    sin importar desde dónde se cree (Web Admin, API, WhatsApp).
+    """
+    if created and instance.status == 'requested':
+        try:
+            from .fcm_notifications import send_new_ride_notification_fcm
+            send_new_ride_notification_fcm(instance)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"❌ Error en señal post_save al notificar conductores: {e}")
